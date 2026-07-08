@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/vp/favicon.ico" type="image/x-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Heatpump Interface</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/char-lcd"></script>
+</head>
+<body>
+  <div class="interface">
+    <!--div id="lcd-display"></div-->
+
+    <!-- Buttons mapped to physical ones -->
+    <div class="virtual-button" id="btn-1" style="top: 588px; left: 399px;">1</div>
+    <div class="virtual-button" id="btn-2" style="top: 588px; left: 515px;">2</div>
+    <div class="virtual-button" id="btn-3" style="top: 588px; left: 630px;">3</div>
+	<div class="virtual-button" id="btn-pwr" style="top: 151px; left: 624px; width: 66px; height: 66px; border-radius:33px;">on/off</div>
+	<div class="encoder-container">
+	  <img id="encoder" src="encoder/step-01.png" alt="Rotary Encoder" />
+	</div>
+	<div class="virtual-button" id="btn-left" style="top: 393px; left: 100px; width: 124px; height: 124px; border-radius:40px;">&larr;</div>
+	<div class="virtual-button" id="btn-right" style="top: 393px; left: 240px; width: 124px; height: 124px; border-radius:40px;">&rarr;</div>
+	
+	<div id=lcd-text style="position: absolute; top: 400px; left: 350px;"></div>
+  </div>
+  
+	<h3>Received (HEX):</h3>
+  <div id="rxCount"></div>
+ <textarea id="outputLog" readonly rows="4" cols="20" ></textarea>
+  <div id="debugButtons"></div>
+  <!--button id="btn-get-lcd-http">get lcd (http get req)</button>
+  <button id="btn-get-lcd-ws">get lcd (websocket)</button-->
+  <script src="main.js"></script>
+</body>
+</html>
