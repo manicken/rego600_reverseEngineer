@@ -1,0 +1,21 @@
+1  RTS? (pin7@dsub, yellow@DBG)
+2  LP (trycksensor)
+3  CTS? (pin8@dsub, white@DBG)
+4  HP (trycksensor)
+5  TXD (pin3@dsub)
+6  GT11 (tempsensor)
+7  GT9  (tempsensor)
+8  GT10 (tempsensor)
+9  DSR? (pin6@dsub, blue@DBG) connected to second 4051(pin14) ch 1 then its read by the ADC LOOP task 
+10 GT8  (tempsensor)
+11 RXD  (pin2@dsub, )
+12 GT6  (tempsensor)
+13 VCC  (pin4@dsub)
+14 GT3  (tempsensor)
+15 VVP  (tempsensor)
+16 GND  (pin5@dsub)
+
+DAT_EXT_MEM_09DC && 09DD är LP sensor raw value registers
+DAT_EXT_MEM_09DA && 09DB är HP sensor raw value registers
+
+DAT_EXTMEM_1b68 1b69 plockar värden ifrån DSR? pin9 ovan den signalen går också till okänt ställe på PCB

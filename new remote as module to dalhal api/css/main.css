@@ -1,0 +1,278 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  color: var(--fg);
+}
+
+/* ── Theme variables ── */
+body.light {
+  --bg-page:    #f4f4f4;
+  --bg-panel:   #ffffff;
+  --bg-input:   #f0f0f0;
+  --bg-sug:     #ffffff;
+  --bg-sug-hover: #e8f0ff;
+  --fg:         #1a1a1a;
+  --fg-muted:   #444;
+  --fg-subtle:  #888;
+  --border:     #ccc;
+  --border-dim: #ddd;
+  --c-green:    #1a7a4a;
+  --c-blue:     #1a5fa0;
+  --c-red:      #c0392b;
+  --c-btn-bg:   #e8e8e8;
+  --c-btn-hover:#d0d0d0;
+}
+body.dark {
+  --bg-page:    #1a1a1a;
+  --bg-panel:   #111;
+  --bg-input:   #161616;
+  --bg-sug:     #1e1e1e;
+  --bg-sug-hover:#2a2a2a;
+  --fg:         #d8d8d8;
+  --fg-muted:   #aaa;
+  --fg-subtle:  #555;
+  --border:     #333;
+  --border-dim: #222;
+  --c-green:    #4caf89;
+  --c-blue:     #7bafd4;
+  --c-red:      #e2694b;
+  --c-btn-bg:   #2a2a2a;
+  --c-btn-hover:#333;
+}
+
+/* ── Top toolbar ── */
+#toolbar {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#btn-container {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#toolbar-top h1 { font-size: 13px; font-weight: bold; color: var(--fg-muted); }
+#theme-toggle {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--c-btn-bg);
+  color: var(--fg);
+}
+#theme-toggle:hover { background: var(--c-btn-hover); }
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+button.cmd-btn {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--c-btn-bg);
+  color: var(--fg);
+  white-space: nowrap;
+}
+button.cmd-btn:hover { background: var(--c-btn-hover); }
+button.cmd-btn.danger { color: var(--c-red); border-color: var(--c-red); }
+
+/* ── Status bar ── */
+#status-bar {
+  flex: 0 0 auto;
+  padding: 3px 12px;
+  font-size: 11px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-subtle);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+#ws-indicator {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #aaa;
+  display: inline-block;
+  flex-shrink: 0;
+}
+#ws-indicator.connected { background: #2ecc71; }
+#ws-indicator.disconnected { background: #e74c3c; }
+
+/* ── Main area: terminal + log side by side ── */
+#main {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  gap: 0;
+}
+
+/* ── Autocomplete terminal ── */
+#terminal-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  min-width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+#terminal-label {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--fg-subtle);
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-dim);
+}
+#autocomplete-output {
+  flex: 1 1 0;
+  padding: 8px 12px;
+  overflow-y: auto;
+  line-height: 1.7;
+  background: var(--bg-panel);
+  color: var(--fg);
+  min-height: 0;
+}
+.line-prompt { color: var(--c-green); font-weight: bold; }
+.line-out    { color: var(--fg-muted); }
+.line-err    { color: var(--c-red); }
+.line-info   { color: var(--c-blue); }
+.line-hint   { color: var(--fg-subtle); font-size: 11px; }
+
+#autocomplete-area { position: relative; }
+#suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 0; right: 0;
+  background: var(--bg-sug);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20;
+  display: none;
+}
+.sug {
+  padding: 5px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  cursor: pointer;
+}
+.sug:hover, .sug.active { background: var(--bg-sug-hover); }
+.sug-name { min-width: 130px; flex-shrink: 0; color: var(--fg); }
+.sug-name.has-children::after { content: ' /'; color: var(--fg-subtle); }
+.sug.active .sug-name { color: var(--c-green); }
+.sug-help { color: var(--fg-subtle); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#input-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-top: 1px solid var(--border-dim);
+  background: var(--bg-input);
+  gap: 5px;
+}
+#prompt-lbl { color: var(--c-green); white-space: nowrap; }
+#cmd-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  flex: 1;
+  caret-color: var(--c-green);
+}
+#key-hint {
+  padding: 3px 12px;
+  font-size: 11px;
+  color: var(--fg-subtle);
+  background: var(--bg-input);
+  border-top: 1px solid var(--border-dim);
+}
+
+/* ── Log pane ── */
+#log-wrap {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-panel);
+}
+#log-label {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--fg-subtle);
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#log-label button {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--c-btn-bg);
+  color: var(--fg);
+}
+#log {
+  flex: 1 1 0;
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: var(--bg-page);
+  color: var(--fg);
+  line-height: 1.6;
+  min-height: 0;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+#log details { margin-bottom: 2px; }
+#log summary {
+  cursor: pointer;
+  color: var(--c-blue);
+  font-size: 12px;
+  padding: 1px 0;
+}
+#log details pre {
+  background: var(--bg-input);
+  border: 1px solid var(--border-dim);
+  padding: 6px 10px;
+  margin: 4px 0 4px 14px;
+  font-size: 11px;
+  white-space: pre;
+  overflow-x: auto;
+  color: var(--fg);
+}

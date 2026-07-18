@@ -1,0 +1,248 @@
+:root {
+  --modal-bg: #ffffff;
+  --modal-fg: #1a1c20;
+  --modal-header-bg: #f4f5f7;
+  --modal-header-fg: #1a1c20;
+  --modal-footer-bg: #f9fafb;
+  --modal-border: #d9dce1;
+  --modal-shadow: 0 12px 32px rgba(20, 20, 30, 0.18);
+  --modal-backdrop-bg: rgba(20, 20, 30, 0.35);
+  --modal-close-hover: #dc2626;
+
+  --input-bg: #ffffff;
+  --input-fg: #1a1c20;
+  --input-border: #cdd2d9;
+  --label-fg: #6b7280;
+
+  --btn-secondary-bg: #eceef1;
+  --btn-secondary-fg: #1a1c20;
+  --btn-secondary-hover-bg: #dfe3e8;
+  --btn-primary-bg: #2563eb;
+  --btn-primary-fg: #ffffff;
+  --btn-primary-hover-bg: #3b76ef;
+
+  --status-ok: #16a34a;
+  --status-err: #dc2626;
+  --status-info: #2563eb;
+}
+
+.modal {
+  position: fixed;
+  z-index: 1000;
+  background: var(--modal-bg);
+  color: var(--modal-fg);
+  border: 1px solid var(--modal-border);
+  border-radius: 8px;
+  box-shadow: var(--modal-shadow);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+}
+
+.modal.modal--open {
+  display: flex;
+}
+
+.modal--dragging {
+  user-select: none;
+}
+
+.modal-header {
+  background: var(--modal-header-bg);
+  color: var(--modal-header-fg);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+  touch-action: none;
+  font-family: sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--modal-border);
+}
+
+.modal--dragging .modal-header {
+  cursor: grabbing;
+}
+
+.modal-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--modal-header-fg);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--modal-close-hover);
+}
+
+.modal-body {
+  overflow: auto;
+  position: relative;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--modal-border);
+  background: var(--modal-footer-bg);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--modal-backdrop-bg);
+  display: none;
+}
+
+.modal-backdrop.modal-backdrop--open {
+  display: block;
+}
+
+.reopen-btn {
+  font-size: 16px;
+  margin: 20px;
+  padding: 10px 16px;
+}
+
+/* ---------- Generic form primitives, for any modal that hosts a form ---------- */
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  font-family: sans-serif;
+}
+
+.form-label {
+  font-size: 13px;
+  color: var(--label-fg);
+}
+
+.form-input-wrap {
+  display: flex;
+  gap: 6px;
+}
+
+.form-input-wrap select,
+.form-input-wrap input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--input-fg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+}
+
+.form-status {
+  min-height: 1.2em;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+
+.form-status.ok {
+  color: var(--status-ok);
+}
+
+.form-status.err {
+  color: var(--status-err);
+}
+
+.form-status.info {
+  color: var(--status-info);
+}
+
+.btn {
+  font-family: sans-serif;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--modal-border);
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+}
+
+.btn-secondary:hover {
+  background: var(--btn-secondary-hover-bg);
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
+}
+
+.btn-primary:hover {
+  background: var(--btn-primary-hover-bg);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Generic control panel (control-panel.js) ---------- */
+
+.control-panel {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.control-panel > .control {
+  position: absolute;
+}
+
+.control-btn {
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.1); /* invisible but clickable, matches physical layout */
+  color: rgba(255, 255, 255, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.control-image {
+  pointer-events: none;
+  user-select: none;
+}
+
+.control-sprite {
+  background-repeat: no-repeat;
+  user-select: none;
+}
+
+.control-text {
+  /* Matches the physical unit's LCD colors (see CharLCD init in
+     rego600-panel.js) rather than the app chrome theme above — left
+     hardcoded on purpose. */
+  color: #d4def4;
+  font-family: monospace;
+}
