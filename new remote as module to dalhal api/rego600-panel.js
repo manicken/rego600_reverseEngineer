@@ -17,28 +17,28 @@ const REGO600_CONTROLS = [
 		type: "button",
 		label: "1",
 		style: { top: "586px", left: "397px", width: "60px", height: "60px", borderRadius: "30px" },
-		action: { type: "setRegister", reg: 0x09, value: 0x01 },
+		action: { type: "frontPanelSetRegister", reg: 0x09, value: 0x01 },
 	},
 	{
 		id: "btn-2",
 		type: "button",
 		label: "2",
 		style: { top: "586px", left: "513px", width: "60px", height: "60px", borderRadius: "30px" },
-		action: { type: "setRegister", reg: 0x0a, value: 0x01 },
+		action: { type: "frontPanelSetRegister", reg: 0x0a, value: 0x01 },
 	},
 	{
 		id: "btn-3",
 		type: "button",
 		label: "3",
 		style: { top: "586px", left: "628px", width: "60px", height: "60px", borderRadius: "30px" },
-		action: { type: "setRegister", reg: 0x0b, value: 0x01 },
+		action: { type: "frontPanelSetRegister", reg: 0x0b, value: 0x01 },
 	},
 	{
 		id: "btn-pwr",
 		type: "button",
 		label: "on/off",
 		style: { top: "151px", left: "624px", width: "66px", height: "66px", borderRadius: "30px" },
-		action: { type: "setRegister", reg: 0x08, value: 0x01 },
+		action: { type: "frontPanelSetRegister", reg: 0x08, value: 0x01 },
 	},
 	{
 		id: "btn-left",
@@ -54,13 +54,140 @@ const REGO600_CONTROLS = [
 		style: { top: "393px", left: "240px", width: "124px", height: "124px", borderRadius: "40px" },
 		action: { type: "encoder", dir: "next" },
 	},
-	/*{
-		id: "encoder",
-		type: "image",
-		src: "encoder/step-01.png",
-		style: { top: "393px", left: "168px", width: "124px", height: "124px" },
-		// No action — it's a display, driven by the encoder buttons above.
-	},*/
+	{
+		id: "btn-request-lcd-data",
+		type: "button",
+		label: "get LCD",
+		style: { top: "40px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "getLcd" },
+	},
+	{
+		id: "btn-request-meny-data",
+		type: "button",
+		label: "get meny",
+		style: { top: "62px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "requestMenySelectedRegister" },
+	},
+	{
+		id: "btn-set-timeout-max",
+		type: "button",
+		label: "set timeout2max",
+		style: { top: "84px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x436, value: 0xFFFF },
+	},
+	{
+		id: "btn-set-meny-5_12",
+		type: "button",
+		label: "set meny 5.12",
+		style: { top: "106px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x447, value: 0x2c9c },
+	},
+	{
+		id: "btn-set-access-kund1",
+		type: "button",
+		label: "set kund1 access",
+		style: { top: "128px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x7b95, value: 0x1 },
+	},
+	{
+		id: "btn-set-access-kund2",
+		type: "button",
+		label: "set kund2 access",
+		style: { top: "150px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x7b95, value: 0x2 },
+	},
+	{
+		id: "btn-set-access-service",
+		type: "button",
+		label: "set service access",
+		style: { top: "172px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x7b95, value: 0x4 },
+	},
+	{
+		id: "btn-set-access-fabric",
+		type: "button",
+		label: "set fabric access",
+		style: { top: "194px", left: "0px", width: "150px", height: "20px",border:"solid 1px", "background-color":"#FFFFFF", color:"#000000" },
+		action: { type: "setRegister", reg: 0x7b95, value: 0x8 },
+	},
+	{
+    id: "lcd-current-menu-data",
+    type: "custom",
+    label: "current menu data (0x447)",
+    def: "hp",
+    style: { top: "0px", left: "250px", width: "124px", height: "32px" },
+    render: (control) => {
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+
+      const label = document.createElement("label");
+      label.htmlFor = control.id;
+      label.textContent = control.label;
+
+      const input = document.createElement("input");
+      input.id = control.id;
+      input.type = "text";
+      input.value = control.def;
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      return container;
+    },
+  },
+  {
+    id: "lcd-current-menu-data2",
+    type: "custom",
+    label: "current menu data (0x446)",
+    def: "hp",
+    style: { top: "0px", left: "125px", width: "124px", height: "32px" },
+    render: (control) => {
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+
+      const label = document.createElement("label");
+      label.htmlFor = control.id;
+      label.textContent = control.label;
+
+      const input = document.createElement("input");
+      input.id = control.id;
+      input.type = "text";
+      input.value = control.def;
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      return container;
+    },
+  },
+  {
+    id: "lcd-current-menu-data3",
+    type: "custom",
+    label: "current menu data (0x448)",
+    def: "hp",
+    style: { top: "0px", left: "376px", width: "124px", height: "32px" },
+    render: (control) => {
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+
+      const label = document.createElement("label");
+      label.htmlFor = control.id;
+      label.textContent = control.label;
+
+      const input = document.createElement("input");
+      input.id = control.id;
+      input.type = "text";
+      input.value = control.def;
+
+      container.appendChild(label);
+      container.appendChild(input);
+
+      return container;
+    },
+  },
 	{
 		id: "encoder",
 		type: "sprite",
@@ -136,17 +263,37 @@ function rego600PrevEncoderFrame() {
 function makeRego600Dispatcher(panel) {
 	return function rego600Dispatch(action, control) {
 		switch (action.type) {
+			case "frontPanelSetRegister":
+			  
+				REGO600_FrontPanelSet(action.reg, action.value);
+				break;
+				
+			case "getRegister":
+			  
+				REGO600_RegisterGet(action.reg);
+				break;
+				
 			case "setRegister":
-			  const dalhal_uid = document.getElementById("dalhal_uid").value;
-				REGO600_FrontPanelSet(dalhal_uid, control.action.reg, action.value);
+			  
+				REGO600_RegisterSet(action.reg, action.value);
+				break;
+				
+			case "getLcd":
+			  
+				REGO600_requestLCD();
 				break;
 
 			case "encoder": {
-			  const dalhal_uid = document.getElementById("dalhal_uid").value;
+			  
 				const frame = action.dir === "next" ? rego600NextEncoderFrame() : rego600PrevEncoderFrame();
 				panel.updateSprite("encoder", frame);
-				REGO600_FrontPanelSet(dalhal_uid, 0x44, action.dir === "next" ? 0x01 : 0x1fffff);
+				REGO600_FrontPanelSet(0x44, action.dir === "next" ? 0x01 : 0x1fffff);
 				break;
+			}
+			
+			case "requestMenySelectedRegister": {
+			  REGO600_requestMenySelectedRegister447()
+			  break;
 			}
 
 			case "wsCmd":
@@ -209,6 +356,7 @@ function createRego600ControlModal() {
 	rego600LcdText.font(7, [0x00, 0x01, 0x01, 0x01, 0x1f, 0x01, 0x01, 0x01]);
 	rego600LcdText.font(8, [0x00, 0x10, 0x10, 0x10, 0x1f, 0x10, 0x10, 0x10]);
 	rego600LcdText.font(9, [0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f]);
+	rego600LcdText.font(0xff, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
 
 	// main.js's ws_rx_lcd_data_parse() writes into the module-level
 	// `lcdText` variable — point it at this instance.
@@ -221,22 +369,8 @@ function createRego600ControlModal() {
 
 document.addEventListener("DOMContentLoaded", () => {
 	createRego600ControlModal();
-
-	/*document.getElementById("btn-open-panel")?.addEventListener("click", () => {
-		rego600Modal.open();
-	});*/
 });
 
-function REGO600_ws_rx_data_parse(data) {
-  if (data.tag == "rego600/systemregister/write") {
-    const dalhal_uid = document.getElementById("dalhal_uid").value;
-    REGO600_requestLCD(dalhal_uid);
-  } else if (data.tag == "rego600/lcd") {
-    ws_rx_lcd_data_parse(data.data.lines);
-  } else {
-    console.log(data);
-  }
-}
 
 function ws_rx_lcd_data_parse(data) {
 	let lcdTextJoin = Object.values(data).join('\n');
@@ -246,7 +380,17 @@ function ws_rx_lcd_data_parse(data) {
 		lcdTextJoin = lcdTextJoin.replaceAll('ß','°');
 		
 	}
-	console.log(lcdTextJoin);
+	//console.log(lcdTextJoin);
+	console.log(
+  [...lcdTextJoin]
+    .map(c => {
+      const code = c.charCodeAt(0);
+      return (code < 0x20 || code > 0x7E)
+        ? `\\x${code.toString(16).padStart(2, "0")}`
+        : c;
+    })
+    .join("")
+);
 	//outputElement.textContent = lcdTextJoin;
 	//lcdElement.textContent = lcdTextJoin;
 	// Map UNICODE string to the internal character set:
@@ -258,33 +402,83 @@ function ws_rx_lcd_data_parse(data) {
 	lcdTextJoin = lcdTextJoin.replaceAll('\u2586','\x06');
 	lcdTextJoin = lcdTextJoin.replaceAll('\u2587','\x07');
 	lcdTextJoin = lcdTextJoin.replaceAll('\u2588','\x08');
-	lcdTextJoin = lcdTextJoin.replaceAll('ÿ','\x09');
+	lcdTextJoin = lcdTextJoin.replaceAll('\uC3BF','\x09');
 	lcdText.text(0, 0, lcdTextJoin);
 }
 
 customParsers.push((tag, text) => {
     if (tag == "rego600/systemregister/write") {
-      const dalhal_uid = document.getElementById("dalhal_uid").value;
-      REGO600_requestLCD(dalhal_uid);
-      return true;
+      let data = JSON.parse(text);
+      const regIndexValue = parseInt(data.regIndex, 16);
+      if (regIndexValue >= 0x7b65/*0x8*/ && regIndexValue <= 0x7b68/*0xB*/ || regIndexValue == 0x7ba1/*0x44*/) {
+        REGO600_requestLCD();
+        return true;
+      } else {
+        console.log("unhandled regIndexValue:" + regIndexValue);
+      }
+    } else if (tag == "rego600/systemregister/read") {
+       let data = JSON.parse(text);
+       const regIndexValue = parseInt(data.regIndex, 16);
+       if (regIndexValue == 0x447) {
+        document.getElementById("lcd-current-menu-data").value = data.hex;
+        REGO600_requestMenySelectedRegister446();
+        return true;
+       } else if (regIndexValue == 0x446) {
+        document.getElementById("lcd-current-menu-data2").value = data.hex;
+        //REGO600_requestMenySelectedRegister448();
+        return true;
+       } else if (regIndexValue == 0x448) {
+        document.getElementById("lcd-current-menu-data3").value = data.hex;
+        
+        return true;
+       }
     } else if (tag == "rego600/lcd") {
       let data = JSON.parse(text);
       ws_rx_lcd_data_parse(data.lines);
+      
+      REGO600_requestMenySelectedRegister447();
       return true;
     }
     return false;
 });
 
+
+function REGO600_getUID()
+{
+    return document.getElementById("dalhal_uid").value;
+}
+
 const SYSREG_BASE      = 0x12EC;
 const REGO_REG_BASE    = 0x10000 + 0x09A6;
 
-function REGO600_FrontPanelSet(dalhal_uid, regAddr, value) {
-    const index = ((REGO_REG_BASE + (regAddr << 1)) - SYSREG_BASE) >> 1;
 
-    wsSend(`hal/write/string/${dalhal_uid}#sysreg/${index}/${value}`);
+function REGO600_FrontPanelSet(regIndex, value) {
+  const index = ((REGO_REG_BASE + (regIndex << 1)) - SYSREG_BASE) >> 1;
+
+  wsSend(`hal/write/string/${REGO600_getUID()}#sysreg/${index}/${value}`);
 }
-function REGO600_requestLCD(dalhal_uid) {
-    wsSend(`hal/read/string/${dalhal_uid}#lcd`);
+
+function REGO600_requestLCD() {
+  wsSend(`hal/read/string/${REGO600_getUID()}#lcd`);
+}
+
+function REGO600_requestMenySelectedRegister446() {
+  wsSend(`hal/read/string/${REGO600_getUID()}#sysreg/0x446`);
+}
+
+function REGO600_requestMenySelectedRegister447() {
+  wsSend(`hal/read/string/${REGO600_getUID()}#sysreg/0x447`);
+}
+function REGO600_requestMenySelectedRegister448() {
+  wsSend(`hal/read/string/${REGO600_getUID()}#sysreg/0x448`);
+}
+
+function REGO600_RegisterGet(regIndex) {
+  wsSend(`hal/read/string/${REGO600_getUID()}#sysreg/${regIndex}`);
+}
+
+function REGO600_RegisterSet(regIndex, value) {
+  wsSend(`hal/write/string/${REGO600_getUID()}#sysreg/${regIndex}/${value}`);
 }
 
 registerToolbarButton(
