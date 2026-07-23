@@ -1,21 +1,32 @@
-1  RTS? (pin7@dsub, yellow@DBG)
+1  allways LOW level connected to second 4094 Q7 (pin7 @ dsub9)
 2  LP (trycksensor)
-3  CTS? (pin8@dsub, white@DBG)
+3  Not connected (pin8 @ dsub9)
 4  HP (trycksensor)
-5  TXD (pin3@dsub)
+5  TXD (pin3 @ dsub9)
 6  GT11 (tempsensor)
 7  GT9  (tempsensor)
 8  GT10 (tempsensor)
-9  DSR? (pin6@dsub, blue@DBG) connected to second 4051(pin14) ch 1 then its read by the ADC LOOP task 
+9  (pin6 @ dsub9) connected to second 4051(pin14) ch 1 then its read by the ADC LOOP task, could be some ADC test feedback
 10 GT8  (tempsensor)
-11 RXD  (pin2@dsub, )
+11 RXD  (pin2 @ dsub9)
 12 GT6  (tempsensor)
-13 VCC  (pin4@dsub)
+13 VCC  (pin4 @ dsub9)
 14 GT3  (tempsensor)
 15 VVP  (tempsensor)
-16 GND  (pin5@dsub)
+16 GND  (pin5 @ dsub9)
 
 DAT_EXT_MEM_09DC && 09DD är LP sensor raw value registers
 DAT_EXT_MEM_09DA && 09DB är HP sensor raw value registers
 
-DAT_EXTMEM_1b68 1b69 plockar värden ifrån DSR? pin9 ovan den signalen går också till okänt ställe på PCB
+DAT_EXTMEM_1b68 1b69 plockar värden ifrån pin9 ovan
+
+17->1  EXT (control input)
+18->2  SUMMA LARM 
+19->3  GT5
+20->4  SUMMA LARM
+21->5  GT4
+22->6  ALARM LED +
+23->7  GT3x
+24->8  GT1
+25->9  GT2
+26->10 GND
