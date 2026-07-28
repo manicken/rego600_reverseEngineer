@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>80C552 Simulator (js51-based)</title>
+<style>
+  body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e; color:#ddd; margin:0; padding:16px; }
+  h1 { font-size:16px; color:#fff; }
+  h2 { font-size:13px; color:#9cdcfe; margin-bottom:6px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .panel { background:#252526; border:1px solid #3c3c3c; border-radius:6px; padding:10px 14px; margin-bottom:12px; }
+  button { background:#0e639c; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:12px; margin-right:4px;}
+  button:hover { background:#1177bb; }
+  button.toggle-on { background:#3c9a3c; }
+  input[type=text], input[type=number], input[type=file] { background:#3c3c3c; color:#eee; border:1px solid #555; border-radius:3px; padding:3px 6px; font-family:inherit; }
+  table { border-collapse: collapse; font-size:12px; }
+  td, th { padding:2px 8px; text-align:left; }
+  .reg { color:#4ec9b0; }
+  .val { color:#ce9178; }
+  #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
+  .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
+  .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
+  small { color:#888; }
+</style>
+</head>
+<body>
+<h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
+
+<div class="panel">
+  <h2>Firmware</h2>
+  <input type="file" id="fw_file">
+  <small>Accepts Intel HEX (.hex) or raw binary (.bin) loaded into on-chip ROM / IDATA[0000-1FFFH]</small>
+  <br><br>
+  <button id="btn_reset">Reset</button>
+  <button id="btn_step">Step 1</button>
+  <button id="btn_step100">Step 100</button>
+  <button id="btn_run">Run</button>
+  <button id="btn_stop">Stop</button>
+  <span id="run_status" style="margin-left:10px;color:#888;"></span>
+</div>
+
+<div class="row">
+  <div class="panel" style="min-width:220px;">
+    <h2>Core Registers</h2>
+    <table id="regs"></table>
+  </div>
+
+  <div class="panel" style="min-width:260px;">
+    <h2>External Memory Bus (P4 GPIO)</h2>
+    <div id="p4bits"></div>
+    <div style="margin-top:8px;">
+      Bank: <span id="bank_state" class="val">-</span> &nbsp;
+      Ext addr (A16-A18): <span id="ext_state" class="val">-</span>
+    </div>
+    <small>P4.0 = bank select (0=SRAM 32K, 1=AM29F040 flash) · P4.1-3 = A16-A18 into flash</small>
+  </div>
+
+  <div class="panel" style="min-width:260px;">
+    <h2>ADC (P5.0-P5.7 analog inputs)</h2>
+    <div id="adc_channels"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="panel" style="flex:1; min-width:320px;">
+    <h2>SRAM (62256) — first 256 bytes</h2>
+    <div class="memdump" id="sram_dump"></div>
+  </div>
+  <div class="panel" style="flex:1; min-width:320px;">
+    <h2>Flash (AM29F040) — window around DPTR/ext bank, 256 bytes</h2>
+    <div class="memdump" id="flash_dump"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Log</h2>
+  <div id="log"></div>
+</div>
+
+<!-- vendor js51 core (unmodified) -->
+<script src="../vendor/51vm_core.js"></script>
+<script src="../vendor/51vm_operand.js"></script>
+<script src="../vendor/51vm_operation.js"></script>
+<script src="../vendor/51vm_opcode_decoder.js"></script>
+<script src="../vendor/51vm_ctl.js"></script>
+<script src="../vendor/hex_decoder.js"></script>
+
+<!-- 80C552 extension -->
+<script src="../80c552/80c552_sfr.js"></script>
+<script src="../80c552/80c552_adc.js"></script>
+<script src="../80c552/device_62256.js"></script>
+<script src="../80c552/device_am29f040.js"></script>
+<script src="../80c552/membus.js"></script>
+<script src="../80c552/i2c_bus.js"></script>
+<script src="../80c552/80c552.js"></script>
+
+<script>
+let cpu = null;
+let running = false;
+let runHandle = null;
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+
+function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }
+
+function initCpu() {
+  cpu = create_80c552({
+    adcChannels: [0, 0, 0, 0, 0, 0, 0, 0],
+  });
+  cpu.reset();
+  log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
+  render();
+}
+
+function renderRegs() {
+  const t = document.getElementById('regs');
+  const rows = [
+    ['PC', hex(cpu.PC.get(), 4)],
+    ['A', hex(cpu.A.get())],
+    ['B', hex(cpu.B.get())],
+    ['PSW', hex(cpu.PSW.get())],
+    ['SP', hex(cpu.SP.get())],
+    ['DPTR', hex(cpu.DPTR.get(), 4)],
+    ['P0', hex(cpu.P0.get())], ['P1', hex(cpu.P1.get())],
+    ['P2', hex(cpu.P2.get())], ['P3', hex(cpu.P3.get())],
+    ['P4', hex(cpu.P4.get())], ['P5', hex(cpu.P5.get())],
+    ['ADCON', hex(cpu.ADCON.get())], ['ADCH', hex(cpu.ADCH.get())],
+    ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
+  ];
+  t.innerHTML = rows.map(([k,v]) => `<tr><td class="reg">${k}</td><td class="val">${v}</td></tr>`).join('');
+}
+
+function renderBus() {
+  const div = document.getElementById('p4bits');
+  const p4 = cpu.P4._value;
+  let html = '';
+  for (let bit = 7; bit >= 0; --bit) {
+    const on = (p4 >> bit) & 1;
+    const label = bit === cpu.bus.bankSelectBit ? 'BANK'
+                : cpu.bus.addrExtBits.includes(bit) ? 'A' + (16 + cpu.bus.addrExtBits.indexOf(bit))
+                : 'P4.' + bit;
+    html += `<div class="pinbit"><button class="${on ? 'toggle-on' : ''}" data-bit="${bit}" onclick="toggleP4Bit(${bit})">${on}</button>${label}</div>`;
+  }
+  div.innerHTML = html;
+  const sel = cpu.bus.readSelect();
+  document.getElementById('bank_state').textContent = sel.bank === 1 ? 'FLASH' : 'SRAM';
+  document.getElementById('ext_state').textContent = hex(sel.ext, 1) + ' (A18:16=' + sel.ext.toString(2).padStart(3,'0') + ')';
+}
+
+function toggleP4Bit(bit) {
+  const cur = cpu.P4._value;
+  cpu.P4.set(cur ^ (1 << bit));
+  render();
+}
+
+function renderAdc() {
+  const div = document.getElementById('adc_channels');
+  let html = '';
+  for (let ch = 0; ch < 8; ++ch) {
+    const v = cpu.adc.channels[ch];
+    html += `<div>CH${ch} (P5.${ch}): <input type="number" step="0.01" min="0" max="${cpu.adc.vref}" value="${v}" style="width:70px" onchange="setAdcChannel(${ch}, this.value)"> V</div>`;
+  }
+  div.innerHTML = html;
+}
+
+function setAdcChannel(ch, v) {
+  cpu.adc.setChannelVoltage(ch, parseFloat(v));
+}
+
+function renderMemDumps() {
+  const sramLines = [];
+  for (let row = 0; row < 16; ++row) {
+    let line = hex(row*16,4) + ': ';
+    for (let c = 0; c < 16; ++c) line += cpu.bus.sram.read(row*16+c).toString(16).padStart(2,'0') + ' ';
+    sramLines.push(line);
+  }
+  document.getElementById('sram_dump').textContent = sramLines.join('\n');
+
+  const sel = cpu.bus.readSelect();
+  const base = (sel.ext << 16) & (cpu.bus.flash.size - 1);
+  const flashLines = [];
+  for (let row = 0; row < 16; ++row) {
+    let line = hex(base+row*16,5) + ': ';
+    for (let c = 0; c < 16; ++c) line += cpu.bus.flash.read(base+row*16+c).toString(16).padStart(2,'0') + ' ';
+    flashLines.push(line);
+  }
+  document.getElementById('flash_dump').textContent = flashLines.join('\n');
+}
+
+function render() {
+  renderRegs();
+  renderBus();
+  renderAdc();
+  renderMemDumps();
+}
+
+document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(); };
+document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
+document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
+document.getElementById('btn_run').onclick = () => {
+  if (running) return;
+  running = true;
+  document.getElementById('run_status').textContent = 'running...';
+  runHandle = setInterval(() => {
+    cpu.next(2000);
+    render();
+    if (cpu.error_info.code !== CPU_NO_ERROR) {
+      log('stopped: error ' + cpu.error_info.code + ' at ' + hex(cpu.error_info.addr,4));
+      stopRun();
+    }
+  }, 30);
+};
+document.getElementById('btn_stop').onclick = stopRun;
+function stopRun() {
+  running = false;
+  document.getElementById('run_status').textContent = '';
+  if (runHandle) clearInterval(runHandle);
+}
+
+document.getElementById('fw_file').onchange = function () {
+  const file = this.files[0];
+  if (!file) return;
+  const isHex = /\.(hex|ihx)$/i.test(file.name);
+  const reader = new FileReader();
+  if (isHex) {
+    reader.onloadend = () => {
+      cpu.IDATA = decode_ihex(reader.result);
+      cpu.reset();
+      log('Loaded Intel HEX: ' + file.name);
+      render();
+    };
+    reader.readAsText(file);
+  } else {
+    reader.onloadend = () => {
+      const bytes = new Uint8Array(reader.result);
+      cpu.IDATA = Array.from(bytes);
+      cpu.reset();
+      log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
+      render();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+};
+
+initCpu();
+</script>
+</body>
+</html>
