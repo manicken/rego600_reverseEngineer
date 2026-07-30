@@ -23,9 +23,10 @@ _51cpu.prototype.execute_one = function () {
         }
     }
 
-    if (this.irq) {
+    if (this.irq && this.currentIRQ < 0) {
         let irqn = this.irq();
         if (irqn >= 0) {
+			cpu.currentIRQ = irqn;
             this.op_call((irqn << 3) + 3)
         }
     }
@@ -165,6 +166,7 @@ _51cpu.prototype.__execute_decode_30_3F = function (opcode) {
         for (let l of this.interrupt_end_linstener) {
             l()
         }
+		this.currentIRQ = -1;
     } else if (opcode.test(0x33)) {
         // RLC A
         let psw = this.PSW.get()

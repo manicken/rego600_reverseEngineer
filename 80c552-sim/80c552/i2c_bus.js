@@ -82,7 +82,9 @@ I2CBus.prototype.detach = function (address7) {
  * @param {_51cpu} cpu
  * @param {I2CBus} bus
  */
+let _cpu = null;
 function install_i2c_master(cpu, bus) {
+	_cpu = cpu;
     const S1CON = cpu.S1CON
     const S1STA = cpu.S1STA
     const S1DAT = cpu.S1DAT
@@ -94,10 +96,28 @@ function install_i2c_master(cpu, bus) {
     let activeDevice = null
 
     function setStatus(code) { S1STA._value = code & 0xFF }
-    function setSI() { S1CON._value = S1CON._value | I2C_BIT.SI }
+    function setSI() { S1CON._value = S1CON._value | I2C_BIT.SI;  /*_cpu.interruptPending.i2c = true;*/ }
+	
+	cpu.irqEmitters.push(function() {
+		if ((S1CON._value & I2C_BIT.SI) &&
+			(S1CON._value & I2C_BIT.ENS1)) {
+			//console.log("i2c irq");
+			return 5;
+		}
+		return -1;
+	});
+	
+
 
     S1CON.setlistener.push((oldval, newval) => {
         if (!(newval & I2C_BIT.ENS1)) return // SIO1 disabled: ignore bus activity
+		
+		/*console.log(
+			"S1CON change",
+			oldval.toString(16),
+			"->",
+			newval.toString(16)
+		);*/
 
         const staRising = (newval & I2C_BIT.STA) && !(oldval & I2C_BIT.STA)
         const siFalling = !(newval & I2C_BIT.SI) && (oldval & I2C_BIT.SI)
@@ -112,6 +132,7 @@ function install_i2c_master(cpu, bus) {
         }
 
         if (staRising) {
+			//console.log("I2C START detected");
             // (repeated) START - real hardware distinguishes 0x08 vs 0x10
             // only when a transfer was already in progress
             const repeated = fsm !== "idle"
@@ -119,10 +140,12 @@ function install_i2c_master(cpu, bus) {
             activeDevice = null; activeAddr = -1
             setStatus(repeated ? 0x10 : 0x08)
             setSI()
+			//console.log("S1CON after SI set:", S1CON._value.toString(16));
             return
         }
 
         if (siFalling) {
+			//console.log("I2C siFalling detected");
             const aa = newval & I2C_BIT.AA
 
             if (fsm === "addr-pending") {
@@ -132,6 +155,7 @@ function install_i2c_master(cpu, bus) {
                 const dev = bus.devices.get(addr7)
                 const ack = dev ? dev.start(isRead) : false
 
+				//console.log("address rx:" + addr7,dev);
                 if (ack) {
                     activeDevice = dev; activeAddr = addr7
                     fsm = isRead ? "rx" : "tx"

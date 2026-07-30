@@ -63,11 +63,29 @@
     <h2>ADC (P5.0-P5.7 analog inputs)</h2>
     <div id="adc_channels"></div>
   </div>
+  <div class="panel" style="flex:1; min-width:320px;">
+    <h2>LCD Data (decoded from i2c IF)</h2>
+    <div class="memdump" id="lcd_data"></div>
+  </div>
 </div>
 
 <div class="row">
   <div class="panel" style="flex:1; min-width:320px;">
-    <h2>SRAM (62256) — first 256 bytes</h2>
+    <h2>INTERNAL RAM</h2>
+    <div class="memdump" id="iram_dump"></div>
+  </div>
+  <div class="panel" style="flex:1; min-width:320px;">
+    <h2>SRAM (62256) — 256 bytes window</h2>
+	<label for="xram_index">Index(0-127):</label>
+<input
+    type="number"
+    id="xram_index"
+    name="value"
+    min="0"
+    max="127"
+    step="1"
+    value="10"
+	oninput="render_XRAM_window()">
     <div class="memdump" id="sram_dump"></div>
   </div>
   <div class="panel" style="flex:1; min-width:320px;">
@@ -95,10 +113,15 @@
 <script src="../80c552/device_62256.js"></script>
 <script src="../80c552/device_am29f040.js"></script>
 <script src="../80c552/membus.js"></script>
+<script src="../80c552/i2c_bus.js"></script>
 <script src="../80c552/80c552.js"></script>
+
+<script src="builtin_code.js"></script>
+<script src="builtin_data.js"></script>
 
 <script>
 let cpu = null;
+let i2cBus = null;
 let running = false;
 let runHandle = null;
 
@@ -109,16 +132,84 @@ function log(msg) {
 }
 
 function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }
-
+let current_i2c_write = [];
+let currentWriteIndex = 0;
+let currentReadIndex = 0;
+let lcd_data = [];
+let lcd_row = 0;
+let lcd_col = 0;
 function initCpu() {
+  i2cBus = new I2CBus();
+	i2cBus.attach(0x08, {
+	  start(isRead) { 
+	    if (isRead) {
+		    /*console.log("i2c start read");*/
+			currentReadIndex=0;
+		} 
+		else {
+			currentWriteIndex = 0;
+			current_i2c_write = [];
+		}
+		return true;
+	  },      // ACK/NACK
+	  write(databyte)   {
+	    if (currentWriteIndex == 0) { lcd_row = databyte; }
+		else if (currentWriteIndex == 1) { lcd_col = databyte; }
+		else if (currentWriteIndex == 2) { lcd_data[lcd_row*20 + lcd_col] = databyte; }
+		
+		current_i2c_write[currentWriteIndex++] = databyte; return true;
+	  }, // master skriver till dig
+	  read()        {
+		/*console.log("i2c read");*/ 
+		if (currentReadIndex<1) {currentReadIndex++;} 
+		else {return 0xFF;}
+		
+		return 0x00; 
+	  },  // master klockar ut en byte
+	  stop()        { 
+		let databytes = "";
+		for (let i=0;i<currentWriteIndex;i++) {
+			if (i>0) { databytes += " "; }
+			databytes += hex(current_i2c_write[i]);
+		}
+		//console.log("i2c stop: " + databytes); 
+		//console.log("i2c write (" +(currentWriteIndex++)+ ") - " + hex(databyte));  
+	  }
+	});
+
   cpu = create_80c552({
-    adcChannels: [0, 0, 0, 0, 0, 0, 0, 0],
+    adcChannels: [0, 0, 0, 0, 0, 0, 0, 0], i2cBus:i2cBus
   });
+  
+  if (builtin_flashCodeData) {
+	cpu.IDATA = builtin_flashCodeData;
+  }
+  if(builtin_flashData) {
+	cpu.bus.flash.loadImage(builtin_flashData);
+  }
+  
   cpu.reset();
+  
+  cpu.PSW.setlistener.push((oldval, newval) => {
+	let oldBank = oldval & 0x18;
+    let newBank = newval & 0x18;
+	if (oldBank !== newBank) {
+        console.log(
+            "PSW Bank switch at PC=" + hex(cpu.PC.value) +
+            " : " +
+            hex(oldBank) +
+            " -> " +
+            hex(newBank)
+        );
+    }
+  });
+  
+  
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
   render();
+  console.log(cpu);
 }
-
+/*
 let regElements = undefined;
 
 function initRegs() {
@@ -171,14 +262,15 @@ function renderRegs() {
         if (regElements[k].textContent !== values[k])
             regElements[k].textContent = values[k];
     }
-}
+}*/
 
-/*function renderRegs() {
+function renderRegs() {
   const t = document.getElementById('regs');
   const rows = [
     ['PC', hex(cpu.PC.get(), 4)],
     ['A', hex(cpu.A.get())],
     ['B', hex(cpu.B.get())],
+	['A', hex(cpu.A.get())],
     ['PSW', hex(cpu.PSW.get())],
     ['SP', hex(cpu.SP.get())],
     ['DPTR', hex(cpu.DPTR.get(), 4)],
@@ -189,7 +281,7 @@ function renderRegs() {
     ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
   ];
   t.innerHTML = rows.map(([k,v]) => `<tr><td class="reg">${k}</td><td class="val">${v}</td></tr>`).join('');
-}*/
+}
 
 function renderBus() {
     const div = document.getElementById('p4bits');
@@ -290,16 +382,55 @@ function setAdcChannel(ch, v) {
   cpu.adc.setChannelVoltage(ch, parseFloat(v));
 }
 
-function renderMemDumps() {
-  const sramLines = [];
+function printPrintable(value) {
+    if (value >= 0x20 && value <= 0x7E) {
+        return String.fromCharCode(value);
+    }
+    return '';
+}
+
+function render_LCD() {
+	
+let lcd_text = "";
+  for (let r=0;r<4;r++) {
+    for (let c=0;c<20;c++) {
+	lcd_text += String.fromCharCode(lcd_data[r*20+c]);
+	}
+	lcd_text += "\n";
+  }
+  document.getElementById('lcd_data').textContent = lcd_text;
+}
+
+function render_IRAM() {
+	const iramLines = [];
   for (let row = 0; row < 16; ++row) {
     let line = hex(row*16,4) + ': ';
-    for (let c = 0; c < 16; ++c) line += cpu.bus.sram.read(row*16+c).toString(16).padStart(2,'0') + ' ';
+    for (let c = 0; c < 16; ++c) line += cpu.IRAM[row*16+c].toString(16).padStart(2,'0') + ' ';
+    iramLines.push(line);
+  }
+  document.getElementById('iram_dump').textContent = iramLines.join('\n');
+}
+let prev_xram_index = 0;
+function render_XRAM_window() {
+  let xram_index = parseInt(document.getElementById('xram_index').value);
+  if (Number.isNaN(xram_index)) {
+	xram_index = prev_xram_index;
+  } else {
+	prev_xram_index = xram_index;
+  }
+  const sramLines = [];
+  for (let row = 0; row < 16; ++row) {
+    let line = hex(row*16 + xram_index*256,4) + ': ';
+	let ascii_text = "";
+    for (let c = 0; c < 16; ++c){ let value = cpu.bus.sram.read(row*16+c + xram_index*256); line += value.toString(16).padStart(2,'0') + ' '; ascii_text += printPrintable(value);}
+	line += ascii_text;
     sramLines.push(line);
   }
   document.getElementById('sram_dump').textContent = sramLines.join('\n');
+}
 
-  const sel = cpu.bus.readSelect();
+function render_DATA_FLASH_window() {
+	const sel = cpu.bus.readSelect();
   const base = (sel.ext << 16) & (cpu.bus.flash.size - 1);
   const flashLines = [];
   for (let row = 0; row < 16; ++row) {
@@ -310,11 +441,18 @@ function renderMemDumps() {
   document.getElementById('flash_dump').textContent = flashLines.join('\n');
 }
 
+function renderMemDumps() {
+  render_IRAM();
+  render_XRAM_window();
+  render_DATA_FLASH_window();  
+  render_LCD();
+}
+
 function render() {
   renderRegs();
-  //renderBus();
-  //renderAdc();
-  //renderMemDumps();
+  renderBus();
+  renderAdc();
+  renderMemDumps();
 }
 
 document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(); };
@@ -340,6 +478,19 @@ function stopRun() {
   if (runHandle) clearInterval(runHandle);
 }
 
+function dumpHex(bytes, bytesPerLine = 32) {
+	let dumpText = "";
+    for (let i = 0; i < bytes.length; i += bytesPerLine) {
+        let line = Array.from(bytes.slice(i, i + bytesPerLine))
+            .map(b => "0x" + b.toString(16).toUpperCase().padStart(2, "0"))
+            .join(", ");
+		dumpText += line + ",\n";
+        //console.log(line + ",");
+    }
+	console.log(dumpText);
+}
+
+
 document.getElementById('fw_file').onchange = function () {
   const file = this.files[0];
   if (!file) return;
@@ -357,6 +508,8 @@ document.getElementById('fw_file').onchange = function () {
     reader.onloadend = () => {
       const bytes = new Uint8Array(reader.result);
       cpu.IDATA = Array.from(bytes);
+	  //dumpHex(cpu.IDATA);
+	  //console.log(cpu.IDATA.join(", "));
       cpu.reset();
       log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
       render();
@@ -381,6 +534,8 @@ document.getElementById('data_flash_file').onchange = function () {
     reader.onloadend = () => {
       const bytes = new Uint8Array(reader.result);
       let myFirmwareBytes = Array.from(bytes);
+	  //dumpHex(myFirmwareBytes);
+	  //console.log(myFirmwareBytes.join(", "));
 	  cpu.bus.flash.loadImage(myFirmwareBytes);
       log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
       render();

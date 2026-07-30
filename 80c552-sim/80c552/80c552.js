@@ -38,7 +38,9 @@
  * @returns {_51cpu}
  */
 function create_80c552(opts = {}) {
-    const cpu = new _51cpu(opts.iramSize ?? 0x100, 0x10000)
+    const cpu = new _51cpu(opts.iramSize ?? 0x100, 0x10000);
+	
+	
 
     install_80c552_peripherals(cpu)
 
@@ -55,8 +57,45 @@ function create_80c552(opts = {}) {
     })
 
     if (opts.i2cBus) {
-        install_i2c_master(cpu, opts.i2cBus)
+        install_i2c_master(cpu, opts.i2cBus);
+		console.log("i2c master initierad");
     }
+	
+	/*cpu.interruptPending = {
+		timer0: false,
+		uart: false,
+		i2c: false,
+	};*/
+	
+	cpu.irq = function() {
+    if (cpu.irqEmitters) {
+        for (let i = 0; i < cpu.irqEmitters.length; i++) {
+            let vector = cpu.irqEmitters[i]();
+
+            if (vector >= 0) {
+                return vector;
+            }
+        }
+    }
+
+    return -1;
+}
+	
+	/*cpu.irq = function () {
+		//console.log("interrupt check");
+		if (cpu.interruptPending.i2c) {
+			cpu.interruptPending.i2c = false;
+			return 5; // vector number
+		} else if (cpu.interruptPending.timer0) {
+			cpu.interruptPending.timer0 = false;
+			return 1; // vector number
+		} else if (cpu.interruptPending.uart) {
+			cpu.interruptPending.uart = false;
+			return 4; // vector number
+		}
+
+		return -1;
+	}*/
 
     return cpu
 }
