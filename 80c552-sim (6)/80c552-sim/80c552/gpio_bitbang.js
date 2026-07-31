@@ -118,36 +118,11 @@ DS1302.prototype._daysInMonth = function (month, year2digit) {
  * a no-op, matching real hardware.
  */
 DS1302.prototype.tick = function () {
-    
     if (this.clock[0] & 0x80) return // CH set: oscillator halted
-    //console.log("ds1302 tick");
-    // 1 seconds 
-    /*this.clock[0]++;
-    if (this.clock[0] >= 10) {
-        this.clock[0] = 0;
-        // 10 seconds
-        this.clock[1]++;
-        if (this.clock[1] >= 6) {
-            this.clock[1] = 0;
-            // 1 minutes
-            this.clock[2]++;
-            if (this.clock[2] >= 10) {
-                this.clock[2] = 0;
-                // 10 minutes
-                this.clock[3]++;
-                if (this.clock[3] >= 6) {
-                    this.clock[3] = 0;
-                    
-                    _incHour();
-                }
-            }
-        }
-    }*/
+
     let sec = ds1302_fromBCD(this.clock[0] & 0x7F) + 1
     if (sec >= 60) { sec = 0; this._incMinute() }
-    this.clock[0] = ds1302_toBCD(sec);
-
-    //console.log(this.clock);
+    this.clock[0] = (this.clock[0] & 0x80) | ds1302_toBCD(sec)
 }
 
 DS1302.prototype._incMinute = function () {
@@ -204,16 +179,7 @@ DS1302.prototype._beginTransaction = function () {
 }
 
 DS1302.prototype._decodeCmd = function () {
-    // DS1302 commands must have bit 7 set
-    if ((this._cmdByte & 0x80) === 0) {
-        //console.log("DS1302 ignore invalid cmd", hex(this._cmdByte));
-        this._phase = "idle";
-        this._bitPos = 0;
-        this._cmdByte = 0;
-        return;
-    }
     const c = this._cmdByte
-    //console.log("current DS1302 cmd: " + hex(c));
     const isRam = !!(c & 0x40)
     const addr5 = (c >> 1) & 0x1F
     const isRead = !!(c & 0x01)
@@ -231,55 +197,33 @@ DS1302.prototype._decodeCmd = function () {
 }
 
 DS1302.prototype._loadOutByte = function () {
-    const arr = this._regArray();
-    const v = arr[this._target.addr] ?? 0;
-    this._dataByte = v;
-    this._outBit = this._dataByte & 1;
-    LogCompleteAction(this);
-}
-
-function LogCompleteAction(ds1302) {
-    /*
-    if (ds1302._cmdByte != 0x00) {
-        console.log(`DS1302 - ${ds1302._phase} - addr:${ds1302._target.addr} - burst:${ds1302._target.burst} - data:${hex(ds1302._dataByte)} - cmd:${hex(ds1302._cmdByte)}`);
-    }
-    */
+    const arr = this._regArray()
+    const v = arr[this._target.addr] ?? 0
+    this._dataByte = v
+    this._outBit = this._dataByte & 1
 }
 
 DS1302.prototype._advanceAfterByte = function () {
-    
     if (this._target.burst) {
-        this._target.addr++;
-        this._bitPos = 0;
+        this._target.addr++
+        this._bitPos = 0
         if (this._phase === "read") this._loadOutByte()
-        else this._dataByte = 0;
+        else this._dataByte = 0
     } else {
-        this._phase = "cmd"; 
-        this._bitPos = 0; 
-        this._cmdByte = 0;
+        this._phase = "cmd"; this._bitPos = 0; this._cmdByte = 0
     }
 }
 
 DS1302.prototype.sclkRise = function (ioBit) {
-    
     if (this._phase === "cmd") {
         this._cmdByte |= (ioBit & 1) << this._bitPos
-        if (++this._bitPos === 8) {
-            this._decodeCmd()
-        }
+        if (++this._bitPos === 8) this._decodeCmd()
     } else if (this._phase === "write") {
-        
         this._dataByte |= (ioBit & 1) << this._bitPos
         if (++this._bitPos === 8) {
-            if (!(this.clock[7] & 0x80)) {
-                //console.log(`write ${this._dataByte} to ${this._target.addr} @ cmd ${this._cmdByte}`);
-                this._regArray()[this._target.addr] = this._dataByte
-            }
-            //console.log("current DS1302 write byte: " + hex(this._dataByte) + " @ cmd:" + hex(this._cmdByte));
-            LogCompleteAction(this);
-            this._advanceAfterByte();
+            this._regArray()[this._target.addr] = this._dataByte
+            this._advanceAfterByte()
         }
-        
     }
     // "read" phase: DS1302 drives on the falling edge, not here
 }
@@ -287,11 +231,7 @@ DS1302.prototype.sclkRise = function (ioBit) {
 DS1302.prototype.sclkFall = function () {
     if (this._suppressNextFall) { this._suppressNextFall = false; return }
     if (this._phase !== "read") return
-    if (++this._bitPos === 8) { 
-        //console.log("current DS1302 read byte: " + hex(this._dataByte) + " @ cmd:" + hex(this._cmdByte));
-        this._advanceAfterByte();
-        return
-    }
+    if (++this._bitPos === 8) { this._advanceAfterByte(); return }
     this._outBit = (this._dataByte >> this._bitPos) & 1
 }
 
@@ -376,7 +316,7 @@ function install_4021(cpu, dev, pins) {
 // direction-specific) - fine for a pin that's also toggled for
 // something else entirely, like a shared RTC chip-select.
 function TC1232(opts = {}) {
-    this.timeoutMs = opts.timeoutMs ?? 600 // set to match your board's WDS pin strapping
+    this.timeoutMs = opts.timeoutMs ?? 200 // set to match your board's WDS pin strapping
     this.lastStrobe = Date.now()
     this.resetCount = 0
     this.onReset = opts.onReset ?? null // fires (resetCount) if the timeout is missed

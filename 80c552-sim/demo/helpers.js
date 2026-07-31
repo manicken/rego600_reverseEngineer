@@ -1,0 +1,1 @@
+function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }

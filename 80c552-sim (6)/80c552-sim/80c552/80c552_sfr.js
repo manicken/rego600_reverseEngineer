@@ -131,14 +131,8 @@ function install_80c552_peripherals(cpu) {
     const TM2IR = regs.get("TM2IR")
     const ADCON = regs.get("ADCON")
     const S1STA = regs.get("S1STA")
-    const S1CON = regs.get("S1CON")
-    const TH0 = regs.get("TH0")
-    const TL0 = regs.get("TL0")
-    const TMOD = regs.get("TMOD")
-    const TH1 = regs.get("TH1")
-    const TL1 = regs.get("TL1")
 
-    /*const default_irq = function () {
+    const default_irq = function () {
         const vIEN0 = IEN0.get()
         if (!(vIEN0 & 0x80)) return -1 // EA (global enable)
 
@@ -163,9 +157,9 @@ function install_80c552_peripherals(cpu) {
         // table matters for your firmware)
         if (vIE === 0) {
             let extIRQ = 0
-            if ((TM2IR.get() & 0x3F) && (vIEN1 & 0x80)) extIRQ = -1       // ET2
-            else if ((S1STA.get() !== 0xF8) && (vIEN1 & 0x20)) extIRQ = 5 // EI2 (idle status is 0xF8)
-            else if ((ADCON.get() & 0x10) && (vIEN1 & 0x10)) extIRQ = -1   // EAD (ADCI)
+            if ((TM2IR.get() & 0x3F) && (vIEN1 & 0x80)) extIRQ = 5       // ET2
+            else if ((S1STA.get() !== 0xF8) && (vIEN1 & 0x20)) extIRQ = 6 // EI2 (idle status is 0xF8)
+            else if ((ADCON.get() & 0x10) && (vIEN1 & 0x10)) extIRQ = 7   // EAD (ADCI)
 
             if (extIRQ === 0) return -1
             return extIRQ
@@ -188,151 +182,9 @@ function install_80c552_peripherals(cpu) {
         // clear it in the ISR - left alone here to match that behaviour.
 
         return IRQN
-    }*/
-
-    const default_irq = function () {
-
-        if (!(IEN0.get() & 0x80)) {
-        
-            return -1; // EA
-        } 
-        //console.log("irq enabled");
-
-        let pending = [];
-
-        const ien0 = IEN0.get();
-        const ien1 = IEN1.get();
-
-        const tcon = TCON.get();
-        const scon = S0CON.get();
-
-        // INT0
-        if ((ien0 & 0x01) && (tcon & 0x02))
-            pending.push(0);
-
-        // TIMER0
-        if ((ien0 & 0x02) && (tcon & 0x20))
-            pending.push(1);
-
-        // INT1
-        if ((ien0 & 0x04) && (tcon & 0x08))
-            pending.push(2);
-
-        // TIMER1
-        if ((ien0 & 0x08) && (tcon & 0x80)) {
-            pending.push(3);
-        }
-
-        // UART0
-        if ((ien0 & 0x10) && (scon & 0x03))
-            pending.push(4);
-
-
-        // I2C
-        if ((ien0 & 0x20) && (S1CON.get() & I2C_BIT.SI)) {
-            //console.log("i2c irq");
-            pending.push(5);
-        }
-
-
-        // TIMER2
-        if ((ien1 & 0x80) && TM2IR.get())
-            pending.push(6);
-
-
-        // ADC
-        if ((ien1 & 0x10) && (ADCON.get() & 0x10))
-            pending.push(7);
-
-
-        if (pending.length === 0)
-            return -1;
-
-        // enklaste prioritet först
-        if (pending[0] == 3) {
-            TCON.set(TCON.get() & ~0x80); // Clear TF1
-        } else if ( pending[0] == 1) {
-            TCON.set(TCON.get() & ~0x20); // Clear TF0
-        }
-        return pending[0];
-    };
-
-    function peripheral_tick() {
-        update_timer0();
-        //update_timer1();
-    }
-    function update_timer0() {
-        const tcon = TCON.get();
-
-        if (!(tcon & 0x10))
-            return; // TR0
-
-        let count = (TH0.get() << 8) | TL0.get();
-
-        count++;
-
-        if (count > 0xFFFF) {
-            count = 0;
-
-            TCON.set(TCON.get() | 0x20); // TF0
-        }
-
-        TH0.set((count >> 8) & 0xff);
-        TL0.set(count & 0xff);
-    }
-
-    function update_timer1() {
-
-        const tcon = TCON.get();
-
-        // TR1
-        if (!(tcon & 0x40))
-            return;
-
-        switch ((TMOD.get() >> 4) & 0x03) {
-
-            // Mode 0 (13-bit)
-            case 0:
-                break;
-
-            // Mode 1 (16-bit)
-            case 1: {
-                let value = (TH1.get() << 8) | TL1.get();
-
-                value++;
-
-                if (value > 0xFFFF) {
-                    value = 0;
-                    TCON.set(TCON.get() | 0x80); // TF1
-                }
-
-                TH1.set((value >> 8) & 0xFF);
-                TL1.set(value & 0xFF);
-                break;
-            }
-
-            // Mode 2 (8-bit autoreload)
-            case 2: {
-                let tl = TL1.get() + 1;
-
-                if (tl > 0xFF) {
-                    tl = TH1.get();          // reload
-                    TCON.set(TCON.get() | 0x80); // TF1
-                }
-
-                TL1.set(tl);
-                break;
-            }
-
-            // Mode 3
-            case 3:
-                // Special mode - implement later if needed
-                break;
-        }
     }
 
     cpu.irq = default_irq
-    cpu.peripheral_tick = peripheral_tick;
     cpu.sfr = regs // convenience handle: cpu.sfr.get("ADCON") etc.
     return regs
 }

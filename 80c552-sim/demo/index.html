@@ -44,11 +44,25 @@
 </div>
 
 <div class="row">
-  <div class="panel" style="min-width:220px;">
+  <div class="panel" style="min-width:120px;">
     <h2>Core Registers</h2>
     <table id="regs"></table>
   </div>
+<div class="panel">
+  <h2>Breakpoints</h2>
 
+  Address:
+  <input type="number" id="bp_addr" min="0" max="65535" value="0">
+  
+  <button id="btn_add_bp">Add</button>
+  <button id="btn_remove_bp">Remove</button>
+  <button id="btn_clear_bp">Clear all</button>
+
+  <div style="margin-top:8px">
+    Active:
+    <span id="bp_list" class="val"></span>
+  </div>
+</div>
   <div class="panel" style="min-width:260px;">
     <h2>External Memory Bus (P4 GPIO)</h2>
     <div id="p4bits"></div>
@@ -86,8 +100,27 @@
     step="1"
     value="10"
 	oninput="render_XRAM_window()">
+
+    <hr>
+
+    <label for="xram_addr">Address:</label>
+    <input
+        type="text"
+        id="xram_addr"
+        value="0x0000"
+        style="width:90px">
+
+    <label for="xram_value">Value:</label>
+    <input
+        type="text"
+        id="xram_value"
+        value="0x00"
+        style="width:70px">
+
+    <button onclick="set_XRAM_value()">Set</button>
     <div class="memdump" id="sram_dump"></div>
   </div>
+  
   <div class="panel" style="flex:1; min-width:320px;">
     <h2>Flash (AM29F040) — window around DPTR/ext bank, 256 bytes</h2>
     <div class="memdump" id="flash_dump"></div>
@@ -98,6 +131,8 @@
   <h2>Log</h2>
   <div id="log"></div>
 </div>
+<!-- hex function -->
+<script src="helpers.js"></script>
 
 <!-- vendor js51 core (unmodified) -->
 <script src="../vendor/51vm_core.js"></script>
@@ -118,6 +153,7 @@
 <script src="../80c552/80c552.js"></script>
 <script src="../80c552/logging.js"></script>
 
+<!-- built in code mem -->
 <script src="builtin_code.js"></script>
 <script src="builtin_data.js"></script>
 
@@ -152,7 +188,6 @@ function pinNameToStruct(pinName) {
     return { port, bit };
 }
 
-function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }
 let current_i2c_write = [];
 let currentWriteIndex = 0;
 let currentReadIndex = 0;
@@ -185,7 +220,7 @@ function initCpu() {
 	  read()        {
 		/*console.log("i2c read");*/ 
 		if (currentReadIndex<1) {currentReadIndex++;} 
-		else {return 0xFF;}
+		else {return 0x00;}
 		
 		return 0x00; 
 	  },  // master klockar ut en byte
@@ -209,10 +244,11 @@ function initCpu() {
   
   const ds = new DS1302();
   //const ds = traceDevice(new DS1302(), "DS1302");
-  ds.setDateTime(new Date()); // sätt exakt tid
+  ds.setDateTime(); // set current time using system time
   ds.startClock();  // tickar en gång per sekund på riktig väggklocka,
                     // oberoende av CPU:ns exekveringsloop — precis som
                     // den riktiga kretsens egna kristall
+
 	install_ds1302(cpu, ds, {
 	  ce:   pinNameToStruct("P4.1"),
 	  sclk: pinNameToStruct("P1.3"),
@@ -332,6 +368,14 @@ function renderRegs() {
     ['P0', hex(cpu.P0.get())], ['P1', hex(cpu.P1.get())],
     ['P2', hex(cpu.P2.get())], ['P3', hex(cpu.P3.get())],
     ['P4', hex(cpu.P4.get())], ['P5', hex(cpu.P5.get())],
+    ['IEN0', hex(cpu.IEN0.get())],
+    ['IEN1', hex(cpu.IEN1.get())],
+    ['S1STA', hex(cpu.S1STA.get())],
+    ['S1CON', hex(cpu.S1CON.get())],
+    ['TCON', hex(cpu.TCON.get())],
+    ['TMOD', hex(cpu.TMOD.get())],
+    ['TH0', hex(cpu.TH0.get())],
+    ['TL0', hex(cpu.TL0.get())],
     ['ADCON', hex(cpu.ADCON.get())], ['ADCH', hex(cpu.ADCH.get())],
     ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
   ];
@@ -499,7 +543,7 @@ function render_DATA_FLASH_window() {
 	const sel = cpu.bus.readSelect();
   const base = (sel.ext << 16) & (cpu.bus.flash.size - 1);
   const flashLines = [];
-  for (let row = 0; row < 16; ++row) {
+  for (let row = 0; row < 64; ++row) {
     let line = hex(base+row*16,5) + ': ';
     for (let c = 0; c < 16; ++c) line += cpu.bus.flash.read(base+row*16+c).toString(16).padStart(2,'0') + ' ';
     flashLines.push(line);
@@ -611,6 +655,83 @@ document.getElementById('data_flash_file').onchange = function () {
     reader.readAsArrayBuffer(file);
   }
 };
+
+function renderBreakpoints() {
+    const list = cpu.addr_breakpoint || [];
+
+    document.getElementById('bp_list').textContent =
+        list.map(a => hex(a,4)).join(", ");
+}
+
+
+function addBreakpoint() {
+    const addr = parseInt(document.getElementById('bp_addr').value);
+
+    if (Number.isNaN(addr))
+        return;
+
+    cpu.set_addr_break(addr);
+
+    log("Breakpoint added at " + hex(addr,4));
+
+    renderBreakpoints();
+}
+
+
+function removeBreakpoint() {
+    const addr = parseInt(document.getElementById('bp_addr').value);
+
+    if (Number.isNaN(addr))
+        return;
+
+    cpu.remove_addr_break(addr);
+
+    log("Breakpoint removed at " + hex(addr,4));
+
+    renderBreakpoints();
+}
+
+
+function clearBreakpoints() {
+    cpu.addr_breakpoint = [];
+
+    log("All breakpoints cleared");
+
+    renderBreakpoints();
+}
+
+document.getElementById('btn_add_bp').onclick = addBreakpoint;
+document.getElementById('btn_remove_bp').onclick = removeBreakpoint;
+document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
+
+function parseNumber(v)
+{
+    v = v.trim();
+
+    if(v.startsWith("0x") || v.startsWith("0X"))
+        return parseInt(v, 16);
+
+    return parseInt(v, 10);
+}
+
+function set_XRAM_value()
+{
+    let addr = parseNumber(document.getElementById("xram_addr").value);
+    let value = parseNumber(document.getElementById("xram_value").value);
+
+    if(isNaN(addr) || isNaN(value))
+        return;
+
+    if(addr < 0 || addr >= cpu.bus.sram.size)
+        return;
+
+    if(value < 0 || value > 0xff)
+        return;
+
+    cpu.bus.sram.write(addr, value);
+
+    render_XRAM_window();
+}
 
 initCpu();
 </script>
