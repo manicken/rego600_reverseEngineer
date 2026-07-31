@@ -114,7 +114,9 @@
 <script src="../80c552/device_am29f040.js"></script>
 <script src="../80c552/membus.js"></script>
 <script src="../80c552/i2c_bus.js"></script>
+<script src="../80c552/gpio_bitbang.js"></script>
 <script src="../80c552/80c552.js"></script>
+<script src="../80c552/logging.js"></script>
 
 <script src="builtin_code.js"></script>
 <script src="builtin_data.js"></script>
@@ -124,11 +126,30 @@ let cpu = null;
 let i2cBus = null;
 let running = false;
 let runHandle = null;
+let wd = null;
 
 function log(msg) {
   const el = document.getElementById('log');
   el.textContent += msg + "\n";
   el.scrollTop = el.scrollHeight;
+}
+
+function pinNameToStruct(pinName) {
+    const match = /^P(\d+)\.(\d+)$/.exec(pinName);
+
+    if (!match)
+        throw new Error(`Invalid pin name: ${pinName}`);
+
+    const port = cpu[`P${match[1]}`];
+    const bit = Number(match[2]);
+
+    if (!port)
+        throw new Error(`Port P${match[1]} does not exist`);
+
+    if (bit < 0 || bit > 7)
+        throw new Error(`Invalid bit number: ${bit}`);
+
+    return { port, bit };
 }
 
 function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }
@@ -154,10 +175,12 @@ function initCpu() {
 	  },      // ACK/NACK
 	  write(databyte)   {
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
-		else if (currentWriteIndex == 1) { lcd_col = databyte; }
-		else if (currentWriteIndex == 2) { lcd_data[lcd_row*20 + lcd_col] = databyte; }
-		
-		current_i2c_write[currentWriteIndex++] = databyte; return true;
+		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
+		  else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
+      
+		  //current_i2c_write[currentWriteIndex] = databyte; return true;
+      currentWriteIndex++;
+      return true;
 	  }, // master skriver till dig
 	  read()        {
 		/*console.log("i2c read");*/ 
@@ -167,11 +190,11 @@ function initCpu() {
 		return 0x00; 
 	  },  // master klockar ut en byte
 	  stop()        { 
-		let databytes = "";
+		/*let databytes = "";
 		for (let i=0;i<currentWriteIndex;i++) {
 			if (i>0) { databytes += " "; }
 			databytes += hex(current_i2c_write[i]);
-		}
+		}*/
 		//console.log("i2c stop: " + databytes); 
 		//console.log("i2c write (" +(currentWriteIndex++)+ ") - " + hex(databyte));  
 	  }
@@ -180,7 +203,37 @@ function initCpu() {
   cpu = create_80c552({
     adcChannels: [0, 0, 0, 0, 0, 0, 0, 0], i2cBus:i2cBus
   });
+
+  wd = new TC1232({timeoutMs:1200});
+  install_tc1232(cpu, wd, { st: pinNameToStruct("P4.1") });
   
+  const ds = new DS1302();
+  //const ds = traceDevice(new DS1302(), "DS1302");
+  ds.setDateTime(new Date()); // sätt exakt tid
+  ds.startClock();  // tickar en gång per sekund på riktig väggklocka,
+                    // oberoende av CPU:ns exekveringsloop — precis som
+                    // den riktiga kretsens egna kristall
+	install_ds1302(cpu, ds, {
+	  ce:   pinNameToStruct("P4.1"),
+	  sclk: pinNameToStruct("P1.3"),
+	  io:   pinNameToStruct("P1.1"),
+	});
+  
+
+	const shOut = new ShiftOut4094();
+	install_4094(cpu, shOut, {
+	  data: pinNameToStruct("P1.4"),
+	  clk:  pinNameToStruct("P1.3"),
+	  str:  pinNameToStruct("P4.4"),
+	});
+
+	const shIn = new ShiftIn4021();
+	install_4021(cpu, shIn, {
+	  pl:  pinNameToStruct("P4.5"),
+	  clk: pinNameToStruct("P4.7"),
+	  q:   pinNameToStruct("P1.5"),
+	});
+	
   if (builtin_flashCodeData) {
 	cpu.IDATA = builtin_flashCodeData;
   }
@@ -189,6 +242,8 @@ function initCpu() {
   }
   
   cpu.reset();
+
+  //setInterval(() => console.log('ds phase:', ds._phase), 500);
   
   cpu.PSW.setlistener.push((oldval, newval) => {
 	let oldBank = oldval & 0x18;
@@ -204,7 +259,7 @@ function initCpu() {
     }
   });
   
-  
+  init_LCD();
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
   render();
   console.log(cpu);
@@ -389,14 +444,25 @@ function printPrintable(value) {
     return '';
 }
 
+function init_LCD() {
+  lcd_data = {rows:[]};
+  for (let r=0;r<4;r++) {
+    lcd_data.rows[r] = {cols:[]};
+    for (let c=0;c<20;c++) {
+	    lcd_data.rows[r].cols[c] = 0x30+c;
+	  }
+  }
+  render_LCD();
+}
+
 function render_LCD() {
 	
-let lcd_text = "";
+  let lcd_text = "";
   for (let r=0;r<4;r++) {
     for (let c=0;c<20;c++) {
-	lcd_text += String.fromCharCode(lcd_data[r*20+c]);
-	}
-	lcd_text += "\n";
+	    lcd_text += String.fromCharCode(lcd_data.rows[r].cols[c]);
+	  }
+	  lcd_text += "\n";
   }
   document.getElementById('lcd_data').textContent = lcd_text;
 }
@@ -460,6 +526,7 @@ document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
 document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
 document.getElementById('btn_run').onclick = () => {
   if (running) return;
+  wd.startMonitoring();
   running = true;
   document.getElementById('run_status').textContent = 'running...';
   runHandle = setInterval(() => {
@@ -474,6 +541,7 @@ document.getElementById('btn_run').onclick = () => {
 document.getElementById('btn_stop').onclick = stopRun;
 function stopRun() {
   running = false;
+  wd.stopMonitoring();
   document.getElementById('run_status').textContent = '';
   if (runHandle) clearInterval(runHandle);
 }

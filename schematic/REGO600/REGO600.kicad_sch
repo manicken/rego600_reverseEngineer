@@ -15881,7 +15881,7 @@
 	)
 	(wire
 		(pts
-			(xy 118.11 137.16) (xy 119.38 138.43)
+			(xy 118.11 137.16) (xy 119.126 138.43)
 		)
 		(stroke
 			(width 0)
@@ -23631,7 +23631,7 @@
 	)
 	(wire
 		(pts
-			(xy 119.38 138.43) (xy 161.29 138.43)
+			(xy 119.126 138.43) (xy 161.29 138.43)
 		)
 		(stroke
 			(width 0)
@@ -24020,7 +24020,7 @@
 		(uuid "00015d66-8c21-4341-a492-32c6a4a1c7fa")
 	)
 	(label "4094.LATCH"
-		(at 119.38 138.43 0)
+		(at 119.126 138.43 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -24719,6 +24719,16 @@
 		)
 		(uuid "51974334-3af5-4674-b5e6-5f8ef9c4eb08")
 	)
+	(label "4094.DAT"
+		(at 156.972 166.37 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "5204f060-0d14-4cb9-bfbd-4fe9a44d053e")
+	)
 	(label "4094.A{s1 s2 EL3 P1 VXV P2 COMP P3}"
 		(at 393.7 66.04 0)
 		(effects
@@ -25208,6 +25218,16 @@
 			(justify left bottom)
 		)
 		(uuid "7bf6622a-cd0e-4110-9258-6bc39ca79de8")
+	)
+	(label "4094.OE"
+		(at 157.48 115.57 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "7c2f8073-b2bc-4ff0-a22e-2d5b0da5d9e3")
 	)
 	(label "4094.A.s1"
 		(at 518.16 105.41 180)
@@ -26348,6 +26368,16 @@
 			(justify left bottom)
 		)
 		(uuid "f889480e-da6b-4453-a23b-539d8f57ff93")
+	)
+	(label "4094.LATCH"
+		(at 157.48 138.684 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "fa089e05-1502-4b38-9187-4d28f3a7310a")
 	)
 	(label "AD6"
 		(at 344.17 250.19 0)
