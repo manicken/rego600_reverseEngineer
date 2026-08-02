@@ -30,8 +30,10 @@ _51cpu.prototype.execute_one = function () {
             this.op_call((irqn << 3) + 3)
         }
     }
-    if (this.peripheral_tick) {
-        this.peripheral_tick();
+    if (this.peripheral_ticks) {
+        for (const tick of this.peripheral_ticks) {
+            tick();
+        }
     }
 }
 

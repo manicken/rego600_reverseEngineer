@@ -347,23 +347,66 @@ function install_4094(cpu, dev, pins) {
 // PL falling edge freezes it; each CLK rising edge afterwards shifts it
 // left and the current MSB is what's on Q8, which is what the port's
 // serial-in pin reads.
+let threephasestates = [0x50, 0x40, 0x60, 0x20, 0x30, 0x10];
+
+function currentPhaseStep(cpu) {
+    return Math.floor(cpu.cycles / CYCLES_PER_STEP) % 6;
+}
+
 function ShiftIn4021() {
-    this.inputs = 0  // set this (0-255) to your simulated parallel inputs
     this.shiftReg = 0
+    this._bitPos = 0;
+    this._phaseCount = 0;
+    this._timer = null;
+    this.phaseTicks = 0;
+    this.cyclesPerPhase = 6000;
+    this.phaseStep = 0;
+    this.inputs = threephasestates[this.phaseStep] | 0x0E;
 }
 
 /**
  * @param {{pl:{port,bit}, clk:{port,bit}, q:{port,bit}}} pins
  */
+
 function install_4021(cpu, dev, pins) {
     const { pl, clk, q } = pins
     watchPin(pl.port, pl.bit, {
-        onRise: () => { dev.shiftReg = dev.inputs & 0xFF },
+        onRise: () => { 
+            
+           // const step = currentPhaseStep(cpu);
+           // dev.inputs = threephasestates[step] | 0x0E;
+           // if (dev.inputs != 0x0E)
+           //     console.log("dev.inputs = " + hex(dev.inputs));
+            //dev.inputs = 0x0E;
+            dev.shiftReg = dev.inputs & 0xFF
+        },
+        onFall: () => { 
+            
+        }
     })
     watchPin(clk.port, clk.bit, {
-        onRise: () => { dev.shiftReg = (dev.shiftReg << 1) & 0xFF },
+        onRise: () => { 
+            dev.shiftReg = (dev.shiftReg << 1) & 0xFF
+            
+        },
     })
-    drivePinInput(q.port, q.bit, () => (dev.shiftReg >> 7) & 1)
+    drivePinInput(q.port, q.bit, () => (dev.shiftReg >> 7) & 1);
+
+    cpu.peripheral_ticks.push(() => {
+        dev.phaseTicks++;
+
+        if (dev.phaseTicks >= dev.cyclesPerPhase) {
+            dev.phaseTicks = 0;
+
+            dev.phaseStep++;
+            if (dev.phaseStep >= 6)
+                dev.phaseStep = 0;
+
+            dev.inputs =
+                threephasestates[dev.phaseStep] |
+                0x0E;
+        }
+    });
 }
 
 // ============================================================

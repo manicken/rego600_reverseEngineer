@@ -52,14 +52,23 @@ AM29F040.prototype.softReset = function () {
     this.mode = "read"
 }
 
-AM29F040.prototype.read = function (addr) {
+AM29F040.prototype.read = function (addr, logReads = true) {
     addr &= (this.size - 1)
     if (this.mode === "autoselect") {
         const off = addr & 0xFF
         if (off === 0x00) return this.mfgId
         if (off === 0x01) return this.devId
     }
-    return this.mem[addr]
+    let val = this.mem[addr];
+    if (addr >= 0x40000 && logReads) {
+    //console.log(`am29f040 - read text ${hex(val)} @ ${hex(addr)}`);
+    }
+
+    if (addr >= 0x30000 && addr < 0x40000 && logReads) {
+    console.log(`am29f040 - read 0x30000 sector ${hex(val)} @ ${hex(addr)}`);
+    }
+     
+    return val;
 }
 
 AM29F040.prototype.write = function (addr, val) {
@@ -99,6 +108,9 @@ AM29F040.prototype.write = function (addr, val) {
         case 3:
             if (this.mode === "program") {
                 this.mem[addr] &= val // flash can only clear bits when programming
+                if (addr < 0x10000) { // only log settings
+                    console.log(`am29f040 - write ${hex(val)} @ ${hex(addr)}`);
+                }
                 this.mode = "read"
                 this._resetToStep0()
             } else if (this.mode === "erase-armed") {
@@ -122,6 +134,7 @@ AM29F040.prototype.write = function (addr, val) {
                     this.mem.fill(0xFF) // chip erase
                     this.mode = "read"; this._resetToStep0()
                 } else if (val === 0x30) {
+                    console.log("29f040 sector erase happend");
                     const sectorStart = addr - (addr % this.sectorSize)
                     this.mem.fill(0xFF, sectorStart, sectorStart + this.sectorSize)
                     this.mode = "read"; this._resetToStep0()

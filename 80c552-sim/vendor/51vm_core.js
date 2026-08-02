@@ -146,7 +146,7 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.irq = null
 	this.irqEmitters = [];
 	this.currentIRQ = -1;
-    this.peripheral_tick = null;
+    this.peripheral_ticks = [];
 }
 
 //------------------break point -----------------

@@ -257,11 +257,7 @@ function install_80c552_peripherals(cpu) {
         return pending[0];
     };
 
-    function peripheral_tick() {
-        update_timer0();
-        //update_timer1();
-    }
-    function update_timer0() {
+        function update_timer0() {
         const tcon = TCON.get();
 
         if (!(tcon & 0x10))
@@ -332,7 +328,8 @@ function install_80c552_peripherals(cpu) {
     }
 
     cpu.irq = default_irq
-    cpu.peripheral_tick = peripheral_tick;
+    cpu.peripheral_ticks.push(update_timer0);
+    //cpu.peripheral_ticks.push(update_timer1);
     cpu.sfr = regs // convenience handle: cpu.sfr.get("ADCON") etc.
     return regs
 }
