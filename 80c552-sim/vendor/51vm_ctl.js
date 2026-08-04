@@ -7,12 +7,11 @@ _51cpu.prototype.next = function (count = 1) {
     for(let i = 0; i < count; ++i){
         len = this.execute_one()
         if(len == 0)
-            break
+            return -1; // error
         if(this.addr_breakpoint.includes(this.PC.get()))
-            break;
-        
+            return 0; // breakpoint reached
     }   
-
+    return 1;
 }
 
 

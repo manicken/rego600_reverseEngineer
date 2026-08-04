@@ -147,7 +147,41 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
 	this.irqEmitters = [];
 	this.currentIRQ = -1;
     this.peripheral_ticks = [];
+    this.callStack = [];
+
+    
 }
+
+_51cpu.prototype.getCallStackString = function () {
+    if (!this.callStack || this.callStack.length === 0) {
+        return "(empty)";
+    }
+
+    let result = "callstack lenght: " + this.callStack.length + "\n";
+    result+= "current PC:" + this.PC.get().toString(16).padStart(4, "0") + "\n";
+
+    for (let i = 0; i < this.callStack.length; i++) {
+        let entry = this.callStack[i];
+
+        result += " ".repeat(i * 2);
+
+        if (entry.address !== undefined) {
+            result += entry.address.toString(16).padStart(4, "0");
+        } else {
+            result += "?";
+        }
+
+        if (entry.returnAddress !== undefined) {
+            result += " (ret=" +
+                entry.returnAddress.toString(16).padStart(4, "0") +
+                ")";
+        }
+
+        result += "\n";
+    }
+
+    return result;
+};
 
 //------------------break point -----------------
 _51cpu.prototype.set_addr_break = function(addr){

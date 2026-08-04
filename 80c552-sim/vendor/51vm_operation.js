@@ -51,7 +51,11 @@ _51cpu.prototype.op_add_offset = function (offset_raw) {
 }
 
 _51cpu.prototype.op_push = function (value) {
+    if (this.SP.get() >= 0xE0) {
+        console.warn("Stack overflow/wrap imminent");
+    }
     let sp = this.SP.inc().get()
+    
     this.get_iram_cell(sp).set(value)
 
     return this
@@ -65,6 +69,16 @@ _51cpu.prototype.op_pop = function (store_cell) {
     return this
 }
 
+_51cpu.prototype.op_call_track = function (addr) {
+    this.callStack.push({
+        address: addr,
+        returnAddress: this.PC.get()
+    });
+}
+
+_51cpu.prototype.op_ret_track = function () {
+    this.callStack.pop();
+}
 
 _51cpu.prototype.op_call = function (addr) {
     this.op_push(this.PC.get() & 0xFF)

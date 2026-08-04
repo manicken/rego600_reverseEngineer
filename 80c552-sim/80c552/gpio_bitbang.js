@@ -359,7 +359,7 @@ function ShiftIn4021() {
     this._phaseCount = 0;
     this._timer = null;
     this.phaseTicks = 0;
-    this.cyclesPerPhase = 6000;
+    this.cyclesPerPhase = 5000;
     this.phaseStep = 0;
     this.inputs = threephasestates[this.phaseStep] | 0x0E;
 }
@@ -379,6 +379,8 @@ function install_4021(cpu, dev, pins) {
            //     console.log("dev.inputs = " + hex(dev.inputs));
             //dev.inputs = 0x0E;
             dev.shiftReg = dev.inputs & 0xFF
+
+            //console.log(cpu.getCallStackString());
         },
         onFall: () => { 
             

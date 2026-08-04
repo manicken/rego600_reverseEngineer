@@ -6,7 +6,9 @@ _51cpu.prototype.execute_one = function () {
         this.PC.set(opcode.fetch_addr11())
     }else if (opcode.test(0x11, 0x1F)) {
         //ACALL 0x11
-        this.op_call(opcode.fetch_addr11())
+        let addr16 = opcode.fetch_addr11();
+        this.op_call_track(addr16);
+        this.op_call(addr16);
     }else if (opcode.value < 0x80) {
         //0x00 - 0x7F
         if (opcode.value < 0x40) {
@@ -98,6 +100,7 @@ _51cpu.prototype.__execute_decode_10_1F = function (opcode) {
     }  else if (opcode.test(0x12)) {
         //LCALL addr16
         let addr16 = this.fetch_const16()
+        this.op_call_track(addr16);
         this.op_call(addr16)
     } else if (opcode.test(0x13)) {
         // RRC A
@@ -136,7 +139,8 @@ _51cpu.prototype.__execute_decode_20_2F = function (opcode) {
             this.op_add_offset(offset_raw)
     } else if (opcode.test(0x22)) {
         //RET
-        let b = this.op_ret()
+        let b = this.op_ret();
+        this.op_ret_track();
     } else if (opcode.test(0x23)) {
         //RL A
         let value = this.A.get()
@@ -328,6 +332,11 @@ _51cpu.prototype.__execute_decode_70_7F = function (opcode) {
         this.op_orl_bit(this.fetch_bit())
     } else if (opcode.test(0x73)) {
         //JMP @A+DPTR
+        //console.log("0x73 jmp happend" + hex(this.PC.get()));
+        let currPC = this.PC.get();
+        if (currPC == 0xB2A || currPC == 0xB3C) {
+            this.op_ret_track(); // 
+        }
         this.PC.set(this.A.get() + this.DPTR.get())
     } else if (opcode.test(0x74)) {
         //MOV A,#immed

@@ -315,9 +315,9 @@ function initCpu() {
   //setInterval(() => console.log('ds phase:', ds._phase), 500);
   
   cpu.PSW.setlistener.push((oldval, newval) => {
-	let oldBank = oldval & 0x18;
+	  let oldBank = oldval & 0x18;
     let newBank = newval & 0x18;
-	if (oldBank !== newBank) {
+	  if (oldBank !== newBank) {
         console.log(
             "PSW Bank switch at PC=" + hex(cpu.PC.value) +
             " : " +
@@ -624,9 +624,12 @@ document.getElementById('btn_run').onclick = () => {
   running = true;
   document.getElementById('run_status').textContent = 'running...';
   runHandle = setInterval(() => {
-    cpu.next(5000);
+    let res = cpu.next(5000);
     render();
-    if (cpu.error_info.code !== CPU_NO_ERROR) {
+    if(res == 0) {
+      stopRun();
+    }
+    if (res == -1 && cpu.error_info.code !== CPU_NO_ERROR) {
       log('stopped: error ' + cpu.error_info.code + ' at ' + hex(cpu.error_info.addr,4));
       stopRun();
     }
