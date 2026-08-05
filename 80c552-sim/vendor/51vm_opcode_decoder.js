@@ -386,6 +386,7 @@ _51cpu.prototype.__execute_decode_80_8F = function(opcode){
     } else if (opcode.test(0x83)) {
         //MOVC A, @A+PC
         this.op_move(this.A, this.get_ROM(this.A.get() + this.PC.get()))
+        console.log("MOVC 0x83 happend:\n" + this.getCallStackString());
     } else if (opcode.test(0x84)) {
         //DIV AB
         this.op_div()
@@ -412,8 +413,18 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
         //MOV bit,C
         this.op_move(this.fetch_bit(), this.PSW.carry)
     } else if (opcode.test(0x93)) {
-        //MOV A,@A+DPTR
-        this.op_move(this.A, this.get_ROM(this.A.get() + this.DPTR.get()))
+        //MOVC A,@A+DPTR
+        
+        // without tracing
+        //console.log(`MOVC 0x93 happend getting value ${hex(this.get_ROM(this.A.get() + this.DPTR.get()))} from adress ${hex(this.A.get() + this.DPTR.get())}`);
+        // with tracing
+        let addr = this.A.get() + this.DPTR.get();
+        let data = this.get_ROM(addr);
+        //if ((addr > 0x0100 && addr < 0x6800) || (addr > 0x6900 && addr < 0x7e00) || (addr > 0x7f00)) {
+        //  console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
+        //}
+
+        this.op_move(this.A, data)
     } else if (opcode.test(0x94)) {
         //SUBB A,#immed
         this.op_subb(this.A, this.fetch_const())

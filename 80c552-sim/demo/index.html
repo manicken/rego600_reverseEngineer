@@ -26,23 +26,24 @@
 </head>
 <body>
 <h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
-
+<div class="row">
 <div class="panel">
   <h2>Firmware</h2>
   <input type="file" id="fw_file">
-  <small>Accepts Intel HEX (.hex) or raw binary (.bin) loaded into on-chip ROM / IDATA[0000-1FFFH]</small>
-  <br><br>
+  <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
+</div>
+<div class="panel"">
   <h2>29F040 data load</h2>
   <input type="file" id="data_flash_file">
-  <small>Accepts Intel HEX (.hex) or raw binary (.bin) loaded into on-chip ROM / IDATA[0000-1FFFH]</small>
-  <br><br>
+  <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
+</div>
+</div>
+<div class="panel">
   <button id="btn_reset">Reset</button>
   <button id="btn_step">Step 1</button>
   <button id="btn_step100">Step 100</button>
   <button id="btn_run">Run</button>
   <button id="btn_stop">Stop</button>
-
-  
   <span id="run_status" style="margin-left:10px;color:#888;"></span>
 </div>
 
@@ -51,21 +52,21 @@
     <h2>Core Registers</h2>
     <table id="regs"></table>
   </div>
-<div class="panel">
-  <h2>Breakpoints</h2>
+  <div class="panel">
+    <h2>Breakpoints</h2>
 
-  Address:
-  <input type="text" id="bp_addr" value="0x0">
-  
-  <button id="btn_add_bp">Add</button>
-  <button id="btn_remove_bp">Remove</button>
-  <button id="btn_clear_bp">Clear all</button>
+    Address:
+    <input type="text" id="bp_addr" value="0x0">
+    
+    <button id="btn_add_bp">Add</button>
+    <button id="btn_remove_bp">Remove</button>
+    <button id="btn_clear_bp">Clear all</button>
 
-  <div style="margin-top:8px">
-    Active:
-    <span id="bp_list" class="val"></span>
+    <div style="margin-top:8px">
+      Active:
+      <span id="bp_list" class="val"></span>
+    </div>
   </div>
-</div>
 <!--  
 <div class="panel" style="min-width:260px;">
     <h2>External Memory Bus (P4 GPIO)</h2>
@@ -112,29 +113,29 @@
   </div>
   <div class="panel" style="flex:1; max-width:460px;">
     <h2>SRAM (62256) — 256 bytes window</h2>
-	  <label for="xram_index">Index(0-127):</label>
-    <input type="number" id="xram_index" name="value" min="0" max="127" step="1" value="10"	oninput="render_XRAM_window()">
+	  <label for="xram_index_A">Index(0-127):</label>
+    <input type="number" id="xram_index_A" name="value" min="0" max="127" step="1" value="10"	oninput="render_XRAM_window('xram_index_A','xram_dump_A')">
     <hr>
-    <label for="xram_addr">Address:</label>
-    <input type="text" id="xram_addr" value="0x1b7a" style="width:90px">
-    <label for="xram_value">Value:</label>
-    <input type="text" id="xram_value" value="0x1efc" style="width:70px">
-    <button onclick="set_XRAM_value('xram_addr','xram_value')">Set</button>
+    <label for="xram_addr_A_1">Address:</label>
+    <input type="text" id="xram_addr_A_1" value="0x1b7a" style="width:90px">
+    <label for="xram_value_A_1">Value:</label>
+    <input type="text" id="xram_value_A_1" value="0x1efc" style="width:70px">
+    <button onclick="set_XRAM_value('xram_addr_A_1','xram_value_A_1')">Set</button>
     <hr>
 
-    <label for="xram_addr2">Address:</label>
-    <input type="text" id="xram_addr2" value="0x0000" style="width:90px">
-    <label for="xram_value2">Value:</label>
-    <input type="text" id="xram_value2" value="0x00" style="width:70px">
+    <label for="xram_addr_A_2">Address:</label>
+    <input type="text" id="xram_addr_A_2" value="0x0000" style="width:90px">
+    <label for="xram_value_A_2">Value:</label>
+    <input type="text" id="xram_value_A_2" value="0x00" style="width:70px">
 
-    <button onclick="set_XRAM_value('xram_addr2','xram_value2')">Set</button>
-    <div class="memdump" id="sram_dump"></div>
+    <button onclick="set_XRAM_value('xram_addr_A_2','xram_value_A_2')">Set</button>
+    <div class="memdump" id="xram_dump_A"></div>
   </div>
 
   <div class="panel" style="flex:1; max-width:460px;">
     <h2>SRAM (62256) — 256 bytes window</h2>
 	  <label for="xram_index_B">Index(0-127):</label>
-    <input type="number" id="xram_index_B" name="value" min="0" max="127" step="1" value="27"	oninput="render_XRAM_window_B()">
+    <input type="number" id="xram_index_B" name="value" min="0" max="127" step="1" value="27"	oninput="render_XRAM_window('xram_index_B','xram_dump_B')">
     <hr>
     <label for="xram_addr_B_1">Address:</label>
     <input type="text" id="xram_addr_B_1" value="0x1b7a" style="width:90px">
@@ -333,33 +334,6 @@ function initCpu() {
   render();
   console.log(cpu);
 }
-/*
-function renderRegs() {
-  const t = document.getElementById('regs');
-  const rows = [
-    ['PC', hex(cpu.PC.get(), 4)],
-    ['A', hex(cpu.A.get())],
-    ['B', hex(cpu.B.get())],
-	['A', hex(cpu.A.get())],
-    ['PSW', hex(cpu.PSW.get())],
-    ['SP', hex(cpu.SP.get())],
-    ['DPTR', hex(cpu.DPTR.get(), 4)],
-    ['P0', hex(cpu.P0.get())], ['P1', hex(cpu.P1.get())],
-    ['P2', hex(cpu.P2.get())], ['P3', hex(cpu.P3.get())],
-    ['P4', hex(cpu.P4.get())], ['P5', hex(cpu.P5.get())],
-    ['IEN0', hex(cpu.IEN0.get())],
-    ['IEN1', hex(cpu.IEN1.get())],
-    ['S1STA', hex(cpu.S1STA.get())],
-    ['S1CON', hex(cpu.S1CON.get())],
-    ['TCON', hex(cpu.TCON.get())],
-    ['TMOD', hex(cpu.TMOD.get())],
-    ['TH0', hex(cpu.TH0.get())],
-    ['TL0', hex(cpu.TL0.get())],
-    ['ADCON', hex(cpu.ADCON.get())], ['ADCH', hex(cpu.ADCH.get())],
-    ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
-  ];
-  t.innerHTML = rows.map(([k,v]) => `<tr><td class="reg">${k}</td><td class="val">${v}</td></tr>`).join('');
-}*/
 
 function renderRegs() {
   const t = document.getElementById('regs');
@@ -387,6 +361,14 @@ function renderRegs() {
     ['TL0', hex(cpu.TL0.get())],
     ['ADCON', hex(cpu.ADCON.get())],
     ['ADCH', hex(cpu.ADCH.get())],
+    ['R0', hex(cpu.IRAM[0])],
+    ['R1', hex(cpu.IRAM[1])],
+    ['R2', hex(cpu.IRAM[2])],
+    ['R3', hex(cpu.IRAM[3])],
+    ['R4', hex(cpu.IRAM[4])],
+    ['R5', hex(cpu.IRAM[5])],
+    ['R6', hex(cpu.IRAM[6])],
+    ['R7', hex(cpu.IRAM[7])],
     ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
   ];
 
@@ -508,12 +490,7 @@ function setAdcChannel(ch, v) {
   cpu.adc.setChannelVoltage(ch, parseFloat(v));
 }
 
-function printPrintable(value) {
-    if (value >= 0x20 && value <= 0x7E) {
-        return String.fromCharCode(value);
-    }
-    return '';
-}
+
 
 function init_LCD() {
   lcd_data = {rows:[]};
@@ -539,71 +516,57 @@ function render_LCD() {
 }
 
 function render_IRAM() {
-	const iramLines = [];
-  for (let row = 0; row < 16; ++row) {
-    let line = hex(row*16,4) + ': ';
-    for (let c = 0; c < 16; ++c) line += cpu.IRAM[row*16+c].toString(16).padStart(2,'0') + ' ';
-    iramLines.push(line);
-  }
-  document.getElementById('iram_dump').textContent = iramLines.join('\n');
-}
-let prev_xram_index = 0;
-function render_XRAM_window() {
-  let xram_index = parseInt(document.getElementById('xram_index').value);
-  if (Number.isNaN(xram_index)) {
-	  xram_index = prev_xram_index;
-  } else {
-	  prev_xram_index = xram_index;
-  }
-  const sramLines = [];
-  for (let row = 0; row < 16; ++row) {
-    let line = hex(row*16 + xram_index*256,4) + ': ';
-	let ascii_text = "";
-    for (let c = 0; c < 16; ++c){ let value = cpu.bus.sram.read(row*16+c + xram_index*256); line += value.toString(16).padStart(2,'0') + ' '; ascii_text += printPrintable(value);}
-	line += ascii_text;
-    sramLines.push(line);
-  }
-  document.getElementById('sram_dump').textContent = sramLines.join('\n');
+  document.getElementById('iram_dump').textContent = getMemoryContentsDump({
+    reader: index => cpu.IRAM[index],
+    ascii: true,
+    columns: 16,
+    colheader: true,
+    size: 256,
+    offset: 0,
+    addressWidth: 2
+  });
 }
 
-let prev_xram_B_index = 0;
-function render_XRAM_window_B() {
-  let xram_index = parseInt(document.getElementById('xram_index_B').value);
+function render_XRAM_window(index_elementID, view_elementID) {
+  let element = document.getElementById(index_elementID);
+  
+  let xram_index = parseInt(element.value);
   if (Number.isNaN(xram_index)) {
-	  xram_index = prev_xram_B_index;
+	  xram_index = element.prev_index ? element.prev_index : 0;
   } else {
-	  prev_xram_B_index = xram_index;
+	  element.prev_index = xram_index;
   }
-  const sramLines = [];
-  for (let row = 0; row < 16; ++row) {
-    let line = hex(row*16 + xram_index*256,4) + ': ';
-	let ascii_text = "";
-    for (let c = 0; c < 16; ++c){ let value = cpu.bus.sram.read(row*16+c + xram_index*256); line += value.toString(16).padStart(2,'0') + ' '; ascii_text += printPrintable(value);}
-	line += ascii_text;
-    sramLines.push(line);
-  }
-  document.getElementById('xram_dump_B').textContent = sramLines.join('\n');
+
+  document.getElementById(view_elementID).textContent = getMemoryContentsDump({
+    reader: index => cpu.bus.sram.read(index),
+    ascii: true,
+    columns: 16,
+    colheader: true,
+    size: 256,
+    offset: xram_index * 256,
+    addressWidth: 4
+  });
 }
 
 function render_DATA_FLASH_window() {
-	const sel = cpu.bus.readSelect();
-  const base = (sel.ext << 16) & (cpu.bus.flash.size - 1);
-  const flashLines = [];
-  //let logReadsStateTemp = cpu.bus.flash.logReads;
-  //cpu.bus.flash.logReads = false;
-  for (let row = 0; row < 16; ++row) {
-    let line = hex(base+row*16,5) + ': ';
-    for (let c = 0; c < 16; ++c) line += cpu.bus.flash.read(base+row*16+c, false).toString(16).padStart(2,'0') + ' ';
-    flashLines.push(line);
-  }
-  //cpu.bus.flash.logReads = logReadsStateTemp;
-  document.getElementById('flash_dump').textContent = flashLines.join('\n');
+  const sel = cpu.bus.readSelect();
+  const base = (sel.ext << 20) & (cpu.bus.flash.size - 1);
+
+  document.getElementById('flash_dump').textContent = getMemoryContentsDump({
+    reader: index => cpu.bus.flash.read(index, false),
+    ascii: true,
+    columns: 20,
+    colheader: true,
+    size: 300,
+    offset: base,
+    addressWidth: 5
+  });
 }
 
 function renderMemDumps() {
   render_IRAM();
-  render_XRAM_window();
-  render_XRAM_window_B();
+  render_XRAM_window('xram_index_A', 'xram_dump_A');
+  render_XRAM_window('xram_index_B', 'xram_dump_B');
   render_DATA_FLASH_window();  
   render_LCD();
 }
@@ -624,7 +587,7 @@ document.getElementById('btn_run').onclick = () => {
   running = true;
   document.getElementById('run_status').textContent = 'running...';
   runHandle = setInterval(() => {
-    let res = cpu.next(5000);
+    let res = cpu.next(50000);
     render();
     if(res == 0) {
       stopRun();
