@@ -109,8 +109,10 @@ AM29F040.prototype.write = function (addr, val) {
             if (this.mode === "program") {
                 this.mem[addr] &= val // flash can only clear bits when programming
                 if (addr < 0x10000) { // only log settings
-                    console.log(`am29f040 - write ${hex(val)} @ ${hex(addr)}`);
-                    console.log(cpu.getCallStackString());
+                    let callstack = cpu.getCallStackString();
+                    //let callstack = "";
+                    console.log(`am29f040 - write ${hex(val)} @ ${hex(addr)}\n${callstack}`);
+                    //console.log(cpu.getCallStackString());
                 }
                 this.mode = "read"
                 this._resetToStep0()
