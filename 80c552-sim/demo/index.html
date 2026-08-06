@@ -38,35 +38,56 @@
   <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
 </div>
 </div>
-<div class="panel">
-  <button id="btn_reset">Reset</button>
-  <button id="btn_step">Step 1</button>
-  <button id="btn_step100">Step 100</button>
-  <button id="btn_run">Run</button>
-  <button id="btn_stop">Stop</button>
-  <span id="run_status" style="margin-left:10px;color:#888;"></span>
+<div class="row">
+  <div class="panel">
+    <button id="btn_reset">Reset</button>
+    <button id="btn_step">Step 1</button>
+    <button id="btn_step100">Step 100</button>
+    <button id="btn_run">Run</button>
+    <button id="btn_stop">Stop</button>
+    <span id="run_status" style="margin-left:10px;color:#888;"></span>
+  </div>
+  <div class="panel">
+    <h2>Breakpoints</h2>
+    <div class="row">
+      Address:
+      <input type="text" id="bp_addr" value="0x0000" style="width:48px;">
+      
+      <button id="btn_add_bp">Add</button>
+      <button id="btn_remove_bp">Remove</button>
+      <button id="btn_clear_bp">Clear all</button>
+
+      <div style="margin-top:8px">
+        Active:
+        <span id="bp_list" class="val"></span>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+  <h2>Speed</h2>
+    <div class="row">
+      <label for="updateCyclesCount">Update Cycles Count:</label>
+      <input type="number" id="updateCyclesCount" name="value" min="1" step="100" value="5000">
+      <label for="updateCyclesDelay">Update Cycles Delay:</label>
+      <input type="number" id="updateCyclesDelay" name="value" min="1" step="1" value="1">
+    </div>
+</div>
 </div>
 
 <div class="row">
   <div class="panel" style="min-width:120px;">
     <h2>Core Registers</h2>
-    <table id="regs"></table>
+    <table id="coreRegs"></table>
   </div>
-  <div class="panel">
-    <h2>Breakpoints</h2>
-
-    Address:
-    <input type="text" id="bp_addr" value="0x0">
-    
-    <button id="btn_add_bp">Add</button>
-    <button id="btn_remove_bp">Remove</button>
-    <button id="btn_clear_bp">Clear all</button>
-
-    <div style="margin-top:8px">
-      Active:
-      <span id="bp_list" class="val"></span>
-    </div>
+  <div class="panel" style="min-width:120px;">
+    <h2>Peripheral Regs</h2>
+    <table id="peripheralRegs"></table>
   </div>
+  <div class="panel" style="min-width:440px; ">
+    <h2>INTERNAL RAM</h2>
+    <div class="memdump" id="iram_dump" style="max-height: 400px;"></div>
+  </div>
+  
 <!--  
 <div class="panel" style="min-width:260px;">
     <h2>External Memory Bus (P4 GPIO)</h2>
@@ -78,7 +99,7 @@
     <small>P4.0 = bank select (0=SRAM 32K, 1=AM29F040 flash) · P4.1-3 = A16-A18 into flash</small>
   </div>
 -->
-  <div class="panel" style="min-width:260px;">
+  <div class="panel" style="min-width:200px;">
     <h2>ADC (P5.0-P5.7 analog inputs)</h2>
     <div id="adc_channels"></div>
   </div>
@@ -107,10 +128,7 @@
 </div>
 
 <div class="row">
-  <div class="panel" style="flex:1; max-width:360px;">
-    <h2>INTERNAL RAM</h2>
-    <div class="memdump" id="iram_dump"></div>
-  </div>
+  
   <div class="panel" style="flex:1; max-width:460px;">
     <h2>SRAM (62256) — 256 bytes window</h2>
 	  <label for="xram_index_A">Index(0-127):</label>
@@ -129,7 +147,7 @@
     <input type="text" id="xram_value_A_2" value="0x00" style="width:70px">
 
     <button onclick="set_XRAM_value('xram_addr_A_2','xram_value_A_2')">Set</button>
-    <div class="memdump" id="xram_dump_A"></div>
+    <div class="memdump" id="xram_dump_A" style="max-height: 400px;"></div>
   </div>
 
   <div class="panel" style="flex:1; max-width:460px;">
@@ -148,7 +166,7 @@
     <label for="xram_value_B_2">Value:</label>
     <input type="text" id="xram_value_B_2" value="0x3e" style="width:70px">
     <button onclick="set_XRAM_value('xram_addr_B_2','xram_value_B_2')">Set</button>
-    <div class="memdump" id="xram_dump_B"></div>
+    <div class="memdump" id="xram_dump_B" style="max-height: 400px;"></div>
   </div>
   
   <div class="panel" style="flex:1; min-width:320px;">
@@ -334,62 +352,57 @@ function initCpu() {
   render();
   console.log(cpu);
 }
-
-function renderRegs() {
-  const t = document.getElementById('regs');
-
-  const rows = [
-    ['PC', hex(cpu.PC.get(), 4)],
-    ['A', hex(cpu.A.get())],
-    ['B', hex(cpu.B.get())],
-    ['PSW', hex(cpu.PSW.get())],
-    ['SP', hex(cpu.SP.get())],
-    ['DPTR', hex(cpu.DPTR.get(), 4)],
-    ['P0', hex(cpu.P0.get())],
-    ['P1', hex(cpu.P1.get())],
-    ['P2', hex(cpu.P2.get())],
-    ['P3', hex(cpu.P3.get())],
-    ['P4', hex(cpu.P4.get())],
-    ['P5', hex(cpu.P5.get())],
-    ['IEN0', hex(cpu.IEN0.get())],
-    ['IEN1', hex(cpu.IEN1.get())],
-    ['S1STA', hex(cpu.S1STA.get())],
-    ['S1CON', hex(cpu.S1CON.get())],
-    ['TCON', hex(cpu.TCON.get())],
-    ['TMOD', hex(cpu.TMOD.get())],
-    ['TH0', hex(cpu.TH0.get())],
-    ['TL0', hex(cpu.TL0.get())],
-    ['ADCON', hex(cpu.ADCON.get())],
-    ['ADCH', hex(cpu.ADCH.get())],
-    ['R0', hex(cpu.IRAM[0])],
-    ['R1', hex(cpu.IRAM[1])],
-    ['R2', hex(cpu.IRAM[2])],
-    ['R3', hex(cpu.IRAM[3])],
-    ['R4', hex(cpu.IRAM[4])],
-    ['R5', hex(cpu.IRAM[5])],
-    ['R6', hex(cpu.IRAM[6])],
-    ['R7', hex(cpu.IRAM[7])],
-    ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
+function getCoreRegs() {
+  return [
+      ['PC', hex(cpu.PC.get(), 4)],
+      ['SP', hex(cpu.SP.get())],
+      ['DPTR', hex(cpu.DPTR.get(), 4)],
+      ['A', hex(cpu.A.get())],
+      ['B', hex(cpu.B.get())],
+      ['R0', hex(cpu.IRAM[0])],
+      ['R1', hex(cpu.IRAM[1])],
+      ['R2', hex(cpu.IRAM[2])],
+      ['R3', hex(cpu.IRAM[3])],
+      ['R4', hex(cpu.IRAM[4])],
+      ['R5', hex(cpu.IRAM[5])],
+      ['R6', hex(cpu.IRAM[6])],
+      ['R7', hex(cpu.IRAM[7])],
+      ['PSW', hex(cpu.PSW.get())],
+      ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
   ];
+}
 
+function getPeripheralRegs() {
+  return [
+      ['IEN0', hex(cpu.IEN0.get())],
+      ['IEN1', hex(cpu.IEN1.get())],
+      ['ADCH', hex(cpu.ADCH.get())],
+      ['ADCON', hex(cpu.ADCON.get())],
+      ['S1STA', hex(cpu.S1STA.get())],
+      ['S1CON', hex(cpu.S1CON.get())],
+      ['TCON', hex(cpu.TCON.get())],
+      ['TMOD', hex(cpu.TMOD.get())],
+      ['TH0', hex(cpu.TH0.get())],
+      ['TL0', hex(cpu.TL0.get())],
+      ['P0', hex(cpu.P0.get())],
+      ['P1', hex(cpu.P1.get())],
+      ['P2', hex(cpu.P2.get())],
+      ['P3', hex(cpu.P3.get())],
+      ['P4', hex(cpu.P4.get())],
+      ['P5', hex(cpu.P5.get())],
+  ];
+}
+
+function renderRegs(regs, regs_element_id) {
   let html = "";
 
-  for (let i = 0; i < rows.length; i += 2) {
-    const left = rows[i];
-    const right = rows[i + 1];
-
+  for (let i = 0; i < regs.length; i++) {
     html += `<tr>
-      <td class="reg">${left[0]}</td>
-      <td class="val">${left[1]}</td>
-      ${
-        right
-          ? `<td class="reg">${right[0]}</td><td class="val">${right[1]}</td>`
-          : `<td></td><td></td>`
-      }
+      <td class="reg">${regs[i][0]}</td>
+      <td class="val">${regs[i][1]}</td>
     </tr>`;
   }
-
-  t.innerHTML = html;
+  document.getElementById(regs_element_id).innerHTML = html;
 }
 function renderBus() {
     const div = document.getElementById('p4bits');
@@ -572,7 +585,8 @@ function renderMemDumps() {
 }
 
 function render() {
-  renderRegs();
+  renderRegs(getCoreRegs(), 'coreRegs');
+  renderRegs(getPeripheralRegs(), 'peripheralRegs');
   //renderBus();
   renderAdc();
   renderMemDumps();
@@ -587,7 +601,10 @@ document.getElementById('btn_run').onclick = () => {
   running = true;
   document.getElementById('run_status').textContent = 'running...';
   runHandle = setInterval(() => {
-    let res = cpu.next(50000);
+    let updateCyclesCount_el = document.getElementById('updateCyclesCount');
+  
+  let updateCyclesCount = parseInt(updateCyclesCount_el.value);
+    let res = cpu.next(updateCyclesCount);
     render();
     if(res == 0) {
       stopRun();
@@ -596,7 +613,7 @@ document.getElementById('btn_run').onclick = () => {
       log('stopped: error ' + cpu.error_info.code + ' at ' + hex(cpu.error_info.addr,4));
       stopRun();
     }
-  }, 1);
+  }, parseInt(document.getElementById('updateCyclesDelay').value));
 };
 document.getElementById('btn_stop').onclick = stopRun;
 function stopRun() {
