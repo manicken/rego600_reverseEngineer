@@ -45,6 +45,7 @@
     <button id="btn_step100">Step 100</button>
     <button id="btn_run">Run</button>
     <button id="btn_stop">Stop</button>
+    <button id="btn_print_callstack">Print Callstack</button>
     <span id="run_status" style="margin-left:10px;color:#888;"></span>
   </div>
   <div class="panel">
@@ -67,9 +68,9 @@
   <h2>Speed</h2>
     <div class="row">
       <label for="updateCyclesCount">Update Cycles Count:</label>
-      <input type="number" id="updateCyclesCount" name="value" min="1" step="100" value="5000">
+      <input type="number" id="updateCyclesCount" name="value" min="1" step="100" value="50000" style="width:56px;">
       <label for="updateCyclesDelay">Update Cycles Delay:</label>
-      <input type="number" id="updateCyclesDelay" name="value" min="1" step="1" value="1">
+      <input type="number" id="updateCyclesDelay" name="value" min="1" step="1" value="1" style="width:48px;">
     </div>
 </div>
 </div>
@@ -105,16 +106,25 @@
   </div>
   <div class="panel" style="flex:1; min-width:320px;">
     <h2>LCD Data (decoded from i2c IF)</h2>
-    <button onclick="cpu.bus.sram.write(0x09B7, 0x01);">Power button</button>
+    <button id="front_panel_button_pwr" data-button-index="5">Power button</button>
     <div class="lcd" id="lcd_data"></div>
     
+    <button id="front_panel_button_left" data-button-index="4">Left button</button>
+    <button id="front_panel_button_middle" data-button-index="3">Middle button</button>
+    <button id="front_panel_button_right" data-button-index="2">Right button</button>
+    <!--
     <button onclick="cpu.bus.sram.write(0x09B9, 0x01);">Left button</button>
     <button onclick="cpu.bus.sram.write(0x09BB, 0x01);">Middle button</button>
     <button onclick="cpu.bus.sram.write(0x09BD, 0x01);">Right button</button>
+    -->
     <br>
     <br>
+    <button id="front_panel_wheel_left">Rotate Left</button>
+    <button id="front_panel_wheel_right">Rotate Right</button>
+    <!--
     <button onclick="cpu.bus.sram.write(0x0A2E, 0xFF);cpu.bus.sram.write(0x0A2F, 0xFF);">Rotate Left</button>
     <button onclick="cpu.bus.sram.write(0x0A2F, 0x01);">Rotate Right</button>
+    -->
     <br>
     <br>
     <button onclick="cpu.bus.sram.write(0x1b58, 0xFF); cpu.bus.sram.write(0x1b59, 0xFF);">set timeout to max</button>
@@ -240,10 +250,75 @@ function pinNameToStruct(pinName) {
 
 let current_i2c_write = [];
 let currentWriteIndex = 0;
-let currentReadIndex = 0;
+
 let lcd_data = [];
 let lcd_row = 0;
 let lcd_col = 0;
+
+let currentReadIndex = 0;
+let front_panel_state_byte_A = 0x00;
+let front_panel_state_byte_B = 0x00;
+
+function buttonPressed(bit) {
+
+    front_panel_state_byte_A |= (1 << bit);
+    front_panel_state_byte_B |= (1 << bit);
+
+    //console.log("buttonPressed: " + bit + ", new state byte A:" + hex(front_panel_state_byte_A) + ", new state byte B:" + hex(front_panel_state_byte_B));
+}
+
+function buttonReleased(bit) {
+  
+    //front_panel_state_byte_A &= ~(1 << bit); // resets when reading i2c
+    front_panel_state_byte_B &= ~(1 << bit);
+    //console.log("buttonReleased: " + bit + ", new state byte A:" + hex(front_panel_state_byte_A) + ", new state byte B:" + hex(front_panel_state_byte_B));
+}
+
+function addFrontPanelButtonEvents(el_id) {
+  let button = document.getElementById(el_id);
+  button.addEventListener("pointerdown", e => {
+    button.setPointerCapture(e.pointerId);
+    buttonPressed(Number(button.dataset.buttonIndex));
+  });
+
+  button.addEventListener("pointerup", e => {
+    buttonReleased(Number(button.dataset.buttonIndex));
+  });
+  button.addEventListener("pointercancel", e => {
+    buttonReleased(Number(button.dataset.buttonIndex));
+  });
+}
+
+function front_panel_wheel_left() {
+  front_panel_state_byte_B = 0x81;
+  front_panel_state_byte_A = 0x01;
+}
+
+function front_panel_wheel_right() {
+  front_panel_state_byte_B = 0x01;
+  front_panel_state_byte_A = 0x01;
+}
+
+function initFrontPanelButtonEvents() {
+    addFrontPanelButtonEvents('front_panel_button_pwr');
+    addFrontPanelButtonEvents('front_panel_button_left');
+    addFrontPanelButtonEvents('front_panel_button_middle');
+    addFrontPanelButtonEvents('front_panel_button_right');
+    document.getElementById('front_panel_wheel_left').onclick = front_panel_wheel_left;
+    document.getElementById('front_panel_wheel_right').onclick = front_panel_wheel_right;
+}
+
+function logI2C_write() {
+  let databytes = "";
+		for (let i=0;i<currentWriteIndex;i++) {
+			if (i>0) { databytes += " "; }
+			databytes += hex(current_i2c_write[i]);
+		}
+    if (databytes.length > 0) {
+		console.log("i2c stop: " + databytes); 
+    }
+}
+
 function initCpu() {
   i2cBus = new I2CBus();
 	i2cBus.attach(0x08, {
@@ -251,39 +326,61 @@ function initCpu() {
 	    if (isRead) {
 		    /*console.log("i2c start read");*/
 			currentReadIndex=0;
+      
 		} 
 		else {
+      //front_panel_state_byte_A = 0x00;
+      //front_panel_state_byte_B = 0x00;
 			currentWriteIndex = 0;
 			current_i2c_write = [];
 		}
 		return true;
 	  },      // ACK/NACK
-	  write(databyte)   {
+	  write(databyte)   { // master -> slave
+      //
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
 		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
 		  else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
-      
+
 		  current_i2c_write[currentWriteIndex] = databyte;
       currentWriteIndex++;
       return true;
-	  }, // master skriver till dig
-	  read()        {
-		/*console.log("i2c read");*/ 
-		if (currentReadIndex<1) {currentReadIndex++;} 
-		else {return 0x00;}
-		
-		return 0x00; 
-	  },  // master klockar ut en byte
+	  }, 
+	  read() { // master reads slave 
+      let retVal = 0x00;
+      if (currentReadIndex==0) {
+        currentReadIndex = 1;
+        
+        retVal = front_panel_state_byte_A;
+        if ((front_panel_state_byte_A & 0x01) === 0x01) { // wheel event
+          front_panel_state_byte_A = 0x00;
+        } else if ((front_panel_state_byte_A & 0x7C) !== (front_panel_state_byte_B & 0x7C)) {
+          front_panel_state_byte_A = 0x00;
+        } 
+        
+        
+        //console.log("i2c read A:" + hex(retVal));
+        //console.log("i2c read A:\n"+cpu.getCallStackString());
+      } else if (currentReadIndex==1) {
+        currentReadIndex = -1;
+        retVal = front_panel_state_byte_B;
+        if ((front_panel_state_byte_B & 0x83) !== 0) {
+          front_panel_state_byte_B = 0x00;
+        }
+        console.log("i2c read B:" + hex(front_panel_state_byte_B));
+        //console.log("i2c read B:\n"+cpu.getCallStackString());
+
+      }
+      else {
+        //console.log("i2c read ?:\n"+cpu.getCallStackString());
+
+      }
+      return retVal;
+
+    },
 	  stop()        { 
-		/*let databytes = "";
-		for (let i=0;i<currentWriteIndex;i++) {
-			if (i>0) { databytes += " "; }
-			databytes += hex(current_i2c_write[i]);
-		}
-    if (databytes.length > 0) {
-		console.log("i2c stop: " + databytes); 
-    }*/
-		//console.log("i2c write (" +(currentWriteIndex++)+ ") - " + hex(databyte));  
+		//logI2C_write();
+    return true;
 	  }
 	});
 
@@ -623,6 +720,10 @@ function stopRun() {
   if (runHandle) clearInterval(runHandle);
 }
 
+document.getElementById('btn_print_callstack').onclick = () => {
+    console.log(cpu.getCallStackString());
+};
+
 function dumpHex(bytes, bytesPerLine = 32) {
 	let dumpText = "";
     for (let i = 0; i < bytes.length; i += bytesPerLine) {
@@ -773,6 +874,7 @@ function set_XRAM_value(xram_addr_element_id,xram_value_element_id)
     render_XRAM_window();
 }
 
+initFrontPanelButtonEvents();
 initCpu();
 </script>
 </body>

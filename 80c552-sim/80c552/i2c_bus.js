@@ -175,7 +175,7 @@ function install_i2c_master(cpu, bus) {
                 setSI()
                 return
             }
-
+            
             if (fsm === "rx") {
                 const byte = activeDevice ? activeDevice.read() : 0xFF
                 S1DAT._value = byte & 0xFF
@@ -183,6 +183,7 @@ function install_i2c_master(cpu, bus) {
                 setSI()
                 return
             }
+
         }
     })
 
