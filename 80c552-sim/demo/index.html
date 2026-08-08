@@ -367,7 +367,7 @@ function initCpu() {
         if ((front_panel_state_byte_B & 0x83) !== 0) {
           front_panel_state_byte_B = 0x00;
         }
-        console.log("i2c read B:" + hex(front_panel_state_byte_B));
+        //console.log("i2c read B:" + hex(front_panel_state_byte_B));
         //console.log("i2c read B:\n"+cpu.getCallStackString());
 
       }
