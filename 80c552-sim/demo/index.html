@@ -23,6 +23,8 @@
   .lcd { font-size:16px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
   small { color:#888; }
 </style>
+
+<link rel="stylesheet" href="led-panel.css">
 </head>
 <body>
 <h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
@@ -105,7 +107,36 @@
     <div id="adc_channels"></div>
   </div>
   <div class="panel" style="flex:1; min-width:320px;">
-    <h2>LCD Data (decoded from i2c IF)</h2>
+    <h2>Front Panel (simulated like a real one)</h2>
+    
+    
+    <div class="row" style="margin-top: 5px; margin-bottom: 5px; font-family: Arial, sans-serif;">
+      <div class="rego-led" id="led-power">
+          <span class="led"></span>
+          <span class="label">POWER</span>
+      </div>
+
+      <div class="rego-led" id="led-pump">
+          <span class="led"></span>
+          <span class="label">PUMP</span>
+      </div>
+
+      <div class="rego-led" id="led-addheat">
+          <span class="led"></span>
+          <span class="label">ADD HEAT</span>
+      </div>
+
+      <div class="rego-led" id="led-warmwater">
+          <span class="led"></span>
+          <span class="label">WARM WATER</span>
+      </div>
+
+      <div class="rego-led" id="led-alarm">
+          <span class="led"></span>
+          <span class="label">ALARM</span>
+      </div>
+    </div>
+   
     <button id="front_panel_button_pwr" data-button-index="5">Power button</button>
     <div class="lcd" id="lcd_data"></div>
     
@@ -229,6 +260,60 @@ function log(msg) {
   el.textContent += msg + "\n";
   el.scrollTop = el.scrollHeight;
 }
+let led_raw_state_A = 0;
+let led_raw_state_B = 0;
+function setLed(name, enabled, blink) {
+    const element = document.getElementById(`led-${name}`);
+
+    element.classList.toggle("on", enabled);
+    element.classList.toggle("blink", enabled && blink);
+}
+const LED_BITS = {
+    pump:      0x02,
+    power:     0x04,
+    warmwater: 0x08,
+    alarm:     0x10,
+    addheat:   0x20
+};
+
+const BACKLIGHT_OFF = 0x40;
+
+function setBacklight(on) {
+    document
+        .querySelector(".rego-display")
+        ?.classList.toggle("backlight-off", !on);
+}
+
+function updateLeds() {
+
+    setLed("power",
+        (led_raw_state_A & LED_BITS.power) !== 0,
+        (led_raw_state_B & LED_BITS.power) !== 0
+    );
+
+    setLed("pump",
+        (led_raw_state_A & LED_BITS.pump) !== 0,
+        false
+    );
+
+    setLed("addheat",
+        (led_raw_state_A & LED_BITS.addheat) !== 0,
+        false
+    );
+
+    setLed("warmwater",
+        (led_raw_state_A & LED_BITS.warmwater) !== 0,
+        (led_raw_state_B & LED_BITS.warmwater) !== 0
+    );
+
+    setLed("alarm",
+        (led_raw_state_A & LED_BITS.alarm) !== 0,
+        (led_raw_state_B & LED_BITS.alarm) !== 0
+    );
+
+    // 0x40 betyder BACKLIGHT OFF
+    setBacklight((led_raw_state_A & BACKLIGHT_OFF) === 0);
+}
 
 function pinNameToStruct(pinName) {
     const match = /^P(\d+)\.(\d+)$/.exec(pinName);
@@ -315,7 +400,7 @@ function logI2C_write() {
 			databytes += hex(current_i2c_write[i]);
 		}
     if (databytes.length > 0) {
-		console.log("i2c stop: " + databytes); 
+		//console.log("i2c stop: " + databytes); 
     }
 }
 
@@ -341,7 +426,14 @@ function initCpu() {
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
 		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
 		  else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
-
+      else if (currentWriteIndex == 3) {
+        led_raw_state_A = databyte;
+        updateLeds();
+      }
+      else if (currentWriteIndex == 4) {
+        led_raw_state_B = databyte;
+        updateLeds();
+      }
 		  current_i2c_write[currentWriteIndex] = databyte;
       currentWriteIndex++;
       return true;
@@ -379,7 +471,7 @@ function initCpu() {
 
     },
 	  stop()        { 
-		//logI2C_write();
+		logI2C_write();
     return true;
 	  }
 	});
