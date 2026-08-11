@@ -1,7 +1,16 @@
-function hex(v, w = 2) { return '0x' + v.toString(16).toUpperCase().padStart(w, '0'); }
+function hex(v, w = 2, prefix=true) { return (prefix?'0x':'') + v.toString(16).toUpperCase().padStart(w, '0'); }
 
-function printPrintable(value) {
-    if (value < 0x20) { return '.'; }
+function getBytesInAsciiHex(bytes, separator=' ') {
+    let ret = "";
+    for (let i=0;i<bytes.length;i++) {
+        if (i>0) { ret += separator; }
+        ret += hex(bytes[i]);
+    }
+    return ret;
+}
+
+function printPrintable(value, nonPrintableAsHex=false) {
+    if (value < 0x20) { return nonPrintableAsHex?("["+hex(value,false)+"]"):'.'; }
     return String.fromCharCode(value);
 }
 function getMemoryContentsDump(p={reader, ascii, columns, colheader, size, offset, addressWidth}) {

@@ -106,35 +106,16 @@
     <h2>ADC (P5.0-P5.7 analog inputs)</h2>
     <div id="adc_channels"></div>
   </div>
-  <div class="panel" style="flex:1; min-width:320px;">
+  <div class="panel" style="flex:1; max-width:360px;">
     <h2>Front Panel (simulated like a real one)</h2>
     
     
     <div class="row" style="margin-top: 5px; margin-bottom: 5px; font-family: Arial, sans-serif;">
-      <div class="rego-led" id="led-power">
-          <span class="led"></span>
-          <span class="label">POWER</span>
-      </div>
-
-      <div class="rego-led" id="led-pump">
-          <span class="led"></span>
-          <span class="label">PUMP</span>
-      </div>
-
-      <div class="rego-led" id="led-addheat">
-          <span class="led"></span>
-          <span class="label">ADD HEAT</span>
-      </div>
-
-      <div class="rego-led" id="led-warmwater">
-          <span class="led"></span>
-          <span class="label">WARM WATER</span>
-      </div>
-
-      <div class="rego-led" id="led-alarm">
-          <span class="led"></span>
-          <span class="label">ALARM</span>
-      </div>
+      <div class="rego-led" id="led-power">     <span class="led"></span> <span class="label">POWER</span> </div>
+      <div class="rego-led" id="led-pump">      <span class="led"></span> <span class="label">PUMP</span> </div>
+      <div class="rego-led" id="led-addheat">   <span class="led"></span> <span class="label">ADD HEAT</span> </div>
+      <div class="rego-led" id="led-warmwater"> <span class="led"></span> <span class="label">WARM WATER</span> </div>
+      <div class="rego-led" id="led-alarm">     <span class="led"></span> <span class="label">ALARM</span> </div>
     </div>
    
     <button id="front_panel_button_pwr" data-button-index="5">Power button</button>
@@ -165,6 +146,29 @@
     <button onclick="cpu.bus.sram.write(0xa17, 0x8);">factory mode</button>
     <button onclick="cpu.bus.sram.write(0xa17, 0x1);">customer 1 mode</button>
     <button onclick="cpu.bus.sram.write(0xa17, 0x2);">customer 2 mode</button>
+  </div>
+
+  <div class="panel" style="flex:1; min-width:300px;">
+    <h2>Service Interface (simulated like a real one)</h2>
+    <button onclick="service_port_send(0x7F)">Get version</button>
+    <button onclick="service_port_send(0x02, 0x209)">Get GT1</button>
+    <button onclick="service_port_send(0x40)">Get Last Error</button>
+    <button onclick="service_port_send(0x42)">Get Prev. Error</button>
+    <hr>
+    <div class="row">
+    <label for="service_port_send_cmd">Cmd:</label>
+    <input type="text" id="service_port_send_cmd" value="0x00" style="width:32px">
+    </div>
+    <div class="row">
+    <label for="service_port_send_param1">Param1:</label>
+    <input type="text" id="service_port_send_param1" value="0x0000" style="width:44px">
+    </div>
+    <div class="row">
+    <label for="service_port_send_param2">Value:</label>
+    <input type="text" id="service_port_send_param2" value="0x0000" style="width:44px">
+    </div>
+    <button onclick="service_port_request_any('service_port_send_cmd', 'service_port_send_param1', 'service_port_send_param2')">Send</button>
+
   </div>
 </div>
 
@@ -243,6 +247,7 @@
 <script src="../80c552/gpio_bitbang.js"></script>
 <script src="../80c552/80c552.js"></script>
 <script src="../80c552/logging.js"></script>
+<script src="../80c552/uart.js"></script>
 
 <!-- built in code mem -->
 <script src="builtin_code.js"></script>
@@ -535,6 +540,11 @@ function initCpu() {
         );
     }
   });
+
+  install_uart(cpu);
+
+  set_uart_handler();
+  
   
   init_LCD();
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
@@ -567,6 +577,8 @@ function getPeripheralRegs() {
       ['IEN1', hex(cpu.IEN1.get())],
       ['ADCH', hex(cpu.ADCH.get())],
       ['ADCON', hex(cpu.ADCON.get())],
+      ['S0CON', hex(cpu.S0CON.get())],
+      ['S0BUF', hex(cpu.S0BUF.get())],
       ['S1STA', hex(cpu.S1STA.get())],
       ['S1CON', hex(cpu.S1CON.get())],
       ['TCON', hex(cpu.TCON.get())],
@@ -663,7 +675,152 @@ function renderBus() {
         sel.ext.toString(2).padStart(3, '0') +
         ')';
 }
+function dummy_handler() {
+  console.error("service port - dummy handler was called");
+}
+function write_confirm_handler()
+{
+  console.info("service port - write confirm");
+}
+let expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
+let currentRxCount = 0;
+let currentRxBuff = [];
+function CalcCheckSum(buffer) {
+    let chksum = 0;
+    for (let i=2;i<buffer.length;i++)
+        chksum ^= buffer[i];
+    return chksum;
+}
 
+function cmd00_02_04_06_7F_handler() {
+  let value = (currentRxBuff[1] << 14) |
+              (currentRxBuff[2] << 7) |
+              (currentRxBuff[3]);
+  console.log("service port rx value: " + hex(value) + " " + value);
+}
+
+function packNibbles(nibblebytes, offset) {
+  let bytes = [];
+  for (let i=offset;i<nibblebytes.length;i+=2) {
+    bytes.push((nibblebytes[i] << 4) | nibblebytes[i+1])
+  }
+  return bytes;
+}
+
+function cmd_20_handler() {
+  let text = "";
+  let bytes = packNibbles(currentRxBuff, 1);
+  for (let i=0;i<20;i++) {
+    text += printPrintable(bytes[i]);
+  }
+  console.log("service port cmd 20 rx: >>>" + text + "<<<");
+}
+
+let error_codes = {
+  '0':"Sensor radiator return (GT1)",
+  '1':"Outdoor sensor (GT2)",
+  '2':"Sensor hot water (GT3)",
+  '3':"Mixing valve sensor (GT4)",
+  '4':"Room sensor (GT5)",
+  '5':"Sensor compressor (GT6)",
+  '6':"Sensor heat transf. fluid out (GT8)",
+  '7':"Sensor heat transf. fluid in (GT9)",
+  '8':"Sensor cold transf. fluid in (GT10)",
+  '9':"Sensor cold transf. fluid in (GT11)",
+  '10':"Compresor circuit switch",
+  '11':"Electrical cassette",
+  '12':"HTF C=pump switch (MB2)",
+  '13':"Low pressure switch (LP)",
+  '14':"High pressure switch (HP)",
+  '15':"High return HP (GT9)",
+  '16':"HTF out max (GT8)",
+  '17':"HTF in under limit (GT10)",
+  '18':"HTF out under limit (GT11)",
+  '19':"Compressor superhear (GT6)",
+  '20':"3-phase incorrect order",
+  '21':"Power failure",
+  '22':"Varmetr. delta hoch",
+}
+
+function cmd_40_42_handler() {
+  let text = "";
+  let bytes = packNibbles(currentRxBuff, 1);
+  for (let i=1;i<16;i++) {
+    text += printPrintable(bytes[i], true);
+  }
+  console.log("service port cmd 40_42 rx: >>>" + error_codes[bytes[0]] + " - " + text + "<<<");
+}
+
+const extectedRxCountVsCmd = [
+  {cmd:0x00, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x01, len:1, handler:write_confirm_handler},
+  {cmd:0x02, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x03, len:1, handler:write_confirm_handler},
+  {cmd:0x04, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x05, len:1, handler:write_confirm_handler},
+  {cmd:0x06, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x07, len:1, handler:write_confirm_handler},
+  {cmd:0x20, len:42, handler:cmd_20_handler},
+  {cmd:0x40, len:42, handler:cmd_40_42_handler},
+  {cmd:0x42, len:42, handler:cmd_40_42_handler},
+  {cmd:0x7F, len:5, handler:cmd00_02_04_06_7F_handler},
+];
+function getExpectedRxStruct(cmd) {
+  for (let i=0;i<extectedRxCountVsCmd.length; i++) {
+    if (extectedRxCountVsCmd[i].cmd == cmd) {
+      return extectedRxCountVsCmd[i];
+    }
+  }
+  return undefined; // not found
+}
+
+let lastSendCmd = 0;
+function service_port_send(cmd, param1=0x00, param2=0x00) {
+    let responseStruct = getExpectedRxStruct(cmd);
+    if (responseStruct == undefined) {
+      console.log("service_port_send - unknown cmd: " + cmd);
+      expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
+      return;
+    }
+    expectedRxStruct = responseStruct;
+    lastSendCmd = cmd;
+    const buffer = [
+      0x81, 
+      cmd,
+      ((param1 >> 14) & 0x7F),
+      ((param1 >> 7) & 0x7F),
+      (param1 & 0x7F),
+      ((param2 >> 14) & 0x7F),
+      ((param2 >> 7) & 0x7F),
+      (param2 & 0x7F)
+    ];
+    buffer.push(CalcCheckSum(buffer));
+
+    console.log("Service Port Send: [" + getBytesInAsciiHex(buffer, ', ') + ']');
+    currentRxCount = 0;
+    currentRxBuff = [];
+    cpu.uart.rxBytes(buffer);
+}
+function service_port_request_any(cmd_el_id, param1_el_id, param2_el_id) {
+  let cmd = parseNumber(document.getElementById(cmd_el_id).value);
+  let param1 = parseNumber(document.getElementById(param1_el_id).value);
+  let param2 = parseNumber(document.getElementById(param2_el_id).value);
+  service_port_send(cmd, param1, param2);
+}
+
+// on TX mean when the MCU sends data to the client
+function uart_on_tx_handler(byte, ninthBit) {
+  currentRxBuff[currentRxCount++] = byte;
+  
+  if (currentRxCount == expectedRxStruct.len) {
+    console.log('service port raw answer: [' + getBytesInAsciiHex(currentRxBuff, ', ') + ']');
+    expectedRxStruct.handler();
+    
+  }
+}
+function set_uart_handler() {
+  cpu.uart.onTx(uart_on_tx_handler);
+}
 
 function toggleBusPin(port, bit) {
     if (port === 'P4') {
