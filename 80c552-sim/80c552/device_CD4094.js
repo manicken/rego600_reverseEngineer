@@ -18,8 +18,14 @@ function install_4094(cpu, dev, pins, tag) {
     const { data, clk, str } = pins
     watchPin(clk.port, clk.bit, {
         onRise: () => { 
+            if (tag == "B") {
+                console.log("B data input:" + readPortPin(data));
+            }
             dev.shiftReg = ((dev.shiftReg << 1) | readPortPin(data)) & 0xFF;
-            dev.QS1.set((dev.shiftReg & 0x80) ? 1 : 0);
+            dev.QS1.set(((dev.shiftReg & 0x80) === 0x80) ? 1 : 0);
+            if (tag == "A") {
+                console.log(`QS1 ${tag} = ${dev.QS1.get()}`);
+            }
         },
         onFall: () => {
             dev.QS2.set(dev.QS1.get()); // to simulate real HW this should be set when clk is low
@@ -28,7 +34,9 @@ function install_4094(cpu, dev, pins, tag) {
     watchPin(str.port, str.bit, {
         onRise: () => { 
             dev.outputs.set(dev.shiftReg);
-            console.log(`4094 ${tag} latched:${hex(dev.shiftReg,4)}`);
+            if (tag == "B") {
+                console.log(`4094 ${tag} latched:${hex(dev.shiftReg,4)}`);
+            }
         },
     })
 }

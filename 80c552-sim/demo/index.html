@@ -43,19 +43,29 @@
 </div>
 <div class="row">
   <div class="panel">
-    <button id="btn_reset">Reset</button>
-    <button id="btn_step">Step 1</button>
-    <button id="btn_step100">Step 100</button>
-    <button id="btn_run">Run</button>
-    <button id="btn_stop">Stop</button>
-    <button id="btn_print_callstack">Print Callstack</button>
-    <span id="run_status" style="margin-left:10px;color:#888;"></span>
+    <div class="row">
+      <button id="btn_reset">Reset</button>
+      <button id="btn_step">Step 1</button>
+      <button id="btn_step100">Step 100</button>
+      <button id="btn_run">Run</button>
+      <button id="btn_stop">Stop</button>
+      <button id="btn_print_callstack">Print Callstack</button>
+      <span id="run_status" style="margin-left:10px;color:#888;"></span>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <label for="code_rom_addr">Address:</label>
+    <input type="text" id="code_rom_addr" value="0x1b7a" style="width:90px">
+    <label for="code_rom_value">Value:</label>
+    <input type="text" id="code_rom_value" value="0x1efc" style="width:70px">
+    <button onclick="set_IROM_value('code_rom_addr','code_rom_value')">Set</button>
+    </div>
   </div>
+  
   <div class="panel">
     <h2>Breakpoints</h2>
     <div class="row">
       Address:
-      <input type="text" id="bp_addr" value="0x0000" style="width:48px;">
+      <input type="text" id="bp_addr" value="0x7de3" style="width:48px;">
       
       <button id="btn_add_bp">Add</button>
       <button id="btn_remove_bp">Remove</button>
@@ -511,7 +521,9 @@ function initCpu() {
     C: {port:CD4094_B.outputs, bit:2},
     INH: {port:CD4094_B.outputs, bit:3},
   }, "A");
+
   const mux_B_Invert_INH = new Inverter({port:CD4094_B.outputs, bit:3});
+  
   CD4051_mux_B = new CD4051({
     A: {port:CD4094_B.outputs, bit:0},
     B: {port:CD4094_B.outputs, bit:1},
@@ -520,9 +532,7 @@ function initCpu() {
   }, "B");
   // executes after every instruction so it's perfect to use for adc selection
   cpu.peripheral_ticks.push(() => {
-    // here the outputs of the two muxes are hardwired to one and annother 
-    // so this is most practical way to do it
-    // and as a deselected mux output 0 its also correct
+
     if (readPinLatch(CD4094_B.outputs, 3) === 0) {
       cpu.adc.setChannelVoltage(0, CD4051_mux_A.get());
     } else {
@@ -1111,10 +1121,10 @@ document.getElementById('btn_add_bp').onclick = addBreakpoint;
 document.getElementById('btn_remove_bp').onclick = removeBreakpoint;
 document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
 
-function set_XRAM_value(xram_addr_element_id, xram_value_element_id)
+function set_XRAM_value(addr_element_id, value_element_id)
 {
-    let addr = parseNumber(document.getElementById(xram_addr_element_id).value);
-    let value = parseNumber(document.getElementById(xram_value_element_id).value);
+    let addr = parseNumber(document.getElementById(addr_element_id).value);
+    let value = parseNumber(document.getElementById(value_element_id).value);
 
     if(isNaN(addr) || isNaN(value))
         return;
@@ -1132,6 +1142,28 @@ function set_XRAM_value(xram_addr_element_id, xram_value_element_id)
       cpu.bus.sram.write(addr+1, (value & 0xFF));
     }
     render_XRAM_window();
+}
+
+function set_IROM_value(addr_element_id, value_element_id)
+{
+    let addr = parseNumber(document.getElementById(addr_element_id).value);
+    let value = parseNumber(document.getElementById(value_element_id).value);
+
+    if(isNaN(addr) || isNaN(value))
+        return;
+
+    if(addr < 0 || addr >= cpu.IDATA.size)
+        return;
+
+    if(value < 0 || value > 0xFFFF)
+        return;
+    
+    if (value <= 0xFF) {
+      cpu.IDATA[addr] = value;
+    } else {
+      cpu.IDATA[addr] = (value & 0xFF00) >> 8;
+      cpu.IDATA[addr+1] = (value & 0xFF);
+    }
 }
 
 initFrontPanelButtonEvents();
