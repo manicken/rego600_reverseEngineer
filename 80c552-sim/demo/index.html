@@ -20,7 +20,8 @@
   #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
   .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
   .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
-  .lcd { font-size:16px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
+  .lcd { margin-top:8px; margin-bottom:8px; font-size:20px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 240px; overflow-y:auto; background:#396197; padding:6px; }
+  .lcd.backlight-on {background:#63a3ff}
   small { color:#888; }
 </style>
 
@@ -124,28 +125,10 @@
     <button id="front_panel_button_left" data-button-index="4">Left button</button>
     <button id="front_panel_button_middle" data-button-index="3">Middle button</button>
     <button id="front_panel_button_right" data-button-index="2">Right button</button>
-    <!--
-    <button onclick="cpu.bus.sram.write(0x09B9, 0x01);">Left button</button>
-    <button onclick="cpu.bus.sram.write(0x09BB, 0x01);">Middle button</button>
-    <button onclick="cpu.bus.sram.write(0x09BD, 0x01);">Right button</button>
-    -->
     <br>
     <br>
     <button id="front_panel_wheel_left">Rotate Left</button>
     <button id="front_panel_wheel_right">Rotate Right</button>
-    <!--
-    <button onclick="cpu.bus.sram.write(0x0A2E, 0xFF);cpu.bus.sram.write(0x0A2F, 0xFF);">Rotate Left</button>
-    <button onclick="cpu.bus.sram.write(0x0A2F, 0x01);">Rotate Right</button>
-    -->
-    <br>
-    <br>
-    <button onclick="cpu.bus.sram.write(0x1b58, 0xFF); cpu.bus.sram.write(0x1b59, 0xFF);">set timeout to max</button>
-    <button onclick="cpu.bus.sram.write(0x1b7a, 0x2c); cpu.bus.sram.write(0x1b7b, 0x9c);">set 5.12 menu</button>
-    <br>
-    <br>
-    <button onclick="cpu.bus.sram.write(0xa17, 0x8);">factory mode</button>
-    <button onclick="cpu.bus.sram.write(0xa17, 0x1);">customer 1 mode</button>
-    <button onclick="cpu.bus.sram.write(0xa17, 0x2);">customer 2 mode</button>
   </div>
 
   <div class="panel" style="flex:1; min-width:300px;">
@@ -154,17 +137,26 @@
     <button onclick="service_port_send(0x02, 0x209)">Get GT1</button>
     <button onclick="service_port_send(0x40)">Get Last Error</button>
     <button onclick="service_port_send(0x42)">Get Prev. Error</button>
+    <br>
+    <br>
+    <button onclick="service_port_send(0x07, 0x28, 0xFFFF);">set timeout to max</button>
+    <button onclick="service_port_send(0x07, 0x39, 0x2C9C);">set 5.12 menu</button>
+    <br>
+    <br>
+    <button onclick="service_port_send(0x01, 0x38, 0x8);">factory mode</button>
+    <button onclick="service_port_send(0x01, 0x38, 0x1);">customer 1 mode</button>
+    <button onclick="service_port_send(0x01, 0x38, 0x2);">customer 2 mode</button>
     <hr>
     <div class="row">
     <label for="service_port_send_cmd">Cmd:</label>
     <input type="text" id="service_port_send_cmd" value="0x00" style="width:32px">
     </div>
     <div class="row">
-    <label for="service_port_send_param1">Param1:</label>
+    <label for="service_port_send_param1">Param1 (reg index):</label>
     <input type="text" id="service_port_send_param1" value="0x0000" style="width:44px">
     </div>
     <div class="row">
-    <label for="service_port_send_param2">Value:</label>
+    <label for="service_port_send_param2">Param2 (value):</label>
     <input type="text" id="service_port_send_param2" value="0x0000" style="width:44px">
     </div>
     <button onclick="service_port_request_any('service_port_send_cmd', 'service_port_send_param1', 'service_port_send_param2')">Send</button>
@@ -175,7 +167,7 @@
 <div class="row">
   
   <div class="panel" style="flex:1; max-width:460px;">
-    <h2>SRAM (62256) — 256 bytes window</h2>
+    <h2>SRAM (62256) — 256 bytes window A</h2>
 	  <label for="xram_index_A">Index(0-127):</label>
     <input type="number" id="xram_index_A" name="value" min="0" max="127" step="1" value="10"	oninput="render_XRAM_window('xram_index_A','xram_dump_A')">
     <hr>
@@ -196,7 +188,7 @@
   </div>
 
   <div class="panel" style="flex:1; max-width:460px;">
-    <h2>SRAM (62256) — 256 bytes window</h2>
+    <h2>SRAM (62256) — 256 bytes window B</h2>
 	  <label for="xram_index_B">Index(0-127):</label>
     <input type="number" id="xram_index_B" name="value" min="0" max="127" step="1" value="27"	oninput="render_XRAM_window('xram_index_B','xram_dump_B')">
     <hr>
@@ -244,7 +236,8 @@
 <script src="../80c552/device_am29f040.js"></script>
 <script src="../80c552/membus.js"></script>
 <script src="../80c552/i2c_bus.js"></script>
-<script src="../80c552/gpio_bitbang.js"></script>
+
+
 <script src="../80c552/80c552.js"></script>
 <script src="../80c552/logging.js"></script>
 <script src="../80c552/uart.js"></script>
@@ -252,6 +245,15 @@
 <!-- built in code mem -->
 <script src="builtin_code.js"></script>
 <script src="builtin_data.js"></script>
+
+<!-- 80C552 bitbang devices -->
+<script src="../80c552/gpio_bitbang.js"></script>
+<script src="../80c552/device_DS1302.js"></script>
+<script src="../80c552/device_TC1232.js"></script>
+<script src="../80c552/device_CD4021.js"></script>
+<script src="../80c552/device_CD4094.js"></script>
+<script src="../80c552/device_CD4051.js"></script>
+<script src="../80c552/device_Inverter.js"></script>
 
 <script>
 let cpu = null;
@@ -285,8 +287,8 @@ const BACKLIGHT_OFF = 0x40;
 
 function setBacklight(on) {
     document
-        .querySelector(".rego-display")
-        ?.classList.toggle("backlight-off", !on);
+        .querySelector(".lcd")
+        ?.classList.toggle("backlight-on", on);
 }
 
 function updateLeds() {
@@ -318,24 +320,6 @@ function updateLeds() {
 
     // 0x40 betyder BACKLIGHT OFF
     setBacklight((led_raw_state_A & BACKLIGHT_OFF) === 0);
-}
-
-function pinNameToStruct(pinName) {
-    const match = /^P(\d+)\.(\d+)$/.exec(pinName);
-
-    if (!match)
-        throw new Error(`Invalid pin name: ${pinName}`);
-
-    const port = cpu[`P${match[1]}`];
-    const bit = Number(match[2]);
-
-    if (!port)
-        throw new Error(`Port P${match[1]} does not exist`);
-
-    if (bit < 0 || bit > 7)
-        throw new Error(`Invalid bit number: ${bit}`);
-
-    return { port, bit };
 }
 
 let current_i2c_write = [];
@@ -408,6 +392,10 @@ function logI2C_write() {
 		//console.log("i2c stop: " + databytes); 
     }
 }
+let CD4051_mux_A = undefined;
+let CD4051_mux_B = undefined;
+let CD4094_A = undefined;
+let CD4094_B = undefined;
 
 function initCpu() {
   i2cBus = new I2CBus();
@@ -480,9 +468,10 @@ function initCpu() {
     return true;
 	  }
 	});
+  let adcChannels = [0, 0, 0, 0, 0, 0, 0, 0];
 
   cpu = create_80c552({
-    adcChannels: [0, 0, 0, 0, 0, 0, 0, 0], i2cBus:i2cBus
+    adcChannels: adcChannels, i2cBus:i2cBus
   });
 
   wd = new TC1232({timeoutMs:1200});
@@ -502,12 +491,45 @@ function initCpu() {
 	});
   
 
-	const shOut = new ShiftOut4094();
-	install_4094(cpu, shOut, {
+	CD4094_A = new ShiftOut4094();
+	install_4094(cpu, CD4094_A, {
 	  data: pinNameToStruct("P1.4"),
 	  clk:  pinNameToStruct("P1.3"),
 	  str:  pinNameToStruct("P4.4"),
-	});
+	}, "A");
+
+  CD4094_B = new ShiftOut4094();
+	install_4094(cpu, CD4094_B, {
+	  data: {port:CD4094_A.QS1, bit:0},
+	  clk:  pinNameToStruct("P1.3"),
+	  str:  pinNameToStruct("P4.4"),
+	}, "B");
+
+  CD4051_mux_A = new CD4051({
+    A: {port:CD4094_B.outputs, bit:0},
+    B: {port:CD4094_B.outputs, bit:1},
+    C: {port:CD4094_B.outputs, bit:2},
+    INH: {port:CD4094_B.outputs, bit:3},
+  }, "A");
+  const mux_B_Invert_INH = new Inverter({port:CD4094_B.outputs, bit:3});
+  CD4051_mux_B = new CD4051({
+    A: {port:CD4094_B.outputs, bit:0},
+    B: {port:CD4094_B.outputs, bit:1},
+    C: {port:CD4094_B.outputs, bit:2},
+    INH: {port:mux_B_Invert_INH, bit:0},
+  }, "B");
+  // executes after every instruction so it's perfect to use for adc selection
+  cpu.peripheral_ticks.push(() => {
+    // here the outputs of the two muxes are hardwired to one and annother 
+    // so this is most practical way to do it
+    // and as a deselected mux output 0 its also correct
+    if (readPinLatch(CD4094_B.outputs, 3) === 0) {
+      cpu.adc.setChannelVoltage(0, CD4051_mux_A.get());
+    } else {
+      cpu.adc.setChannelVoltage(0, CD4051_mux_B.get());
+    }
+    
+  });
 
 	const shIn = new ShiftIn4021();
 	install_4021(cpu, shIn, {
@@ -515,6 +537,23 @@ function initCpu() {
 	  clk: pinNameToStruct("P4.7"),
 	  q:   pinNameToStruct("P1.5"),
 	});
+  let threephasestates = [0x50, 0x40, 0x60, 0x20, 0x30, 0x10];
+  shIn.inputs = threephasestates[this.phaseStep]^0x70 | 0x0E;
+  let phaseTicks = 0;
+  let phaseStep = 0;
+  cpu.peripheral_ticks.push(() => {
+        phaseTicks++;
+
+        if (phaseTicks >= cpu.currentUpdateCyclesCount) {
+            phaseTicks = 0;
+
+            phaseStep++;
+            if (phaseStep >= 6)
+                phaseStep = 0;
+
+            shIn.inputs = threephasestates[phaseStep]^0x70 | 0x0E;
+        }
+    });
 	
   if (builtin_flashCodeData) {
 	cpu.IDATA = builtin_flashCodeData;
@@ -605,6 +644,7 @@ function renderRegs(regs, regs_element_id) {
   }
   document.getElementById(regs_element_id).innerHTML = html;
 }
+
 function renderBus() {
     const div = document.getElementById('p4bits');
     let html = '';
@@ -612,32 +652,12 @@ function renderBus() {
     const p4 = cpu.P4._value;
     const p3 = cpu.P3._value;
 
-    const pins = [
-        {
-            port: 'P4',
-            bit: 0,
-            name: 'FLASH CS#'
-        },
-        {
-            port: 'P4',
-            bit: 2,
-            name: 'SRAM CS#'
-        },
-        {
-            port: 'P3',
-            bit: 3,
-            name: 'FLASH A16'
-        },
-        {
-            port: 'P3',
-            bit: 5,
-            name: 'FLASH A17'
-        },
-        {
-            port: 'P3',
-            bit: 4,
-            name: 'FLASH A18'
-        }
+    const pins = [ 
+      { port: 'P4', bit: 0, name: 'FLASH CS#' },
+      { port: 'P4', bit: 2, name: 'SRAM CS#' },
+      { port: 'P3', bit: 3, name: 'FLASH A16' },
+      { port: 'P3', bit: 5, name: 'FLASH A17' },
+      { port: 'P3',  bit: 4, name: 'FLASH A18' }
     ];
 
     for (const pin of pins) {
@@ -675,6 +695,7 @@ function renderBus() {
         sel.ext.toString(2).padStart(3, '0') +
         ')';
 }
+
 function dummy_handler() {
   console.error("service port - dummy handler was called");
 }
@@ -838,18 +859,19 @@ function toggleBusPin(port, bit) {
 function renderAdc() {
   const div = document.getElementById('adc_channels');
   let html = '';
-  for (let ch = 0; ch < 8; ++ch) {
-    const v = cpu.adc.channels[ch];
-    html += `<div>CH${ch} (P5.${ch}): <input type="number" step="0.01" min="0" max="${cpu.adc.vref}" value="${v}" style="width:70px" onchange="setAdcChannel(${ch}, this.value)"> V</div>`;
+  for (let ch = 0; ch < 16; ++ch) {
+    html += `<div>CH${ch} (P5.${ch}): <input type="number" step="0.01" min="0" max="${cpu.adc.vref}" value="${0}" style="width:70px" onchange="setAdcChannel(${ch}, this.value)"> V</div>`;
   }
   div.innerHTML = html;
 }
 
 function setAdcChannel(ch, v) {
-  cpu.adc.setChannelVoltage(ch, parseFloat(v));
+  if (ch < 8) {
+    CD4051_mux_A.X[ch] = parseFloat(v);
+  } else if (ch < 16) {
+    CD4051_mux_B.X[ch%16] = parseFloat(v);
+  }
 }
-
-
 
 function init_LCD() {
   lcd_data = {rows:[]};
@@ -934,7 +956,7 @@ function render() {
   renderRegs(getCoreRegs(), 'coreRegs');
   renderRegs(getPeripheralRegs(), 'peripheralRegs');
   //renderBus();
-  renderAdc();
+  
   renderMemDumps();
 }
 
@@ -943,13 +965,15 @@ document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
 document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
 document.getElementById('btn_run').onclick = () => {
   if (running) return;
+  renderAdc();
   wd.startMonitoring();
   running = true;
   document.getElementById('run_status').textContent = 'running...';
   runHandle = setInterval(() => {
     let updateCyclesCount_el = document.getElementById('updateCyclesCount');
   
-  let updateCyclesCount = parseInt(updateCyclesCount_el.value);
+    let updateCyclesCount = parseInt(updateCyclesCount_el.value);
+    cpu.currentUpdateCyclesCount = updateCyclesCount;
     let res = cpu.next(updateCyclesCount);
     render();
     if(res == 0) {
@@ -1087,17 +1111,7 @@ document.getElementById('btn_add_bp').onclick = addBreakpoint;
 document.getElementById('btn_remove_bp').onclick = removeBreakpoint;
 document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
 
-function parseNumber(v)
-{
-    v = v.trim();
-
-    if(v.startsWith("0x") || v.startsWith("0X"))
-        return parseInt(v, 16);
-
-    return parseInt(v, 10);
-}
-
-function set_XRAM_value(xram_addr_element_id,xram_value_element_id)
+function set_XRAM_value(xram_addr_element_id, xram_value_element_id)
 {
     let addr = parseNumber(document.getElementById(xram_addr_element_id).value);
     let value = parseNumber(document.getElementById(xram_value_element_id).value);
@@ -1117,9 +1131,6 @@ function set_XRAM_value(xram_addr_element_id,xram_value_element_id)
       cpu.bus.sram.write(addr, (value & 0xFF00) >> 8);
       cpu.bus.sram.write(addr+1, (value & 0xFF));
     }
-
-    
-
     render_XRAM_window();
 }
 

@@ -422,6 +422,11 @@
         "filename": "REGO600.kicad_sch",
         "name": "Rotark",
         "uuid": "37c446f1-e490-421d-b996-b6d69f9e5521"
+      },
+      {
+        "filename": "flexcableandsensorpcbs.kicad_sch",
+        "name": "FlexCableAndSensorPCBs",
+        "uuid": "ff275257-d1e7-4ed5-9e7a-b24fc2bc0838"
       }
     ],
     "used_designators": "U1-17,#PWR1-98,Y1-2,K1,C1-42,U16_old1,R1-70,J1-27,U2_old1,Q1",
@@ -431,6 +436,10 @@
     [
       "37c446f1-e490-421d-b996-b6d69f9e5521",
       "Rotark"
+    ],
+    [
+      "ff275257-d1e7-4ed5-9e7a-b24fc2bc0838",
+      "FlexCableAndSensorPCBs"
     ]
   ],
   "text_variables": {},
