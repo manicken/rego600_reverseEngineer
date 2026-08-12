@@ -47,6 +47,7 @@
       <button id="btn_reset">Reset</button>
       <button id="btn_step">Step 1</button>
       <button id="btn_step100">Step 100</button>
+      <button id="btn_step1000">Step 1000</button>
       <button id="btn_run">Run</button>
       <button id="btn_stop">Stop</button>
       <button id="btn_print_callstack">Print Callstack</button>
@@ -506,7 +507,7 @@ let CD4051_mux_A_inputDefs = {
   3:{name:"GT11", value:19.8,    connected:true, note:"Cold fluid out", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   4:{name:"GT3X", value:0.0,     connected:false, note:"external hot water", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   5:{name:"GT1",  value:20.9,    connected:true, note:"Radiator Return", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
-  6:{name:"GT2",  value:16.1,    connected:true, note:"Outdoor", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  6:{name:"GT2",  value:22.1,    connected:true, note:"Outdoor", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   7:{name:"LP",   value:false,   connected:true, note:"Low Pressure is High", valTransferFunction:invertedBinaryStateConvert}
 };
 let CD4051_mux_B_inputDefs = { 
@@ -515,7 +516,7 @@ let CD4051_mux_B_inputDefs = {
   2:{name:"GT10",   value:19.7,  connected:true,  note:"Cold fluid in", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   3:{name:"GT8",    value:21.7,  connected:true,  note:"Heat fluid out", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   4:{name:"GT6",    value:20.0,  connected:true,  note:"Compressor - high pressure side", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
-  5:{name:"GT3",    value:25.3,  connected:true,  note:"Hot water", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  5:{name:"GT3",    value:55.3,  connected:true,  note:"Hot water", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   6:{name:"VVP",    value:0.0,   connected:false, note:"???", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
   7:{name:"GT9",    value:20.2,  connected:true,  note:"Heat fluid in", valTransferFunction:rego600_reverse_Temp_to_ADC_val}
 };
@@ -766,9 +767,13 @@ function initCpu() {
 	  q:   pinNameToStruct("P1.5"),
 	});
   let threephasestates = [0x50, 0x40, 0x60, 0x20, 0x30, 0x10];
-  shIn.inputs = threephasestates[this.phaseStep]^0x70 | 0x00;
   let phaseTicks = 0;
   let phaseStep = 0;
+  function getCurrentStepValue(tep) {
+    return threephasestates[phaseStep]/*^0x70*/;
+  }
+  shIn.inputs = getCurrentStepValue() | 0x00;
+  
   cpu.external_hw_ticks.push(() => {
         phaseTicks++;
 
@@ -779,7 +784,7 @@ function initCpu() {
             if (phaseStep >= 6)
                 phaseStep = 0;
 
-            shIn.inputs = threephasestates[phaseStep]^0x70 | 0x00;
+            shIn.inputs = getCurrentStepValue() | 0x00;
         }
     });
 	
@@ -1182,6 +1187,7 @@ function render() {
 document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(); };
 document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
 document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
+document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(); };
 document.getElementById('btn_run').onclick = () => {
   if (running) return;
   renderSignalInputs();
