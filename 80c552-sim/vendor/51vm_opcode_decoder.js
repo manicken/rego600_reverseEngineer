@@ -24,6 +24,11 @@ _51cpu.prototype.execute_one = function () {
             this.__execute_decode_C0_FF(opcode)
         }
     }
+    if (this.external_hw_ticks) {
+        for (const tick of this.external_hw_ticks) {
+            tick();
+        }
+    }
 
     if (this.irq && this.currentIRQ < 0) {
         let irqn = this.irq();
@@ -420,9 +425,9 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
         // with tracing
         let addr = this.A.get() + this.DPTR.get();
         let data = this.get_ROM(addr);
-        //if ((addr > 0x0100 && addr < 0x6800) || (addr > 0x6900 && addr < 0x7e00) || (addr > 0x7f00)) {
-        //  console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
-        //}
+        if (addr >= 0xFFD6) {
+          console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
+        }
 
         this.op_move(this.A, data)
     } else if (opcode.test(0x94)) {

@@ -46,7 +46,7 @@ function create_80c552(opts = {}) {
 
     install_80c552_adc(cpu, {
         vref: opts.adcVref,
-        channels: opts.adcChannels,
+        channels: opts.adcChannels?opts.adcChannels:[0,0,0,0, 0,0,0,0],
     })
 
     install_external_bus(cpu, {

@@ -23,30 +23,24 @@
 function install_80c552_adc(cpu, opts = {}) {
     const ADCON = cpu.ADCON
     const ADCH = cpu.ADCH
-    const vref = opts.vref ?? 5.12 // AVREF+, per datasheet default test condition
 
     const adc = {
-        vref: vref,
-        // one analog voltage per channel (P5.0..P5.7 / ADC0..ADC7)
+
         channels: opts.channels ? opts.channels.slice(0, 8) : [0, 0, 0, 0, 0, 0, 0, 0],
 
-        setChannelVoltage(ch, volts) {
+        setChannelValue(ch, value) {
             if (ch < 0 || ch > 7) throw new RangeError("ADC channel must be 0-7")
-            this.channels[ch] = Math.max(0, Math.min(this.vref, volts))
+            this.channels[ch] = Math.max(0, Math.min(1023, value))
         },
         
 
-        getChannelVoltage(ch) {
+        getChannelValue(ch) {
             return this.channels[ch]
         },
 
         // convert channel `ch` right now and return the raw 10-bit code
         convert(ch) {
-            const v = this.channels[ch] ?? 0
-            let code = Math.round((v / this.vref) * 1023)
-            if (code < 0) code = 0
-            if (code > 1023) code = 1023
-            return code
+            return this.channels[ch]
         },
     }
 
@@ -77,5 +71,4 @@ function install_80c552_adc(cpu, opts = {}) {
     cpu.adc = adc
     return adc
 }
-
 

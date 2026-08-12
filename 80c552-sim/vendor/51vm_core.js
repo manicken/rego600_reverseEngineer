@@ -68,7 +68,7 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.DPH = new reg()
     this.XRAM = []
     this.IRAM = []
-    this.IDATA = []
+    this.CODE = []
     this.SFR = {
         0x81: "SP",
         0x82: "DPL",
@@ -144,11 +144,11 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.interrupt_end_linstener = []
     this.addr_breakpoint = []
     this.irq = null
-	this.irqEmitters = [];
+	//this.irqEmitters = [];
 	this.currentIRQ = -1;
     this.peripheral_ticks = [];
     this.callStack = [];
-
+    this.external_hw_ticks = [];
     
 }
 

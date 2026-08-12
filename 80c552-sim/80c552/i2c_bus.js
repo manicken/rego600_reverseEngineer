@@ -98,14 +98,14 @@ function install_i2c_master(cpu, bus) {
     function setStatus(code) { S1STA._value = code & 0xFF }
     function setSI() { S1CON._value = S1CON._value | I2C_BIT.SI;  /*_cpu.interruptPending.i2c = true;*/ }
 	
-	cpu.irqEmitters.push(function() {
+	/*cpu.irqEmitters.push(function() {
 		if ((S1CON._value & I2C_BIT.SI) &&
 			(S1CON._value & I2C_BIT.ENS1)) {
 			//console.log("i2c irq");
 			return 5;
 		}
 		return -1;
-	});
+	});*/
 	
 
 

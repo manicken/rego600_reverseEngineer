@@ -114,8 +114,8 @@
   </div>
 -->
   <div class="panel" style="min-width:200px;">
-    <h2>ADC (P5.0-P5.7 analog inputs)</h2>
-    <div id="adc_channels"></div>
+    <h2>Sensor Inputs</h2>
+    <div id="input_signals"></div>
   </div>
   <div class="panel" style="flex:1; max-width:360px;">
     <h2>Front Panel (simulated like a real one)</h2>
@@ -145,6 +145,16 @@
     <h2>Service Interface (simulated like a real one)</h2>
     <button onclick="service_port_send(0x7F)">Get version</button>
     <button onclick="service_port_send(0x02, 0x209)">Get GT1</button>
+    <button onclick="service_port_send(0x02, 0x20A)">Get GT2</button>
+    <button onclick="service_port_send(0x02, 0x20B)">Get GT3</button>
+    <button onclick="service_port_send(0x02, 0x20C)">Get GT4</button>
+    <button onclick="service_port_send(0x02, 0x20D)">Get GT5</button>
+    <button onclick="service_port_send(0x02, 0x20E)">Get GT6</button>
+    <button onclick="service_port_send(0x02, 0x20F)">Get GT8</button>
+    <button onclick="service_port_send(0x02, 0x210)">Get GT9</button>
+    <button onclick="service_port_send(0x02, 0x211)">Get GT10</button>
+    <button onclick="service_port_send(0x02, 0x212)">Get GT11</button>
+    <button onclick="service_port_send(0x02, 0x213)">Get GT3X</button>
     <button onclick="service_port_send(0x40)">Get Last Error</button>
     <button onclick="service_port_send(0x42)">Get Prev. Error</button>
     <br>
@@ -195,12 +205,13 @@
 
     <button onclick="set_XRAM_value('xram_addr_A_2','xram_value_A_2')">Set</button>
     <div class="memdump" id="xram_dump_A" style="max-height: 400px;"></div>
+    
   </div>
 
   <div class="panel" style="flex:1; max-width:460px;">
     <h2>SRAM (62256) — 256 bytes window B</h2>
 	  <label for="xram_index_B">Index(0-127):</label>
-    <input type="number" id="xram_index_B" name="value" min="0" max="127" step="1" value="27"	oninput="render_XRAM_window('xram_index_B','xram_dump_B')">
+    <input type="number" id="xram_index_B" name="value" min="0" max="127" step="1" value="22"	oninput="render_XRAM_window('xram_index_B','xram_dump_B')">
     <hr>
     <label for="xram_addr_B_1">Address:</label>
     <input type="text" id="xram_addr_B_1" value="0x1b7a" style="width:90px">
@@ -214,6 +225,25 @@
     <input type="text" id="xram_value_B_2" value="0x3e" style="width:70px">
     <button onclick="set_XRAM_value('xram_addr_B_2','xram_value_B_2')">Set</button>
     <div class="memdump" id="xram_dump_B" style="max-height: 400px;"></div>
+  </div>
+
+  <div class="panel" style="flex:1; max-width:460px;">
+    <h2>SRAM (62256) — 256 bytes window C</h2>
+	  <label for="xram_index_C">Index(0-127):</label>
+    <input type="number" id="xram_index_C" name="value" min="0" max="127" step="1" value="27"	oninput="render_XRAM_window('xram_index_C','xram_dump_C')">
+    <hr>
+    <label for="xram_addr_C_1">Address:</label>
+    <input type="text" id="xram_addr_C_1" value="0x1b7a" style="width:90px">
+    <label for="xram_value_C_1">Value:</label>
+    <input type="text" id="xram_value_C_1" value="0x1efc" style="width:70px">
+    <button onclick="set_XRAM_value('xram_addr_C_1','xram_value_C_1')">Set</button>
+    <hr>
+    <label for="xram_addr_C_2">Address:</label>
+    <input type="text" id="xram_addr_C_2" value="0x1b72" style="width:90px">
+    <label for="xram_value_C_2">Value:</label>
+    <input type="text" id="xram_value_C_2" value="0x3e" style="width:70px">
+    <button onclick="set_XRAM_value('xram_addr_C_2','xram_value_C_2')">Set</button>
+    <div class="memdump" id="xram_dump_C" style="max-height: 400px;"></div>
   </div>
   
   <div class="panel" style="flex:1; min-width:320px;">
@@ -241,7 +271,7 @@
 
 <!-- 80C552 extension -->
 <script src="../80c552/80c552_sfr.js"></script>
-<script src="../80c552/80c552_adc.js"></script>
+<script src="../80c552/80c552_adc_valueBased.js"></script>
 <script src="../80c552/device_62256.js"></script>
 <script src="../80c552/device_am29f040.js"></script>
 <script src="../80c552/membus.js"></script>
@@ -402,6 +432,186 @@ function logI2C_write() {
 		//console.log("i2c stop: " + databytes); 
     }
 }
+/*
+let VREF_VOLTAGE = 5.12;
+let VOLTAGE_NC = VREF_VOLTAGE;
+let VOLTAGE_AT_25_degree = VREF_VOLTAGE/2;
+let VOLTAGE_PRESSURE_NOT_ACTIVATED = 0;
+let CD4051_mux_A_inputDefs = { 
+  0:{name:"EXT",  defaultVoltage:VOLTAGE_NC, note:"external control input (binary states only)"},
+  1:{name:"GT5",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Room"},
+  2:{name:"GT4",  defaultVoltage:VOLTAGE_NC, note:"Radiator Forward"},
+  3:{name:"GT11", defaultVoltage:VOLTAGE_AT_25_degree, note:"Cold fluid out"},
+  4:{name:"GT3X", defaultVoltage:VOLTAGE_NC, note:"external hot water"},
+  5:{name:"GT1",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Radiator Return"},
+  6:{name:"GT2",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Outdoor"},
+  7:{name:"LP",   defaultVoltage:VOLTAGE_PRESSURE_NOT_ACTIVATED, note:"Low Pressure is High"}
+};
+let CD4051_mux_B_inputDefs = { 
+  0:{name:"HP",     defaultVoltage:VOLTAGE_PRESSURE_NOT_ACTIVATED, note:"High Pressure is High"},
+  1:{name:"SP_ADC", defaultVoltage:VOLTAGE_NC, note:"Service port ADC input"},
+  2:{name:"GT10",   defaultVoltage:VOLTAGE_AT_25_degree, note:"Cold fluid in"},
+  3:{name:"GT8",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Heat fluid out"},
+  4:{name:"GT6",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Compressor/High pressure"},
+  5:{name:"GT3",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Hot water"},
+  6:{name:"VVP",    defaultVoltage:VOLTAGE_NC, note:"???"},
+  7:{name:"GT9",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Heat fluid in"}
+};
+function getVoltages(inputDefs)
+{
+  let voltages = [];
+  for (let i=0;i<8;i++) {
+    voltages[i] = inputDefs[i].defaultVoltage;
+  }
+  return voltages;
+}*/
+
+let ADC_MAX_VALUE = 1023;
+let ADC_MIN_VALUE = 0;
+
+function binaryStateConvert(value) {
+    return value ? ADC_MIN_VALUE : ADC_MAX_VALUE;
+}
+function invertedBinaryStateConvert(value) {
+    return value ? ADC_MAX_VALUE : ADC_MIN_VALUE;
+}
+function rawValue(val) { return val; }
+function rego600_reverse_Temp_to_ADC_val(temp) {
+  let addressOffset = 0xF7C6;
+  let indexOffset = 9;
+  let bestIndex = -1;
+  let bestDiff = Infinity;
+
+  temp *= 10;
+  //console.log(`--- LUT search for ${temp} ---`);
+  for (let index = 0; index < 1024; index++) {
+    let addr = index * 2 + addressOffset;
+    let val = (cpu.CODE[addr] << 8) | cpu.CODE[addr + 1];
+    //console.log(`checking value: ${val} @ addr:${hex(addr,4)}`)
+    let diff = Math.abs(val - temp);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIndex = index;
+      if (diff === 0) break; // exact hit cannot be better
+    }
+  }
+//console.log(     `BEST: index=${bestIndex} adc=${bestIndex + indexOffset} ` +    `diff=${bestDiff}`  );
+  return bestIndex === -1 ? -1 : bestIndex + indexOffset;
+}
+let CD4051_mux_A_inputDefs = { 
+  0:{name:"EXT",  value:false,   connected:false, note:"external control input (binary states only)", valTransferFunction:binaryStateConvert},
+  1:{name:"GT5",  value:21.6,    connected:true, note:"Room", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  2:{name:"GT4",  value:0.0,     connected:false, note:"Radiator Forward", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  3:{name:"GT11", value:19.8,    connected:true, note:"Cold fluid out", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  4:{name:"GT3X", value:0.0,     connected:false, note:"external hot water", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  5:{name:"GT1",  value:20.9,    connected:true, note:"Radiator Return", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  6:{name:"GT2",  value:16.1,    connected:true, note:"Outdoor", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  7:{name:"LP",   value:false,   connected:true, note:"Low Pressure is High", valTransferFunction:invertedBinaryStateConvert}
+};
+let CD4051_mux_B_inputDefs = { 
+  0:{name:"HP",     value:false, connected:true,  note:"High Pressure is High", valTransferFunction:invertedBinaryStateConvert},
+  1:{name:"SP_ADC", value:0.0,   connected:false, note:"Service port ADC input", valTransferFunction:rawValue},
+  2:{name:"GT10",   value:19.7,  connected:true,  note:"Cold fluid in", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  3:{name:"GT8",    value:21.7,  connected:true,  note:"Heat fluid out", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  4:{name:"GT6",    value:20.0,  connected:true,  note:"Compressor - high pressure side", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  5:{name:"GT3",    value:25.3,  connected:true,  note:"Hot water", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  6:{name:"VVP",    value:0.0,   connected:false, note:"???", valTransferFunction:rego600_reverse_Temp_to_ADC_val},
+  7:{name:"GT9",    value:20.2,  connected:true,  note:"Heat fluid in", valTransferFunction:rego600_reverse_Temp_to_ADC_val}
+};
+function getValues(inputDefs)
+{
+    let values = [];
+
+    for (let i = 0; i < 8; i++) {
+        const input = inputDefs[i];
+        
+
+        if (!input.connected) {
+            values[i] = ADC_MAX_VALUE;
+        } else {
+          console.log(`ADC input ${input.name}: value=${input.value}, connected=${input.connected}`);
+            values[i] = input.valTransferFunction(input.value);
+        }
+    }
+
+    return values;
+}
+function renderSignalInputs() {
+    const div = document.getElementById('input_signals');
+
+    let html = '';
+
+    for (let ch = 0; ch < 16; ++ch) {
+        const defs = ch < 8
+            ? CD4051_mux_A_inputDefs
+            : CD4051_mux_B_inputDefs;
+
+        const input = defs[ch % 8];
+
+        html += `
+            <div>
+              <input type="checkbox" 
+                           ${input.connected ? 'checked' : ''}
+                           onchange="setAdcChannelConnected(${ch}, this.checked)">
+                <label style="width:70px">
+                    
+                    ${input.name}
+                </label>
+
+                <input type="number"
+                       step="0.1"
+                       min="-40"
+                       max="140"
+                       value="${input.value}"
+                       ${!input.connected ? 'disabled' : ''}
+                       style="width:70px"
+                       onchange="setAdcChannel(${ch}, this.value)">
+            </div>
+        `;
+    }
+
+    div.innerHTML = html;
+}
+function updateAdcChannel(ch) {
+    const defs = ch < 8
+        ? CD4051_mux_A_inputDefs
+        : CD4051_mux_B_inputDefs;
+
+    const index = ch % 8;
+    const input = defs[index];
+
+    const adcValue = input.connected
+        ? input.valTransferFunction(input.value)
+        : ADC_MAX_VALUE;
+
+    if (ch < 8)
+        CD4051_mux_A.X[index] = adcValue;
+    else
+        CD4051_mux_B.X[index] = adcValue;
+}
+function setAdcChannel(ch, value) {
+    const defs = ch < 8
+        ? CD4051_mux_A_inputDefs
+        : CD4051_mux_B_inputDefs;
+
+    const input = defs[ch % 8];
+
+    input.value = parseFloat(value);
+    updateAdcChannel(ch);
+}
+function setAdcChannelConnected(ch, connected) {
+    const defs = ch < 8
+        ? CD4051_mux_A_inputDefs
+        : CD4051_mux_B_inputDefs;
+
+    const input = defs[ch % 8];
+
+    input.connected = connected;
+    updateAdcChannel(ch);
+    renderSignalInputs();
+}
+
 let CD4051_mux_A = undefined;
 let CD4051_mux_B = undefined;
 let CD4094_A = undefined;
@@ -478,11 +688,15 @@ function initCpu() {
     return true;
 	  }
 	});
-  let adcChannels = [0, 0, 0, 0, 0, 0, 0, 0];
-
   cpu = create_80c552({
-    adcChannels: adcChannels, i2cBus:i2cBus
+    i2cBus:i2cBus
   });
+  if (builtin_flashCodeData) {
+	cpu.CODE = builtin_flashCodeData;
+  }
+  if(builtin_flashData) {
+	cpu.bus.flash.loadImage(builtin_flashData);
+  }
 
   wd = new TC1232({timeoutMs:1200});
   install_tc1232(cpu, wd, { st: pinNameToStruct("P4.1") });
@@ -515,12 +729,14 @@ function initCpu() {
 	  str:  pinNameToStruct("P4.4"),
 	}, "B");
 
+  console.log(getValues(CD4051_mux_A_inputDefs));
   CD4051_mux_A = new CD4051({
     A: {port:CD4094_B.outputs, bit:0},
     B: {port:CD4094_B.outputs, bit:1},
     C: {port:CD4094_B.outputs, bit:2},
     INH: {port:CD4094_B.outputs, bit:3},
-  }, "A");
+  }, getValues(CD4051_mux_A_inputDefs), "A");
+
 
   const mux_B_Invert_INH = new Inverter({port:CD4094_B.outputs, bit:3});
   
@@ -529,14 +745,16 @@ function initCpu() {
     B: {port:CD4094_B.outputs, bit:1},
     C: {port:CD4094_B.outputs, bit:2},
     INH: {port:mux_B_Invert_INH, bit:0},
-  }, "B");
+  }, getValues(CD4051_mux_B_inputDefs), "B");
+
   // executes after every instruction so it's perfect to use for adc selection
-  cpu.peripheral_ticks.push(() => {
+  cpu.external_hw_ticks.push(() => {
 
     if (readPinLatch(CD4094_B.outputs, 3) === 0) {
-      cpu.adc.setChannelVoltage(0, CD4051_mux_A.get());
+      cpu.adc.setChannelValue(0, CD4051_mux_A.get());
     } else {
-      cpu.adc.setChannelVoltage(0, CD4051_mux_B.get());
+     // console.log("do this happend:" + mux_B_Invert_INH.get() + CD4051_mux_B.get());
+      cpu.adc.setChannelValue(0, CD4051_mux_B.get());
     }
     
   });
@@ -548,10 +766,10 @@ function initCpu() {
 	  q:   pinNameToStruct("P1.5"),
 	});
   let threephasestates = [0x50, 0x40, 0x60, 0x20, 0x30, 0x10];
-  shIn.inputs = threephasestates[this.phaseStep]^0x70 | 0x0E;
+  shIn.inputs = threephasestates[this.phaseStep]^0x70 | 0x00;
   let phaseTicks = 0;
   let phaseStep = 0;
-  cpu.peripheral_ticks.push(() => {
+  cpu.external_hw_ticks.push(() => {
         phaseTicks++;
 
         if (phaseTicks >= cpu.currentUpdateCyclesCount) {
@@ -561,16 +779,11 @@ function initCpu() {
             if (phaseStep >= 6)
                 phaseStep = 0;
 
-            shIn.inputs = threephasestates[phaseStep]^0x70 | 0x0E;
+            shIn.inputs = threephasestates[phaseStep]^0x70 | 0x00;
         }
     });
 	
-  if (builtin_flashCodeData) {
-	cpu.IDATA = builtin_flashCodeData;
-  }
-  if(builtin_flashData) {
-	cpu.bus.flash.loadImage(builtin_flashData);
-  }
+  
   
   cpu.reset();
 
@@ -598,6 +811,7 @@ function initCpu() {
   init_LCD();
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
   render();
+  renderSignalInputs();
   console.log(cpu);
 }
 function getCoreRegs() {
@@ -728,6 +942,7 @@ function cmd00_02_04_06_7F_handler() {
               (currentRxBuff[2] << 7) |
               (currentRxBuff[3]);
   console.log("service port rx value: " + hex(value) + " " + value);
+  console.log(cpu.getCallStackString());
 }
 
 function packNibbles(nibblebytes, offset) {
@@ -779,6 +994,7 @@ function cmd_40_42_handler() {
   for (let i=1;i<16;i++) {
     text += printPrintable(bytes[i], true);
   }
+  console.log(cpu.pr)
   console.log("service port cmd 40_42 rx: >>>" + error_codes[bytes[0]] + " - " + text + "<<<");
 }
 
@@ -866,22 +1082,7 @@ function toggleBusPin(port, bit) {
     render();
 }
 
-function renderAdc() {
-  const div = document.getElementById('adc_channels');
-  let html = '';
-  for (let ch = 0; ch < 16; ++ch) {
-    html += `<div>CH${ch} (P5.${ch}): <input type="number" step="0.01" min="0" max="${cpu.adc.vref}" value="${0}" style="width:70px" onchange="setAdcChannel(${ch}, this.value)"> V</div>`;
-  }
-  div.innerHTML = html;
-}
 
-function setAdcChannel(ch, v) {
-  if (ch < 8) {
-    CD4051_mux_A.X[ch] = parseFloat(v);
-  } else if (ch < 16) {
-    CD4051_mux_B.X[ch%16] = parseFloat(v);
-  }
-}
 
 function init_LCD() {
   lcd_data = {rows:[]};
@@ -920,7 +1121,10 @@ function render_IRAM() {
 
 function render_XRAM_window(index_elementID, view_elementID) {
   let element = document.getElementById(index_elementID);
-  
+  if (element == undefined) {
+    console.error("cannot find element: " + index_elementID);
+    return;
+  }
   let xram_index = parseInt(element.value);
   if (Number.isNaN(xram_index)) {
 	  xram_index = element.prev_index ? element.prev_index : 0;
@@ -954,11 +1158,16 @@ function render_DATA_FLASH_window() {
   });
 }
 
-function renderMemDumps() {
-  render_IRAM();
+function render_XRAM_windows() {
   render_XRAM_window('xram_index_A', 'xram_dump_A');
   render_XRAM_window('xram_index_B', 'xram_dump_B');
-  render_DATA_FLASH_window();  
+  render_XRAM_window('xram_index_C', 'xram_dump_C');
+}
+
+function renderMemDumps() {
+  render_IRAM();
+  render_XRAM_windows();
+  //render_DATA_FLASH_window();  
   render_LCD();
 }
 
@@ -975,7 +1184,7 @@ document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
 document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
 document.getElementById('btn_run').onclick = () => {
   if (running) return;
-  renderAdc();
+  renderSignalInputs();
   wd.startMonitoring();
   running = true;
   document.getElementById('run_status').textContent = 'running...';
@@ -1027,7 +1236,7 @@ document.getElementById('fw_file').onchange = function () {
   const reader = new FileReader();
   if (isHex) {
     reader.onloadend = () => {
-      cpu.IDATA = decode_ihex(reader.result);
+      cpu.CODE = decode_ihex(reader.result);
       cpu.reset();
       log('Loaded Intel HEX: ' + file.name);
       render();
@@ -1036,9 +1245,9 @@ document.getElementById('fw_file').onchange = function () {
   } else {
     reader.onloadend = () => {
       const bytes = new Uint8Array(reader.result);
-      cpu.IDATA = Array.from(bytes);
-	  //dumpHex(cpu.IDATA);
-	  //console.log(cpu.IDATA.join(", "));
+      cpu.CODE = Array.from(bytes);
+	  //dumpHex(cpu.CODE);
+	  //console.log(cpu.CODE.join(", "));
       cpu.reset();
       log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
       render();
@@ -1141,7 +1350,7 @@ function set_XRAM_value(addr_element_id, value_element_id)
       cpu.bus.sram.write(addr, (value & 0xFF00) >> 8);
       cpu.bus.sram.write(addr+1, (value & 0xFF));
     }
-    render_XRAM_window();
+    render_XRAM_windows();
 }
 
 function set_IROM_value(addr_element_id, value_element_id)
@@ -1152,17 +1361,17 @@ function set_IROM_value(addr_element_id, value_element_id)
     if(isNaN(addr) || isNaN(value))
         return;
 
-    if(addr < 0 || addr >= cpu.IDATA.size)
+    if(addr < 0 || addr >= cpu.CODE.size)
         return;
 
     if(value < 0 || value > 0xFFFF)
         return;
     
     if (value <= 0xFF) {
-      cpu.IDATA[addr] = value;
+      cpu.CODE[addr] = value;
     } else {
-      cpu.IDATA[addr] = (value & 0xFF00) >> 8;
-      cpu.IDATA[addr+1] = (value & 0xFF);
+      cpu.CODE[addr] = (value & 0xFF00) >> 8;
+      cpu.CODE[addr+1] = (value & 0xFF);
     }
 }
 

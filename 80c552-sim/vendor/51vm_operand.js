@@ -5,7 +5,7 @@
 // map to read register' vaule
 
 _51cpu.prototype.get_ROM = function (addr) {
-    r = this.IDATA[addr]
+    r = this.CODE[addr]
     if( r == null){
         this.error_info.code = CPU_ERROR_INVALID_ROM_ADDRESS
         this.error_info.addr = addr 
