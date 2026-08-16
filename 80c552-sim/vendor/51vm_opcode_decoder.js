@@ -1,15 +1,41 @@
 
+// 8051/80C552 machine cycles per opcode, indexed by opcode byte
+const CYCLE_TABLE = new Uint8Array(256).fill(1); // most single/double-byte ops are 1 cycle
+
+// 2-cycle opcodes
+[0x01,0x02,0x10,0x11,0x12,0x20,0x21,0x22,0x30,0x31,0x32,
+ 0x40,0x41,0x43,0x50,0x51,0x53,0x60,0x61,0x63,0x70,0x71,
+ 0x72,0x73,0x75,0x80,0x81,0x82,0x83,0x85,0x90,0x91,0x92,
+ 0x93,0xA0,0xA1,0xA3,0xB0,0xB1,0xB2 /*note: CPL bit is 1, see below*/,
+ 0xB4,0xB5,0xC0,0xC1,0xD0,0xD1,0xD5,0xE0,0xE1,0xF0,0xF1
+].forEach(op => CYCLE_TABLE[op] = 2);
+
+// ranges (Rn/@Ri variants of 2-cycle groups)
+for (let op = 0x86; op <= 0x8F; op++) CYCLE_TABLE[op] = 2; // MOV direct,@Ri / Rn
+for (let op = 0xA6; op <= 0xAF; op++) CYCLE_TABLE[op] = 2; // MOV @Ri,direct / Rn,direct
+for (let op = 0xB6; op <= 0xBF; op++) CYCLE_TABLE[op] = 2; // CJNE @Ri/Rn,#data,rel
+for (let op = 0xD8; op <= 0xDF; op++) CYCLE_TABLE[op] = 2; // DJNZ Rn,rel
+for (let op = 0xE2; op <= 0xE3; op++) CYCLE_TABLE[op] = 2; // MOVX A,@Ri
+for (let op = 0xF2; op <= 0xF3; op++) CYCLE_TABLE[op] = 2; // MOVX @Ri,A
+
+// 4-cycle opcodes
+CYCLE_TABLE[0x84] = 4; // DIV AB
+CYCLE_TABLE[0xA4] = 4; // MUL AB
+
+// fix: CPL bit (0xB2) is actually 1 cycle, only CPL C-adjacent... (see note below)
+CYCLE_TABLE[0xB2] = 1;
+
 _51cpu.prototype.execute_one = function () {
     let opcode = this.fetch_opcode() 
     if (opcode.test(0x01, 0x1F)) {
         //AJMP addr11
         this.PC.set(opcode.fetch_addr11())
-    }else if (opcode.test(0x11, 0x1F)) {
+    } else if (opcode.test(0x11, 0x1F)) {
         //ACALL 0x11
         let addr16 = opcode.fetch_addr11();
         this.op_call_track(addr16);
         this.op_call(addr16);
-    }else if (opcode.value < 0x80) {
+    } else if (opcode.value < 0x80) {
         //0x00 - 0x7F
         if (opcode.value < 0x40) {
             this.__execute_decode_00_3F(opcode)
@@ -24,9 +50,14 @@ _51cpu.prototype.execute_one = function () {
             this.__execute_decode_C0_FF(opcode)
         }
     }
+    const cycles = CYCLE_TABLE[opcode.value];   // fixed per opcode identity
+    if (cycles == undefined) {
+        console.log("error opcode cyclecount not defined: " + opcode.value);
+        cycles = 0;
+    }
     if (this.external_hw_ticks) {
         for (const tick of this.external_hw_ticks) {
-            tick();
+            tick(cycles);
         }
     }
 
@@ -39,9 +70,10 @@ _51cpu.prototype.execute_one = function () {
     }
     if (this.peripheral_ticks) {
         for (const tick of this.peripheral_ticks) {
-            tick();
+            tick(cycles);
         }
     }
+    return cycles;
 }
 
 

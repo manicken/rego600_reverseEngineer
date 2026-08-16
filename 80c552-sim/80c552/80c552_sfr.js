@@ -262,7 +262,8 @@ function install_80c552_peripherals(cpu) {
         return pending[0];
     };
 
-        function update_timer0() {
+    /*function update_timer0(cyclecount) {
+
         const tcon = TCON.get();
 
         if (!(tcon & 0x10))
@@ -270,16 +271,76 @@ function install_80c552_peripherals(cpu) {
 
         let count = (TH0.get() << 8) | TL0.get();
 
-        count++;
+        while (cyclecount--) {
+            count++;
 
-        if (count > 0xFFFF) {
-            count = 0;
+            if (count > 0xFFFF) {
+                count = 0;
 
-            TCON.set(TCON.get() | 0x20); // TF0
+                TCON.set(TCON.get() | 0x20); // TF0
+            }
         }
 
         TH0.set((count >> 8) & 0xff);
         TL0.set(count & 0xff);
+    }*/
+
+    function update_timer0(cyclecount) {
+        const tcon = TCON.get();
+        if (!(tcon & 0x10)) return; // TR0 (Timer 0 Run control) är avstängd
+
+        const tmod = TMOD.get();
+        const mode = tmod & 0x03; // Läs ut Bit 0 och 1 för att få Timer 0 Mode
+
+        let count = (TH0.get() << 8) | TL0.get();
+        
+        // Hantera de olika hårdvarulägena för 8051 Timer 0
+        if (mode === 1) {
+            // --- MODE 1: Standard 16-bitars timer (Det absolut vanligaste i Rego 600) ---
+            let newCount = count + cyclecount;
+
+            if (newCount > 0xFFFF) {
+                TCON.set(TCON.get() | 0x20); // Sätt TF0 (Timer 0 Overflow Flag)
+                newCount = newCount & 0xFFFF; // Låt timern slå runt (overflow) naturally
+            }
+            
+            TH0.set((newCount >> 8) & 0xFF);
+            TL0.set(newCount & 0xFF);
+
+        } else if (mode === 2) {
+            // --- MODE 2: 8-bitars Auto-Reload (Används nästan ALLTID för UART/Baudrate) ---
+            // I Mode 2 ignoreas TH0 vid uppräkning, endast TL0 tickar. TH0 håller reload-värdet.
+            let tl0 = TL0.get();
+            let newTl0 = tl0 + cyclecount;
+
+            if (newTl0 > 0xFF) {
+                TCON.set(TCON.get() | 0x20); // Sätt TF0
+                
+                // Räkna ut hur många cykler som blev över efter första overflowet
+                let overflowCount = newTl0 - 0x100; 
+                
+                // Ladda om från TH0 (Auto-reload) och addera resten av cyklerna
+                let th0 = TH0.get();
+                newTl0 = (th0 + overflowCount) % 0x100;
+            }
+            
+            TL0.set(newTl0 & 0xFF);
+
+        } else if (mode === 0) {
+            // --- MODE 0: 13-bitars timer (Äldre arv, används sällan men bra för kompatibilitet) ---
+            // TL0 använder bara 5 bitar (0-31), TH0 använder 8 bitar.
+            let current13bit = ((TH0.get() << 5) | (TL0.get() & 0x1F));
+            let new13bit = current13bit + cyclecount;
+
+            if (new13bit > 0x1FFF) { // 13 bitar max = 8191 (0x1FFF)
+                TCON.set(TCON.get() | 0x20); // Sätt TF0
+                new13bit = new13bit & 0x1FFF;
+            }
+
+            TH0.set((new13bit >> 5) & 0xFF);
+            TL0.set(new13bit & 0x1F);
+        }
+        // Mode 3 (Split timer) kan ignoreras då den extremt sällan används i industriell mjukvara.
     }
 
     function update_timer1() {

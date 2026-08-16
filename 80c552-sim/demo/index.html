@@ -7,8 +7,8 @@
   body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e; color:#ddd; margin:0; padding:16px; }
   h1 { font-size:16px; color:#fff; }
   h2 { font-size:13px; color:#9cdcfe; margin-bottom:6px; }
-  .row { display:flex; gap:16px; flex-wrap:wrap; }
-  .panel { background:#252526; border:1px solid #3c3c3c; border-radius:6px; padding:10px 14px; margin-bottom:12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .panel { background:#252526; border:1px solid #3c3c3c; border-radius:6px; padding:8px 8px; margin-bottom:8px; }
   button { background:#0e639c; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:12px; margin-right:4px;}
   button:hover { background:#1177bb; }
   button.toggle-on { background:#3c9a3c; }
@@ -20,7 +20,7 @@
   #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
   .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
   .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
-  .lcd { margin-top:8px; margin-bottom:8px; font-size:20px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 240px; overflow-y:auto; background:#396197; padding:6px; }
+  .lcd { margin-top:8px; margin-bottom:8px; font-size:27px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 300px; overflow-y:auto; background:#396197; padding:6px; }
   .lcd.backlight-on {background:#63a3ff}
   small { color:#888; }
 </style>
@@ -35,7 +35,7 @@
   <input type="file" id="fw_file">
   <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
 </div>
-<div class="panel"">
+<div class="panel">
   <h2>29F040 data load</h2>
   <input type="file" id="data_flash_file">
   <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
@@ -43,7 +43,9 @@
 </div>
 <div class="row">
   <div class="panel">
+    
     <div class="row">
+      
       <button id="btn_reset">Reset</button>
       <button id="btn_step">Step 1</button>
       <button id="btn_step100">Step 100</button>
@@ -80,21 +82,24 @@
   </div>
   <div class="panel">
   <h2>Speed</h2>
+  
     <div class="row">
-      <label for="updateCyclesCount">Update Cycles Count:</label>
-      <input type="number" id="updateCyclesCount" name="value" min="1" step="100" value="50000" style="width:56px;">
-      <label for="updateCyclesDelay">Update Cycles Delay:</label>
-      <input type="number" id="updateCyclesDelay" name="value" min="1" step="1" value="1" style="width:48px;">
+      <label title="Run the simulator in real 11.0592 MHz / 80C552-speed. Uncheck to use max speed (Turbo).">
+        <input style="margin-bottom: 10px;" type="checkbox" id="use_realTimeThrottle">
+        Enable Realtime Throttle
+      </label>
+      <label for="cpu_speed_multipler">Speed Multipler:</label>
+      <input type="number" id="cpu_speed_multipler" name="value" min="0.01" step="0.01" value="1.0" style="width:56px;">
     </div>
 </div>
 </div>
 
 <div class="row">
-  <div class="panel" style="min-width:120px;">
+  <div class="panel" style="min-width:90px;">
     <h2>Core Registers</h2>
     <table id="coreRegs"></table>
   </div>
-  <div class="panel" style="min-width:120px;">
+  <div class="panel" style="min-width:90px;">
     <h2>Peripheral Regs</h2>
     <table id="peripheralRegs"></table>
   </div>
@@ -114,11 +119,15 @@
     <small>P4.0 = bank select (0=SRAM 32K, 1=AM29F040 flash) · P4.1-3 = A16-A18 into flash</small>
   </div>
 -->
-  <div class="panel" style="min-width:200px;">
+  <div class="panel" style="min-width:130px;">
     <h2>Sensor Inputs</h2>
     <div id="input_signals"></div>
   </div>
-  <div class="panel" style="flex:1; max-width:360px;">
+  <div class="panel" style="min-width:130px;">
+    <h2>Power Control Outputs</h2>
+    <table id="pwr_output_signals"></table>
+  </div>
+  <div class="panel" style="flex:1; max-width:330px;">
     <h2>Front Panel (simulated like a real one)</h2>
     
     
@@ -538,6 +547,8 @@ function getValues(inputDefs)
 
     return values;
 }
+
+
 function renderSignalInputs() {
     const div = document.getElementById('input_signals');
 
@@ -551,28 +562,35 @@ function renderSignalInputs() {
         const input = defs[ch % 8];
 
         html += `
-            <div>
-              <input type="checkbox" 
-                           ${input.connected ? 'checked' : ''}
-                           onchange="setAdcChannelConnected(${ch}, this.checked)">
-                <label style="width:70px">
-                    
-                    ${input.name}
-                </label>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox"
+                  ${input.connected ? 'checked' : ''}
+                  onchange="setAdcChannelConnected(${ch}, this.checked)">
 
-                <input type="number"
-                       step="0.1"
-                       min="-40"
-                       max="140"
-                       value="${input.value}"
-                       ${!input.connected ? 'disabled' : ''}
-                       style="width:70px"
-                       onchange="setAdcChannel(${ch}, this.value)">
-            </div>
+            <label style="width:50px;" title="${input.note}">
+                ${input.name}
+            </label>
+
+            <input title="${input.note}"
+                  style="width:50px;"
+                  type="number"
+                  step="0.1"
+                  min="-40"
+                  max="140"
+                  value="${input.value}"
+                  ${!input.connected ? 'disabled' : ''}
+                  style="width:70px"
+                  onchange="setAdcChannel(${ch}, this.value)">
+        </div>
         `;
     }
 
     div.innerHTML = html;
+}
+
+function renderPowerOutputs() {
+  renderRegs(getPowerOutputSignals(), 'pwr_output_signals');
+    
 }
 function updateAdcChannel(ch) {
     const defs = ch < 8
@@ -766,23 +784,40 @@ function initCpu() {
 	  clk: pinNameToStruct("P4.7"),
 	  q:   pinNameToStruct("P1.5"),
 	});
-  let threephasestates = [0x50, 0x40, 0x60, 0x20, 0x30, 0x10];
+
+  let threephasestatesBackwardDir = [
+    0x50, //0b01010000
+    0x40, //0b01000000
+    0x60, //0b01100000
+    0x20, //0b00100000
+    0x30, //0b00110000
+    0x10  //0b00010000
+  ];
+  let threephasestatesForwardDir = [
+    0x10, //0b00010000
+    0x30, //0b00110000
+    0x20, //0b00100000
+    0x60, //0b01100000
+    0x40, //0b01000000
+    0x50, //0b01010000
+  ];
   let phaseTicks = 0;
   let phaseStep = 0;
-  function getCurrentStepValue(tep) {
-    return threephasestates[phaseStep]/*^0x70*/;
+  function getCurrentStepValue() {
+    return threephasestatesForwardDir[phaseStep];
   }
   shIn.inputs = getCurrentStepValue() | 0x00;
-  
-  cpu.external_hw_ticks.push(() => {
-        phaseTicks++;
+  let three_phase_50hz_simulation_seq_ticks = 3072; // 11050000Hz / 12cpu_machine_cycles / 50Hz / 6steps = 3072 cpu machine cycles
+  cpu.external_hw_ticks.push((cycles) => {
+        phaseTicks+=cycles;
 
-        if (phaseTicks >= cpu.currentUpdateCyclesCount) {
-            phaseTicks = 0;
+        if (phaseTicks >= three_phase_50hz_simulation_seq_ticks) {
+            phaseTicks -= three_phase_50hz_simulation_seq_ticks;
 
             phaseStep++;
-            if (phaseStep >= 6)
+            if (phaseStep >= 6) {
                 phaseStep = 0;
+            }
 
             shIn.inputs = getCurrentStepValue() | 0x00;
         }
@@ -817,6 +852,7 @@ function initCpu() {
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
   render();
   renderSignalInputs();
+  
   console.log(cpu);
 }
 function getCoreRegs() {
@@ -859,6 +895,22 @@ function getPeripheralRegs() {
       ['P3', hex(cpu.P3.get())],
       ['P4', hex(cpu.P4.get())],
       ['P5', hex(cpu.P5.get())],
+  ];
+}
+
+function getPowerOutputSignals() {
+  return [
+    ['S1', readPinLatch(CD4094_A.outputs,0)?'true':'false'],
+    ['S2', readPinLatch(CD4094_A.outputs,1)?'true':'false'],
+    ['P1', readPinLatch(CD4094_A.outputs,3)?'true':'false'],
+    ['P2', readPinLatch(CD4094_A.outputs,5)?'true':'false'],
+    ['P3', readPinLatch(CD4094_A.outputs,7)?'true':'false'],
+    ['COMP', readPinLatch(CD4094_A.outputs,6)?'true':'false'],
+    ['VXV', readPinLatch(CD4094_A.outputs,4)?'true':'false'],
+    ['EL3', readPinLatch(CD4094_A.outputs,2)?'true':'false'],
+    ['EL6', readPinLatch(CD4094_B.outputs,5)?'true':'false'],
+    ['SUM_LARM', readPinLatch(CD4094_B.outputs,4)?'true':'false'],
+    ['LARM_LED', readPinLatch(CD4094_B.outputs,6)?'false':'true'],
   ];
 }
 
@@ -1180,20 +1232,30 @@ function render() {
   renderRegs(getCoreRegs(), 'coreRegs');
   renderRegs(getPeripheralRegs(), 'peripheralRegs');
   //renderBus();
-  
+  renderPowerOutputs();
   renderMemDumps();
 }
-
+document.getElementById('cpu_speed_multipler').onchange = () => { 
+  const speedEl = document.getElementById("cpu_speed_multipler");
+  const speedMultiplier = speedEl ? parseFloat(speedEl.value) : 1.0;
+  cpu.speed_multipler = speedMultiplier;
+}
 document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(); };
 document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
 document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
 document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(); };
+document.getElementById('use_realTimeThrottle').onchange = () => { cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked; }
 document.getElementById('btn_run').onclick = () => {
-  if (running) return;
+  if (cpu.running) return;
+  cpu.running = true;
+  document.getElementById('run_status').textContent = 'running...';
   renderSignalInputs();
   wd.startMonitoring();
-  running = true;
-  document.getElementById('run_status').textContent = 'running...';
+  cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked;
+  cpu.gui_render_handler = render;
+  cpu.start_emulator_loop();
+  return;
+/* old way of executing the simulator
   runHandle = setInterval(() => {
     let updateCyclesCount_el = document.getElementById('updateCyclesCount');
   
@@ -1209,10 +1271,11 @@ document.getElementById('btn_run').onclick = () => {
       stopRun();
     }
   }, parseInt(document.getElementById('updateCyclesDelay').value));
+*/
 };
 document.getElementById('btn_stop').onclick = stopRun;
 function stopRun() {
-  running = false;
+  cpu.running = false;
   wd.stopMonitoring();
   document.getElementById('run_status').textContent = '';
   if (runHandle) clearInterval(runHandle);
