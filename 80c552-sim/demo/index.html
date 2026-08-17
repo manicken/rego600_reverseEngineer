@@ -30,16 +30,19 @@
 <body>
 <h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
 <div class="row">
-<div class="panel">
-  <h2>Firmware</h2>
-  <input type="file" id="fw_file">
-  <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
-</div>
-<div class="panel">
-  <h2>29F040 data load</h2>
-  <input type="file" id="data_flash_file">
-  <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
-</div>
+  <div class="panel">hello</div>
+  <div>
+<div class="row">
+  <div class="panel">
+    <h2>Firmware</h2>
+    <input type="file" id="fw_file">
+    <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
+  </div>
+  <div class="panel">
+    <h2>29F040 data load</h2>
+    <input type="file" id="data_flash_file">
+    <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
+  </div>
 </div>
 <div class="row">
   <div class="panel">
@@ -263,7 +266,8 @@
     <div class="memdump" id="flash_dump"></div>
   </div>
 </div>
-
+</div>
+</div>
 <div class="panel">
   <h2>Log</h2>
   <div id="log"></div>
@@ -276,6 +280,7 @@
 <script src="../vendor/51vm_operand.js"></script>
 <script src="../vendor/51vm_operation.js"></script>
 <script src="../vendor/51vm_opcode_decoder.js"></script>
+<script src="../vendor/51vm_disassembler.js"></script>
 <script src="../vendor/51vm_ctl.js"></script>
 <script src="../vendor/hex_decoder.js"></script>
 
@@ -1446,6 +1451,15 @@ function set_IROM_value(addr_element_id, value_element_id)
 
 initFrontPanelButtonEvents();
 initCpu();
+// t.ex. externt avbrott 0 (irqn=0) -> 0x03, timer0 (irqn=1) -> 0x0B, osv
+let entry_points = [0x0000/*, 0x0003*/, 0x000B/*, 0x0013, 0x001B*/, 0x0023, 0x002B];
+let insn_map = js51_disasm.disassemble_recursive(cpu.CODE, entry_points, cpu.sfr);
+let addrs = [...insn_map.keys()].sort((a, b) => a - b)
+for (const addr of addrs) {
+    let insn = insn_map.get(addr)
+    console.log(`${insn.addr.toString(16).padStart(4,'0')}  ${insn.bytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ').padEnd(9)}  ${insn.text}`)
+}
+
 </script>
 </body>
 </html>
