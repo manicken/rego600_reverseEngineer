@@ -1,0 +1,36 @@
+body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e; color:#ddd; margin:0; padding:16px; }
+  h1 { font-size:16px; color:#fff; }
+  h2 { font-size:13px; color:#9cdcfe; margin-bottom:6px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .panel { background:#252526; border:1px solid #3c3c3c; border-radius:6px; padding:8px 8px; margin-bottom:8px; }
+  button { background:#0e639c; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:12px; margin-right:4px;}
+  button:hover { background:#1177bb; }
+  button.toggle-on { background:#3c9a3c; }
+  input[type=text], input[type=number], input[type=file] { background:#3c3c3c; color:#eee; border:1px solid #555; border-radius:3px; padding:3px 6px; font-family:inherit; }
+  table { border-collapse: collapse; font-size:12px; }
+  td, th { padding:2px 8px; text-align:left; }
+  .reg { color:#4ec9b0; }
+  .val { color:#ce9178; }
+  #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
+  .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
+  .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
+  .lcd { margin-top:8px; margin-bottom:8px; font-size:20px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 220px; overflow-y:auto; background:#396197; padding:6px; }
+  .lcd.backlight-on {background:#63a3ff}
+  small { color:#888; }
+
+  .main-layout {
+    display: flex;
+    align-items: flex-start;
+}
+
+.disassembly-panel {
+    flex: 0 0 350px;
+    max-height: 800px;
+    overflow: auto;
+}
+
+.simulator-content {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+}

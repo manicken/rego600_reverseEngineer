@@ -81,3 +81,78 @@ function pinNameToStruct(pinName) {
 
     return { port, bit };
 }
+function appendInputFieldWithLabel(container, id, label, inputOptions) {
+    //let container = document.getElementById(container_id);
+    let labelEl = document.createElement('label');
+    labelEl.htmlFor = id;
+    labelEl.textContent = label;
+    container.appendChild(labelEl);
+    let inputEl = document.createElement('input');
+    inputEl.id = id;
+    inputEl.type = inputOptions.type;
+    inputEl.value = inputOptions.value;
+    inputEl.min = inputOptions.min;
+    inputEl.max = inputOptions.max;
+    inputEl.step = inputOptions.step;
+    if (inputOptions.width) {
+        inputEl.style.width = `${inputOptions.width}px`
+    }
+    container.appendChild(inputEl);
+    return inputEl;
+}
+
+function appendButton(container, label, id) {
+    let btn = document.createElement("button");
+    btn.textContent = label;
+    btn.id = id;
+    container.appendChild(btn);
+    return btn;
+}
+
+function appendWriteValueToAddressControl(container_id, id_base, initial_addr, initial_value, setHandler) {
+    let container = document.getElementById(container_id);
+    let control = document.createElement("div");
+    control.className = "row";
+    let addrInputId = `write-to-${id_base}-addr`;
+    let valueInputId = `write-to-${id_base}-value`;
+    if (initial_addr == undefined) {
+        initial_addr = "0x0000";
+    }
+    if (initial_value == undefined) {
+        initial_value = "0x00";
+    }
+    container.appendChild(document.createElement('hr'));
+    appendInputFieldWithLabel(control, addrInputId, "Address:", {type:"text", value:initial_addr, width:48});
+    appendInputFieldWithLabel(control, valueInputId, "Value:", {type:"text", value:initial_value, width:48});
+    let btnSet = document.createElement("button");
+    btnSet.textContent = "Set";
+    btnSet.onclick = function () {
+        let addrValue = parseNumber(document.getElementById(addrInputId).value);
+        let valueValue = parseNumber(document.getElementById(valueInputId).value);
+        setHandler(addrValue, valueValue);
+    };
+    control.appendChild(btnSet);
+    container.appendChild(control);
+}
+
+function appendDiv(container, className, id) {
+    let div_el = document.createElement("div");
+    div_el.className = className;
+    div_el.id = id;
+    container.appendChild(div_el);
+    return div_el;
+}
+
+function appendBr(container) {
+    container.appendChild(document.createElement("br"));
+}
+function appendH2(container, text) {
+    let header_el = document.createElement("h2");
+    header_el.textContent = text;
+    container.appendChild(header_el);
+}
+function appendH2_from_data_title(container) {
+    let header_el = document.createElement("h2");
+    header_el.textContent = container.dataset.title;
+    container.appendChild(header_el);
+}

@@ -25,11 +25,11 @@
     }
 
     function hex2(v) {
-        return v.toString(16).toUpperCase().padStart(2, '0') + 'H'
+        return "0x" + v.toString(16).toUpperCase().padStart(2, '0');// + 'H'
     }
 
     function hex4(v) {
-        return v.toString(16).toUpperCase().padStart(4, '0') + 'H'
+        return "0x" + v.toString(16).toUpperCase().padStart(4, '0');// + 'H'
     }
 
     function signed8(v) {

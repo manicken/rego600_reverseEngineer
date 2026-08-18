@@ -21,13 +21,23 @@
     font-family: Arial, sans-serif;
 }
 
+.rego-led-row {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    font-family: Arial, sans-serif;
+}
+.rego-button-row {
+    display:flex; 
+    justify-content: space-between;
+}
+
 .rego-led {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
 
-    min-width: 58px;
+    min-width: 38px;
 }
 
 .rego-led .led {
@@ -62,9 +72,11 @@
     font-size: 8px;
     font-weight: 600;
     letter-spacing: 0.7px;
-
+    width: 38px;
+    overflow-wrap:anywhere;
+    text-align: center;
     color: #aaa;
-    white-space: nowrap;
+
 }
 
 /* ON state */

@@ -162,8 +162,17 @@ _51cpu.prototype.getCallStackString = function (instructionSize = 0) {
 
     for (let i = 0; i < this.callStack.length; i++) {
         let entry = this.callStack[i];
-
+        if (i > 32) {
+            result += "   truncated because to long";
+            break;
+        }
+        try {
         result += " ".repeat(i * 2);
+        }
+        catch (e) {
+            console.log("i too big??? " + i);
+            console.log(e);
+        }
 
         if (entry.address !== undefined) {
             result += entry.address.toString(16).padStart(4, "0");

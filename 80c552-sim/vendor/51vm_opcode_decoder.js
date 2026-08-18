@@ -370,8 +370,8 @@ _51cpu.prototype.__execute_decode_70_7F = function (opcode) {
     } else if (opcode.test(0x73)) {
         //JMP @A+DPTR
         //console.log("0x73 jmp happend" + hex(this.PC.get()));
-        let currPC = this.PC.get();
-        if (currPC == 0xB2A || currPC == 0xB3C) {
+        let opcodePC = this.PC.get()-1;
+        if (opcodePC == 0xB29 /*v3.06*/ || opcodePC == 0xB3B /*v3.06*/ || opcodePC == 0xB46 /*v3.16*/ || opcodePC == 0xB58 /*v3.16*/) {
             this.op_ret_track(); // 
         }
         this.PC.set(this.A.get() + this.DPTR.get())
@@ -458,7 +458,7 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
         let addr = this.A.get() + this.DPTR.get();
         let data = this.get_ROM(addr);
         if (addr >= 0xFFD6) {
-          console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
+          //console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
         }
 
         this.op_move(this.A, data)
