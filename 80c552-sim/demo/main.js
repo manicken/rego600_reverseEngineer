@@ -801,10 +801,10 @@ function printDissassembly_toConsole() {
         console.log(`${insn.addr.toString(16).padStart(4,'0')}  ${insn.bytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ').padEnd(9)}  ${insn.text}`)
     }
 }
-
+/*
 function printDissassembly_toElement() {
     // t.ex. externt avbrott 0 (irqn=0) -> 0x03, timer0 (irqn=1) -> 0x0B, osv
-    let entry_points = [0x0000/*, 0x0003*/, 0x000B/*, 0x0013, 0x001B*/, 0x0023, 0x002B];
+    let entry_points = [0x0000, 0x0003, 0x000B, 0x0013, 0x001B, 0x0023, 0x002B];
     let insn_map = js51_disasm.disassemble_recursive(cpu.CODE, entry_points, cpu.SFR);
     let addrs = [...insn_map.keys()].sort((a, b) => a - b)
     let text = "";
@@ -814,6 +814,64 @@ function printDissassembly_toElement() {
         text += "<br>";
     }
     document.getElementById("disassemblyView").innerHTML = text;
+}
+*/
+
+function printDissassembly_toElement() {
+    let entry_points = [
+        0x0000,
+        0x000B,
+        0x0023,
+        0x002B
+    ];
+
+    let insn_map = js51_disasm.disassemble_recursive(
+        cpu.CODE,
+        entry_points,
+        cpu.SFR
+    );
+
+    let addrs = [...insn_map.keys()].sort((a, b) => a - b);
+
+    let html = `
+        <table class="disassembly-table">
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Bytes</th>
+                    <th>Instruction</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (const addr of addrs) {
+        const insn = insn_map.get(addr);
+
+        const address = insn.addr
+            .toString(16)
+            .padStart(4, '0')
+            .toUpperCase();
+
+        const bytes = insn.bytes
+            .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+            .join(' ');
+
+        html += `
+            <tr data-address="${insn.addr}">
+                <td class="disasm-address">${address}</td>
+                <td class="disasm-bytes">${bytes}</td>
+                <td class="disasm-instruction">${insn.text}</td>
+            </tr>
+        `;
+    }
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("disassemblyView").innerHTML = html;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
