@@ -13,20 +13,14 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
   .val { color:#ce9178; }
   #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
   .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
-  .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:220px; overflow-y:auto; background:#111; padding:6px; }
+  .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:400px; overflow-y:auto; background:#111; padding:6px; }
   .lcd { margin-top:8px; margin-bottom:8px; font-size:20px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 220px; overflow-y:auto; background:#396197; padding:6px; }
   .lcd.backlight-on {background:#63a3ff}
   small { color:#888; }
 
-  .main-layout {
+.main-layout {
     display: flex;
     align-items: flex-start;
-}
-
-.disassembly-panel {
-    flex: 0 0 350px;
-    max-height: 800px;
-    overflow: auto;
 }
 
 .simulator-content {
@@ -35,13 +29,28 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
     overflow: auto;
 }
 
-.disassembly-table {
-    width: 100%;
-    border-collapse: collapse;
+.disassembly-container {
+    max-height: 800px;
+    overflow-y: auto;
 }
 
-.disassembly-table th,
-.disassembly-table td {
+.disassembly-grid {
+    width: 100%;
+}
+
+.disassembly-grid-row {
+    display: grid;
+
+    grid-template-columns:
+        14px    /* breakpoint */
+        18px    /* current exec */
+        45px    /* address */
+        80px    /* bytes */
+        45px    /* mnemonic */
+        1fr;    /* operands */
+}
+
+.disassembly-grid-row > div {
     padding: 2px 6px;
     text-align: left;
 }
@@ -52,9 +61,16 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
     white-space: nowrap;
 }
 
-.disassembly-instruction {
+.disassembly-mnemonic {
     font-family: monospace;
     white-space: nowrap;
+    color:#4ec9b0;
+}
+
+.disassembly-operands {
+    font-family: monospace;
+    white-space: nowrap;
+    color:#ce9178;
 }
 
 .disassembly-address {
@@ -64,3 +80,64 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 .disassembly-bytes {
     width: 1%;
 }
+
+.disassembly-breakpoint {
+    cursor: pointer;
+    padding: 2px 2px !important;
+    color:#ff0000;
+}
+
+.disassembly-curr-exec {
+    cursor:default;
+    padding: 2px 0px 2px 2px !important;
+}
+
+.disassembly-label {
+    grid-column: 1 / -1;
+}
+
+.xram_view {
+    flex: 1 1 0%;
+    max-width: 480px;
+}
+
+.current-exec::before {
+    content: "▶";
+}
+
+
+.disasm-context-menu {
+    position: fixed;
+    display: none;
+    z-index: 10000;
+
+    min-width: 180px;
+
+    background: #252526;
+    border: 1px solid #555;
+    border-radius: 4px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+    padding: 4px 0;
+
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+}
+
+.disasm-context-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.disasm-context-item:hover {
+    background: #094771;
+}
+
+.disasm-context-separator {
+    height: 1px;
+    background: #444;
+    margin: 4px 0;
+}
+

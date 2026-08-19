@@ -1,48 +1,13 @@
 let cpu = null;
 let i2cBus = null;
-let running = false;
-let runHandle = null;
-let wd = null;
+let rtc = null;
+let ext_wdt = null;
 
 function log(msg) {
   const el = document.getElementById('log');
   el.textContent += msg + "\n";
   el.scrollTop = el.scrollHeight;
 }
-
-/*
-let VREF_VOLTAGE = 5.12;
-let VOLTAGE_NC = VREF_VOLTAGE;
-let VOLTAGE_AT_25_degree = VREF_VOLTAGE/2;
-let VOLTAGE_PRESSURE_NOT_ACTIVATED = 0;
-let CD4051_mux_A_inputDefs = { 
-  0:{name:"EXT",  defaultVoltage:VOLTAGE_NC, note:"external control input (binary states only)"},
-  1:{name:"GT5",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Room"},
-  2:{name:"GT4",  defaultVoltage:VOLTAGE_NC, note:"Radiator Forward"},
-  3:{name:"GT11", defaultVoltage:VOLTAGE_AT_25_degree, note:"Cold fluid out"},
-  4:{name:"GT3X", defaultVoltage:VOLTAGE_NC, note:"external hot water"},
-  5:{name:"GT1",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Radiator Return"},
-  6:{name:"GT2",  defaultVoltage:VOLTAGE_AT_25_degree, note:"Outdoor"},
-  7:{name:"LP",   defaultVoltage:VOLTAGE_PRESSURE_NOT_ACTIVATED, note:"Low Pressure is High"}
-};
-let CD4051_mux_B_inputDefs = { 
-  0:{name:"HP",     defaultVoltage:VOLTAGE_PRESSURE_NOT_ACTIVATED, note:"High Pressure is High"},
-  1:{name:"SP_ADC", defaultVoltage:VOLTAGE_NC, note:"Service port ADC input"},
-  2:{name:"GT10",   defaultVoltage:VOLTAGE_AT_25_degree, note:"Cold fluid in"},
-  3:{name:"GT8",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Heat fluid out"},
-  4:{name:"GT6",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Compressor/High pressure"},
-  5:{name:"GT3",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Hot water"},
-  6:{name:"VVP",    defaultVoltage:VOLTAGE_NC, note:"???"},
-  7:{name:"GT9",    defaultVoltage:VOLTAGE_AT_25_degree, note:"Heat fluid in"}
-};
-function getVoltages(inputDefs)
-{
-  let voltages = [];
-  for (let i=0;i<8;i++) {
-    voltages[i] = inputDefs[i].defaultVoltage;
-  }
-  return voltages;
-}*/
 
 let ADC_MAX_VALUE = 1023;
 let ADC_MIN_VALUE = 0;
@@ -115,7 +80,7 @@ function getValues(inputDefs)
     return values;
 }
 
-function renderSignalInputs() {
+function init_SignalInputs() {
     const div = document.getElementById('input_signals');
 
     let html = '';
@@ -159,10 +124,6 @@ function renderSignalInputs() {
     div.innerHTML = html;
 }
 
-function renderPowerOutputs() {
-  renderRegs(getPowerOutputSignals(), 'pwr_output_signals');
-    
-}
 function updateAdcChannel(ch) {
     const defs = ch < 8
         ? CD4051_mux_A_inputDefs
@@ -199,7 +160,7 @@ function setAdcChannelConnected(ch, connected) {
 
     input.connected = connected;
     updateAdcChannel(ch);
-    renderSignalInputs();
+    init_SignalInputs();
 }
 
 let CD4051_mux_A = undefined;
@@ -220,22 +181,24 @@ function initCpu() {
 	cpu.bus.flash.loadImage(builtin_flashData);
   }
 
-  wd = new TC1232({timeoutMs:1200});
-  install_tc1232(cpu, wd, { st: pinNameToStruct("P4.1") });
+  ext_wdt = new TC1232({timeoutMs:1200});
+  install_tc1232(cpu, ext_wdt, { st: pinNameToStruct("P4.1") });
   
-  const ds = new DS1302();
+  rtc = new DS1302();
   //const ds = traceDevice(new DS1302(), "DS1302");
-  ds.setDateTime(); // set current time using system time
-  ds.startClock();  // tickar en gång per sekund på riktig väggklocka,
-                    // oberoende av CPU:ns exekveringsloop — precis som
-                    // den riktiga kretsens egna kristall
+  //rtc.setDateTime(); // set current time using system time
+  rtc.useSystemTime = true;
+  // this uses setInterval internally to handle the time update
+  // if useSystemTime is true then each tick sets the time from the system clock
+  // else it's completely simulated
+  // when simulated it's possible to set the date/time from wichin the simulated system
+  rtc.startClock(); 
 
-	install_ds1302(cpu, ds, {
+	install_ds1302(cpu, rtc, {
 	  ce:   pinNameToStruct("P4.1"),
 	  sclk: pinNameToStruct("P1.3"),
 	  io:   pinNameToStruct("P1.1"),
 	});
-  
 
 	CD4094_A = new ShiftOut4094();
 	install_4094(cpu, CD4094_A, {
@@ -312,26 +275,22 @@ function initCpu() {
   shIn.inputs = getCurrentStepValue() | 0x00;
   let three_phase_50hz_simulation_seq_ticks = 3072; // 11050000Hz / 12cpu_machine_cycles / 50Hz / 6steps = 3072 cpu machine cycles
   cpu.external_hw_ticks.push((cycles) => {
-        phaseTicks+=cycles;
+      phaseTicks+=cycles;
 
-        if (phaseTicks >= three_phase_50hz_simulation_seq_ticks) {
-            phaseTicks -= three_phase_50hz_simulation_seq_ticks;
+      if (phaseTicks >= three_phase_50hz_simulation_seq_ticks) {
+          phaseTicks -= three_phase_50hz_simulation_seq_ticks;
 
-            phaseStep++;
-            if (phaseStep >= 6) {
-                phaseStep = 0;
-            }
+          phaseStep++;
+          if (phaseStep >= 6) {
+              phaseStep = 0;
+          }
 
-            shIn.inputs = getCurrentStepValue() | 0x00;
-        }
-    });
-	
-  
-  
+          shIn.inputs = getCurrentStepValue() | 0x00;
+      }
+  });
+
   cpu.reset();
 
-  //setInterval(() => console.log('ds phase:', ds._phase), 500);
-  
   cpu.PSW.setlistener.push((oldval, newval) => {
 	  let oldBank = oldval & 0x18;
     let newBank = newval & 0x18;
@@ -349,12 +308,8 @@ function initCpu() {
   install_uart(cpu);
 
   set_uart_handler();
-  
-  
-  
+
   log('80C552 instance created (32KB SRAM / 512KB AM29F040 flash on P4-selected external bus).');
-  
-  
   console.log(cpu);
 }
 function getCoreRegs() {
@@ -416,299 +371,21 @@ function getPowerOutputSignals() {
   ];
 }
 
-function renderRegs(regs, regs_element_id) {
-  let html = "";
-
-  for (let i = 0; i < regs.length; i++) {
-    html += `<tr>
-      <td class="reg">${regs[i][0]}</td>
-      <td class="val">${regs[i][1]}</td>
-    </tr>`;
-  }
-  document.getElementById(regs_element_id).innerHTML = html;
-}
-
-function renderBus() {
-    const div = document.getElementById('p4bits');
-    let html = '';
-
-    const p4 = cpu.P4._value;
-    const p3 = cpu.P3._value;
-
-    const pins = [ 
-      { port: 'P4', bit: 0, name: 'FLASH CS#' },
-      { port: 'P4', bit: 2, name: 'SRAM CS#' },
-      { port: 'P3', bit: 3, name: 'FLASH A16' },
-      { port: 'P3', bit: 5, name: 'FLASH A17' },
-      { port: 'P3',  bit: 4, name: 'FLASH A18' }
-    ];
-
-    for (const pin of pins) {
-        const value = pin.port === 'P4'
-            ? ((p4 >> pin.bit) & 1)
-            : ((p3 >> pin.bit) & 1);
-
-        html += `
-        <div class="pinbit">
-            <button class="${value ? 'toggle-on' : ''}"
-                    onclick="toggleBusPin('${pin.port}', ${pin.bit})">
-                ${value}
-            </button>
-            ${pin.port}.${pin.bit} ${pin.name}
-        </div>`;
-    }
-
-    div.innerHTML = html;
 
 
-    const sel = cpu.bus.readSelect();
+function render(stepMode = false) {
+  renderKeyValueTable(coreRegs_el, getCoreRegs());
+  renderKeyValueTable(peripheralRegs_el, getPeripheralRegs());
 
-    let device = 'NONE';
+  renderKeyValueTable(pwr_output_signals_el, getPowerOutputSignals());
 
-    if (sel.flashCS)
-        device = 'FLASH';
-    else if (sel.sramCS)
-        device = 'SRAM';
-
-    document.getElementById('bank_state').textContent = device;
-
-    document.getElementById('ext_state').textContent =
-        hex(sel.ext, 1) +
-        ' (A18:16=' +
-        sel.ext.toString(2).padStart(3, '0') +
-        ')';
-}
-
-function dummy_handler() {
-  console.error("service port - dummy handler was called");
-}
-function write_confirm_handler()
-{
-  console.info("service port - write confirm");
-}
-let expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
-let currentRxCount = 0;
-let currentRxBuff = [];
-function CalcCheckSum(buffer) {
-    let chksum = 0;
-    for (let i=2;i<buffer.length;i++)
-        chksum ^= buffer[i];
-    return chksum;
-}
-
-function cmd00_02_04_06_7F_handler() {
-  let value = (currentRxBuff[1] << 14) |
-              (currentRxBuff[2] << 7) |
-              (currentRxBuff[3]);
-  console.log("service port rx value: " + hex(value) + " " + value);
-  console.log(cpu.getCallStackString());
-}
-
-function packNibbles(nibblebytes, offset) {
-  let bytes = [];
-  for (let i=offset;i<nibblebytes.length;i+=2) {
-    bytes.push((nibblebytes[i] << 4) | nibblebytes[i+1])
-  }
-  return bytes;
-}
-
-function cmd_20_handler() {
-  let text = "";
-  let bytes = packNibbles(currentRxBuff, 1);
-  for (let i=0;i<20;i++) {
-    text += printPrintable(bytes[i]);
-  }
-  console.log("service port cmd 20 rx: >>>" + text + "<<<");
-}
-
-let error_codes = {
-  '0':"Sensor radiator return (GT1)",
-  '1':"Outdoor sensor (GT2)",
-  '2':"Sensor hot water (GT3)",
-  '3':"Mixing valve sensor (GT4)",
-  '4':"Room sensor (GT5)",
-  '5':"Sensor compressor (GT6)",
-  '6':"Sensor heat transf. fluid out (GT8)",
-  '7':"Sensor heat transf. fluid in (GT9)",
-  '8':"Sensor cold transf. fluid in (GT10)",
-  '9':"Sensor cold transf. fluid in (GT11)",
-  '10':"Compresor circuit switch",
-  '11':"Electrical cassette",
-  '12':"HTF C=pump switch (MB2)",
-  '13':"Low pressure switch (LP)",
-  '14':"High pressure switch (HP)",
-  '15':"High return HP (GT9)",
-  '16':"HTF out max (GT8)",
-  '17':"HTF in under limit (GT10)",
-  '18':"HTF out under limit (GT11)",
-  '19':"Compressor superhear (GT6)",
-  '20':"3-phase incorrect order",
-  '21':"Power failure",
-  '22':"Varmetr. delta hoch",
-}
-
-function cmd_40_42_handler() {
-  let text = "";
-  let bytes = packNibbles(currentRxBuff, 1);
-  for (let i=1;i<16;i++) {
-    text += printPrintable(bytes[i], true);
-  }
-  console.log(cpu.pr)
-  console.log("service port cmd 40_42 rx: >>>" + error_codes[bytes[0]] + " - " + text + "<<<");
-}
-
-const extectedRxCountVsCmd = [
-  {cmd:0x00, len:5, handler:cmd00_02_04_06_7F_handler},
-  {cmd:0x01, len:1, handler:write_confirm_handler},
-  {cmd:0x02, len:5, handler:cmd00_02_04_06_7F_handler},
-  {cmd:0x03, len:1, handler:write_confirm_handler},
-  {cmd:0x04, len:5, handler:cmd00_02_04_06_7F_handler},
-  {cmd:0x05, len:1, handler:write_confirm_handler},
-  {cmd:0x06, len:5, handler:cmd00_02_04_06_7F_handler},
-  {cmd:0x07, len:1, handler:write_confirm_handler},
-  {cmd:0x20, len:42, handler:cmd_20_handler},
-  {cmd:0x40, len:42, handler:cmd_40_42_handler},
-  {cmd:0x42, len:42, handler:cmd_40_42_handler},
-  {cmd:0x7F, len:5, handler:cmd00_02_04_06_7F_handler},
-];
-function getExpectedRxStruct(cmd) {
-  for (let i=0;i<extectedRxCountVsCmd.length; i++) {
-    if (extectedRxCountVsCmd[i].cmd == cmd) {
-      return extectedRxCountVsCmd[i];
-    }
-  }
-  return undefined; // not found
-}
-
-let lastSendCmd = 0;
-function service_port_send(cmd, param1=0x00, param2=0x00) {
-    let responseStruct = getExpectedRxStruct(cmd);
-    if (responseStruct == undefined) {
-      console.log("service_port_send - unknown cmd: " + cmd);
-      expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
-      return;
-    }
-    expectedRxStruct = responseStruct;
-    lastSendCmd = cmd;
-    const buffer = [
-      0x81, 
-      cmd,
-      ((param1 >> 14) & 0x7F),
-      ((param1 >> 7) & 0x7F),
-      (param1 & 0x7F),
-      ((param2 >> 14) & 0x7F),
-      ((param2 >> 7) & 0x7F),
-      (param2 & 0x7F)
-    ];
-    buffer.push(CalcCheckSum(buffer));
-
-    console.log("Service Port Send: [" + getBytesInAsciiHex(buffer, ', ') + ']');
-    currentRxCount = 0;
-    currentRxBuff = [];
-    cpu.uart.rxBytes(buffer);
-}
-function service_port_request_any(cmd_el_id, param1_el_id, param2_el_id) {
-  let cmd = parseNumber(document.getElementById(cmd_el_id).value);
-  let param1 = parseNumber(document.getElementById(param1_el_id).value);
-  let param2 = parseNumber(document.getElementById(param2_el_id).value);
-  service_port_send(cmd, param1, param2);
-}
-
-// on TX mean when the MCU sends data to the client
-function uart_on_tx_handler(byte, ninthBit) {
-  currentRxBuff[currentRxCount++] = byte;
-  
-  if (currentRxCount == expectedRxStruct.len) {
-    console.log('service port raw answer: [' + getBytesInAsciiHex(currentRxBuff, ', ') + ']');
-    expectedRxStruct.handler();
-    
-  }
-}
-function set_uart_handler() {
-  cpu.uart.onTx(uart_on_tx_handler);
-}
-
-function toggleBusPin(port, bit) {
-    if (port === 'P4') {
-        const cur = cpu.P4._value;
-        cpu.P4.set(cur ^ (1 << bit));
-    }
-    else if (port === 'P3') {
-        const cur = cpu.P3._value;
-        cpu.P3.set(cur ^ (1 << bit));
-    }
-
-    render();
-}
-
-function render_IRAM() {
-  document.getElementById('iram_dump').textContent = getMemoryContentsDump({
-    reader: index => cpu.IRAM[index],
-    ascii: true,
-    columns: 16,
-    colheader: true,
-    size: 256,
-    offset: 0,
-    addressWidth: 2
-  });
-}
-
-function render_DATA_FLASH_window() {
-  const sel = cpu.bus.readSelect();
-  const base = (sel.ext << 20) & (cpu.bus.flash.size - 1);
-
-  document.getElementById('flash_dump').textContent = getMemoryContentsDump({
-    reader: index => cpu.bus.flash.read(index, false),
-    ascii: true,
-    columns: 20,
-    colheader: true,
-    size: 300,
-    offset: base,
-    addressWidth: 5
-  });
-}
-
-function render_XRAM_windows() {
-  render_XRAM_window('xram-view-index-A', 'xram-view-A');
-  render_XRAM_window('xram-view-index-B', 'xram-view-B');
-  render_XRAM_window('xram-view-index-C', 'xram-view-C');
-}
-
-function renderMemDumps() {
-  render_IRAM();
-  render_XRAM_windows();
-  //render_DATA_FLASH_window();  
-}
-
-function render() {
-  renderRegs(getCoreRegs(), 'coreRegs');
-  renderRegs(getPeripheralRegs(), 'peripheralRegs');
-  //renderBus();
-  renderPowerOutputs();
   renderMemDumps();
   render_LCD();
+  //renderBus();
+
+  setCurrentExecLine(cpu, stepMode);
+
 }
-
-
-function dumpHex(bytes, bytesPerLine = 32) {
-	let dumpText = "";
-    for (let i = 0; i < bytes.length; i += bytesPerLine) {
-        let line = Array.from(bytes.slice(i, i + bytesPerLine))
-            .map(b => "0x" + b.toString(16).toUpperCase().padStart(2, "0"))
-            .join(", ");
-		dumpText += line + ",\n";
-        //console.log(line + ",");
-    }
-	console.log(dumpText);
-}
-
-function renderBreakpoints() {
-    const list = cpu.addr_breakpoint || [];
-
-    document.getElementById('bp_list').textContent =
-        list.map(a => hex(a,4)).join(", ");
-}
-
 
 function addBreakpoint() {
     const addr = parseNumber(document.getElementById('bp_addr').value);
@@ -720,7 +397,7 @@ function addBreakpoint() {
 
     log("Breakpoint added at " + hex(addr,4));
 
-    renderBreakpoints();
+    //renderBreakpoints();
 }
 
 function removeBreakpoint() {
@@ -733,7 +410,7 @@ function removeBreakpoint() {
 
     log("Breakpoint removed at " + hex(addr,4));
 
-    renderBreakpoints();
+    //renderBreakpoints();
 }
 
 function clearBreakpoints() {
@@ -741,152 +418,25 @@ function clearBreakpoints() {
 
     log("All breakpoints cleared");
 
-    renderBreakpoints();
+    //renderBreakpoints();
 }
 
-
-
-function set_XRAM_value(addr, value)
-{
-    //let addr = parseNumber(document.getElementById(addr_element_id).value);
-    //let value = parseNumber(document.getElementById(value_element_id).value);
-
-    if(isNaN(addr) || isNaN(value))
-        return;
-
-    if(addr < 0 || addr >= cpu.bus.sram.size)
-        return;
-
-    if(value < 0 || value > 0xFFFF)
-        return;
-    
-    if (value <= 0xFF) {
-      cpu.bus.sram.write(addr, value);
-    } else {
-      cpu.bus.sram.write(addr, (value & 0xFF00) >> 8);
-      cpu.bus.sram.write(addr+1, (value & 0xFF));
-    }
-    render_XRAM_windows();
-}
-
-function set_IROM_value(addr_element_id, value_element_id)
-{
-    let addr = parseNumber(document.getElementById(addr_element_id).value);
-    let value = parseNumber(document.getElementById(value_element_id).value);
-
-    if(isNaN(addr) || isNaN(value))
-        return;
-
-    if(addr < 0 || addr >= cpu.CODE.size)
-        return;
-
-    if(value < 0 || value > 0xFFFF)
-        return;
-    
-    if (value <= 0xFF) {
-      cpu.CODE[addr] = value;
-    } else {
-      cpu.CODE[addr] = (value & 0xFF00) >> 8;
-      cpu.CODE[addr+1] = (value & 0xFF);
-    }
-}
-
-function printDissassembly_toConsole() {
-    // t.ex. externt avbrott 0 (irqn=0) -> 0x03, timer0 (irqn=1) -> 0x0B, osv
-    let entry_points = [0x0000/*, 0x0003*/, 0x000B/*, 0x0013, 0x001B*/, 0x0023, 0x002B];
-    let insn_map = js51_disasm.disassemble_recursive(cpu.CODE, entry_points, cpu.SFR);
-    let addrs = [...insn_map.keys()].sort((a, b) => a - b)
-    for (const addr of addrs) {
-        let insn = insn_map.get(addr)
-        console.log(`${insn.addr.toString(16).padStart(4,'0')}  ${insn.bytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ').padEnd(9)}  ${insn.text}`)
-    }
-}
-/*
-function printDissassembly_toElement() {
-    // t.ex. externt avbrott 0 (irqn=0) -> 0x03, timer0 (irqn=1) -> 0x0B, osv
-    let entry_points = [0x0000, 0x0003, 0x000B, 0x0013, 0x001B, 0x0023, 0x002B];
-    let insn_map = js51_disasm.disassemble_recursive(cpu.CODE, entry_points, cpu.SFR);
-    let addrs = [...insn_map.keys()].sort((a, b) => a - b)
-    let text = "";
-    for (const addr of addrs) {
-        let insn = insn_map.get(addr)
-        text += `${insn.addr.toString(16).padStart(4,'0')}  ${insn.bytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ').padEnd(9)}  ${insn.text}`;
-        text += "<br>";
-    }
-    document.getElementById("disassemblyView").innerHTML = text;
-}
-*/
-
-function printDissassembly_toElement() {
-    let entry_points = [
-        0x0000,
-        0x000B,
-        0x0023,
-        0x002B
-    ];
-
-    let insn_map = js51_disasm.disassemble_recursive(
-        cpu.CODE,
-        entry_points,
-        cpu.SFR
-    );
-
-    let addrs = [...insn_map.keys()].sort((a, b) => a - b);
-
-    let html = `
-        <table class="disassembly-table">
-            <thead>
-                <tr>
-                    <th>Address</th>
-                    <th>Bytes</th>
-                    <th>Instruction</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    for (const addr of addrs) {
-        const insn = insn_map.get(addr);
-
-        const address = insn.addr
-            .toString(16)
-            .padStart(4, '0')
-            .toUpperCase();
-
-        const bytes = insn.bytes
-            .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-            .join(' ');
-
-        html += `
-            <tr data-address="${insn.addr}">
-                <td class="disasm-address">${address}</td>
-                <td class="disasm-bytes">${bytes}</td>
-                <td class="disasm-instruction">${insn.text}</td>
-            </tr>
-        `;
-    }
-
-    html += `
-            </tbody>
-        </table>
-    `;
-
-    document.getElementById("disassemblyView").innerHTML = html;
-}
+let coreRegs_el;
+let peripheralRegs_el;
+let pwr_output_signals_el;
 
 document.addEventListener("DOMContentLoaded", () => {
+    coreRegs_el = document.getElementById('coreRegs');
+    peripheralRegs_el = document.getElementById('peripheralRegs');
+    pwr_output_signals_el = document.getElementById('pwr_output_signals');
 
     initCpu();
 
-    init_xram_write("directWriteXRAM", 6, set_XRAM_value);
-    init_xram_view("xram_view_A", "A", 10);
-    init_xram_view("xram_view_B", "B", 22);
-    init_xram_view("xram_view_C", "C", 27);
+    init_memory_panels();
+
     init_service_interface_panel("service_interface");
     init_front_panel("front-panel");
-    
-    //document.getElementById('btn_add_bp').onclick = addBreakpoint;
-    //document.getElementById('btn_remove_bp').onclick = removeBreakpoint;
+
     //document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
     if (document.getElementById('fw_file')) {
         document.getElementById('fw_file').onchange = function () {
@@ -949,56 +499,43 @@ document.addEventListener("DOMContentLoaded", () => {
         const speedMultiplier = speedEl ? parseFloat(speedEl.value) : 1.0;
         cpu.speed_multipler = speedMultiplier;
     }
-    document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(); };
-    document.getElementById('btn_step').onclick = () => { cpu.next(1); render(); };
-    document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(); };
-    document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(); };
+    document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(true); };
+    document.getElementById('btn_step').onclick = () => { cpu.next(1); render(true); };
+    document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(true); };
+    document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(true); };
     document.getElementById('use_realTimeThrottle').onchange = () => { cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked; }
+    document.getElementById('rtc_use_system_clock').onchange = () => { 
+      rtc.useSystemTime = document.getElementById("rtc_use_system_clock").checked;
+    }
     document.getElementById('btn_run').onclick = () => {
         if (cpu.running) return;
         cpu.running = true;
         document.getElementById('run_status').textContent = 'running...';
-        renderSignalInputs();
-        wd.startMonitoring();
+        init_SignalInputs();
+        ext_wdt.startMonitoring();
         cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked;
         cpu.gui_render_handler = render;
         cpu.start_emulator_loop();
         return;
-        /* old way of executing the simulator
-        runHandle = setInterval(() => {
-            let updateCyclesCount_el = document.getElementById('updateCyclesCount');
         
-            let updateCyclesCount = parseInt(updateCyclesCount_el.value);
-            cpu.currentUpdateCyclesCount = updateCyclesCount;
-            let res = cpu.next(updateCyclesCount);
-            render();
-            if(res == 0) {
-            stopRun();
-            }
-            if (res == -1 && cpu.error_info.code !== CPU_NO_ERROR) {
-            log('stopped: error ' + cpu.error_info.code + ' at ' + hex(cpu.error_info.addr,4));
-            stopRun();
-            }
-        }, parseInt(document.getElementById('updateCyclesDelay').value));
-        */
     };
     document.getElementById('btn_stop').onclick = stopRun;
     function stopRun() {
         cpu.running = false;
-        wd.stopMonitoring();
+        ext_wdt.stopMonitoring();
         document.getElementById('run_status').textContent = '';
-        if (runHandle) clearInterval(runHandle);
     }
 
     document.getElementById('btn_print_callstack').onclick = () => {
         console.log(cpu.getCallStackString());
     };
-
+    //disassembly_toTableElement();
+    disassembly_toFlexGridElement();
     
     render();
-    renderSignalInputs();
+    init_SignalInputs();
 
-    printDissassembly_toElement();
+    
     //printDissassembly_toConsole();
 });
 

@@ -21,10 +21,10 @@ _51cpu.prototype.emulatorLoop = function () {
     if (this.running === false) {
         return;
     }
-    
+     
     // Read the checkbox value dynamically from the HTML GUI at the start of every frame
     const isRealtime = this.isRealtime;//document.getElementById("chk-use_realTimeThrottle").checked;
-
+    //const t0 = performance.now();
     if (isRealtime) {
         // ====================================================================
         // LÄGE 1: REALTIME MODE (Cycle-Throttled Execution at exact ~921.6 kHz)
@@ -71,7 +71,7 @@ _51cpu.prototype.emulatorLoop = function () {
         // This prevents a massive cycle backlog from freezing the VM when switching back to Realtime.
         lastFrameTime = performance.now();
         cycleDebt = 0; 
-
+        
         // Execute a fixed chunk of instructions per frame as fast as the host CPU allows
         for (let i = 0; i < 50000; i++) {
             let cyclesSpent = this.execute_one();
@@ -89,14 +89,24 @@ _51cpu.prototype.emulatorLoop = function () {
             }
         }
     }
+    //const t1 = performance.now();
 
     // Dispatch the GUI update handler once per animation frame when execution is done
     if (this.gui_render_handler) {
         this.gui_render_handler();
     }
+    //const t2 = performance.now();
+
+    /*console.log(
+        "CPU:", (t1 - t0).toFixed(2),
+        "GUI:", (t2 - t1).toFixed(2),
+        "total:", (t2 - t0).toFixed(2)
+    );*/
 
     // Request the next animation frame from the browser window
-    requestAnimationFrame(() => this.emulatorLoop());
+    if (this.running) {
+        requestAnimationFrame(() => this.emulatorLoop());
+    }
 }
 
 

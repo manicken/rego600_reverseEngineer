@@ -10,6 +10,7 @@
 
   <!-- hex function -->
   <script src="helpers.js"></script>
+  <script src="dom_helpers.js"></script>
 
   <!-- vendor js51 core (unmodified) -->
   <script src="../vendor/51vm_core.js"></script>
@@ -51,6 +52,7 @@
   <script src="panel_sensor_inputs.js"></script> 
   <script src="panel_service_interface.js"></script> 
   <script src="panels_memory.js"></script> 
+  <script src="panel_disassembly.js"></script>
 
   <script src="main.js"></script>
 
@@ -58,7 +60,7 @@
 
   <h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
   <div class="row main-layout">
-    <div class="panel disassembly-panel" id="disassemblyView">hello</div>
+    <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
     <div class="simulator-content">
       <!--<div class="row">
         <div class="panel">
@@ -127,6 +129,14 @@
               <input type="number" id="cpu_speed_multipler" name="value" min="0.01" step="0.01" value="1.0" style="width:56px;">
             </div>
           </div>
+          <div class="panel">
+            <div class="row">
+              <label title="When checked the RTC is updated using the System Clock, this makes it impossible to set the time from witchin the simulation, uncheck to make it fully simulated, when unchecked the time can be set.">
+                <input style="margin-bottom: 10px;" type="checkbox" checked="" id="rtc_use_system_clock">
+                RTC: Use System Clock
+              </label>
+            </div>
+          </div>
         
     </div>
 
@@ -142,9 +152,9 @@
     </div>
 
     <div class="row">
-      <div class="panel" id="xram_view_A" data-title="SRAM (62256) — 256 bytes window A"></div>
-      <div class="panel" id="xram_view_B" data-title="SRAM (62256) — 256 bytes window B"></div>
-      <!--<div class="panel" id="xram_view_C" data-title="SRAM (62256) — 256 bytes window C"></div>-->
+      <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window A" data-start_index="10"></div>
+      <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window B" data-start_index="22"></div>
+      <!--<div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window C" data-start_index="27"></div>-->
       <div class="panel" id="directWriteXRAM" data-title="SRAM (62256) — Direct Write"></div>
     </div>
   </div>

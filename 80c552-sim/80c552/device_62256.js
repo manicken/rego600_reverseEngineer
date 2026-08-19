@@ -16,11 +16,11 @@ SRAM62256.prototype.read = function (addr) {
 }
 
 SRAM62256.prototype.write = function (addr, val) {
-    if (addr == 0x13d0) {
+    /*if (addr == 0x13d0) {
         console.log(`0x13d0 write happend - new value (${val}):\n` + cpu.getCallStackString());
     } else if (addr == 0x1c16 || addr == 0x1c17) {
         console.log(`0x1c16 or 0x1c17 write happend - new value (${val}):\n` + cpu.getCallStackString());
-    }
+    }*/
     this.mem[addr & (this.size - 1)] = val & 0xFF
 }
 

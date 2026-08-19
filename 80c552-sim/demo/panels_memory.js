@@ -1,26 +1,43 @@
-function init_xram_view(container_id, id, startIndex) {
-    let container = document.getElementById(container_id);
-    if (container == undefined) return;
-    container.style.flex = 1;
-    container.style.maxWidth = '480px';
-    appendH2_from_data_title(container);
+let xram_views = [];
 
-    let index_el_id = "xram-view-index-"+id;
-    let index_el = appendInputFieldWithLabel(container, "xram-view-index-"+id, "Index(0-127): ", {type:"number", value:startIndex, min:0, max:127, step:1, width:64});
-    let view_el_id = "xram-view-" + id;
-    let view_el = appendDiv(container, "memdump", view_el_id);
-    view_el.style.maxHeight = "400px";
+function init_memory_panels() {
+    init_xram_write("directWriteXRAM", 6, set_XRAM_value);
+    init_XRAM_views();
+}
+
+function init_XRAM_views() {
+  let xram_view_els = document.getElementsByClassName("xram_view");
+  for (let view_el of xram_view_els) {
+    xram_views.push(init_xram_view(view_el));
+  }
+}
+function render_XRAM_windows() {
+  for (let view of xram_views) {
+    render_XRAM_window(view);
+  }
+}
+
+function init_xram_view(view_el) {
+    
+    appendH2_from_data_title(view_el);
+
+    let index_el = appendInputFieldWithLabel(view_el, {type:"number", labelText:"Index(0-127): ", value:view_el.dataset.start_index, min:0, max:127, step:1, width:64});
+    let memdump_el = createNewElement("div", {className:"memdump"});
+
+    let component = { memdump_el, index_el };
     index_el.oninput = () => {
-        render_XRAM_window(index_el_id, view_el_id);
+        render_XRAM_window(component);
     };
-    container.appendChild(view_el);
-    return view_el;
+    view_el.appendChild(memdump_el);
+    return component;
 }
 
 function init_xram_write(container_id, count, setHandler) {
     let container = document.getElementById(container_id);
-    if (container == undefined) return;
-
+    if (container == undefined) {
+      console.error("cannot find element: " + container_id);
+      return;
+    }
     container.style.flex = 1;
     container.style.maxWidth = '460px';
     appendH2_from_data_title(container);
@@ -30,20 +47,16 @@ function init_xram_write(container_id, count, setHandler) {
     }
 }
 
-function render_XRAM_window(index_elementID, view_elementID) {
-  let element = document.getElementById(index_elementID);
-  if (element == undefined) {
-    console.error("cannot find element: " + index_elementID);
-    return;
-  }
-  let xram_index = parseInt(element.value);
+function render_XRAM_window(component) {
+  
+  let xram_index = parseInt(component.index_el.value);
   if (Number.isNaN(xram_index)) {
-	  xram_index = element.prev_index ? element.prev_index : 0;
+	  xram_index = component.index_el.prev_index ? component.index_el.prev_index : 0;
   } else {
-	  element.prev_index = xram_index;
+	  component.index_el.prev_index = xram_index;
   }
 
-  document.getElementById(view_elementID).textContent = getMemoryContentsDump({
+  component.memdump_el.textContent = getMemoryContentsDump({
     reader: (index) => cpu.bus.sram.read(index),
     ascii: true,
     columns: 16,
@@ -54,6 +67,149 @@ function render_XRAM_window(index_elementID, view_elementID) {
   });
 }
 
+
+function renderBus() {
+    const div = document.getElementById('p4bits');
+    let html = '';
+
+    const p4 = cpu.P4._value;
+    const p3 = cpu.P3._value;
+
+    const pins = [ 
+      { port: 'P4', bit: 0, name: 'FLASH CS#' },
+      { port: 'P4', bit: 2, name: 'SRAM CS#' },
+      { port: 'P3', bit: 3, name: 'FLASH A16' },
+      { port: 'P3', bit: 5, name: 'FLASH A17' },
+      { port: 'P3',  bit: 4, name: 'FLASH A18' }
+    ];
+
+    for (const pin of pins) {
+        const value = pin.port === 'P4'
+            ? ((p4 >> pin.bit) & 1)
+            : ((p3 >> pin.bit) & 1);
+
+        html += `
+        <div class="pinbit">
+            <button class="${value ? 'toggle-on' : ''}"
+                    onclick="toggleBusPin('${pin.port}', ${pin.bit})">
+                ${value}
+            </button>
+            ${pin.port}.${pin.bit} ${pin.name}
+        </div>`;
+    }
+
+    div.innerHTML = html;
+
+
+    const sel = cpu.bus.readSelect();
+
+    let device = 'NONE';
+
+    if (sel.flashCS)
+        device = 'FLASH';
+    else if (sel.sramCS)
+        device = 'SRAM';
+
+    document.getElementById('bank_state').textContent = device;
+
+    document.getElementById('ext_state').textContent =
+        hex(sel.ext, 1) +
+        ' (A18:16=' +
+        sel.ext.toString(2).padStart(3, '0') +
+        ')';
+}
+
+function toggleBusPin(port, bit) {
+    if (port === 'P4') {
+        const cur = cpu.P4._value;
+        cpu.P4.set(cur ^ (1 << bit));
+    }
+    else if (port === 'P3') {
+        const cur = cpu.P3._value;
+        cpu.P3.set(cur ^ (1 << bit));
+    }
+
+    render();
+}
+
+function render_IRAM() {
+  document.getElementById('iram_dump').textContent = getMemoryContentsDump({
+    reader: index => cpu.IRAM[index],
+    ascii: true,
+    columns: 16,
+    colheader: true,
+    size: 256,
+    offset: 0,
+    addressWidth: 2
+  });
+}
+
+function render_DATA_FLASH_window() {
+  const sel = cpu.bus.readSelect();
+  const base = (sel.ext << 20) & (cpu.bus.flash.size - 1);
+
+  document.getElementById('flash_dump').textContent = getMemoryContentsDump({
+    reader: index => cpu.bus.flash.read(index, false),
+    ascii: true,
+    columns: 20,
+    colheader: true,
+    size: 300,
+    offset: base,
+    addressWidth: 5
+  });
+}
+
+function renderMemDumps() {
+  render_IRAM();
+  render_XRAM_windows();
+  //render_DATA_FLASH_window();  
+}
+
+
+function set_XRAM_value(addr, value)
+{
+    //let addr = parseNumber(document.getElementById(addr_element_id).value);
+    //let value = parseNumber(document.getElementById(value_element_id).value);
+
+    if(isNaN(addr) || isNaN(value))
+        return;
+
+    if(addr < 0 || addr >= cpu.bus.sram.size)
+        return;
+
+    if(value < 0 || value > 0xFFFF)
+        return;
+    
+    if (value <= 0xFF) {
+      cpu.bus.sram.write(addr, value);
+    } else {
+      cpu.bus.sram.write(addr, (value & 0xFF00) >> 8);
+      cpu.bus.sram.write(addr+1, (value & 0xFF));
+    }
+    render_XRAM_windows();
+}
+
+function set_IROM_value(addr_element_id, value_element_id)
+{
+    let addr = parseNumber(document.getElementById(addr_element_id).value);
+    let value = parseNumber(document.getElementById(value_element_id).value);
+
+    if(isNaN(addr) || isNaN(value))
+        return;
+
+    if(addr < 0 || addr >= cpu.CODE.size)
+        return;
+
+    if(value < 0 || value > 0xFFFF)
+        return;
+    
+    if (value <= 0xFF) {
+      cpu.CODE[addr] = value;
+    } else {
+      cpu.CODE[addr] = (value & 0xFF00) >> 8;
+      cpu.CODE[addr+1] = (value & 0xFF);
+    }
+}
 
 /*
 <!--  

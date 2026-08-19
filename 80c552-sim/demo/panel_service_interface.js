@@ -81,12 +81,162 @@ function append_SPIF_customSender(container, id) {
     let input_cmd_row_el = appendDiv(container, "row");
     let input_param1_row_el = appendDiv(container, "row");
     let input_param2_row_el = appendDiv(container, "row");
-    appendInputFieldWithLabel(input_cmd_row_el, input_cmd_el_id, "Cmd: ", {type:"text", value:"0x00", width:32});
-    appendInputFieldWithLabel(input_param1_row_el, input_param1_el_id, "Param1 (reg index): ", {type:"text", value:"0x00", width:44});
-    appendInputFieldWithLabel(input_param2_row_el, input_param2_el_id, "Param2 (value): ", {type:"text", value:"0x00", width:44});
     appendBr(container);
+    appendInputFieldWithLabel(input_cmd_row_el, {type:"text", id:input_cmd_el_id, labelText:"Cmd: ", value:"0x00", width:32});
+    appendInputFieldWithLabel(input_param1_row_el, {type:"text", id:input_param1_el_id, labelText:"Reg index: ", value:"0x00", width:44});
+    appendInputFieldWithLabel(input_param2_row_el, {type:"text", id:input_param2_el_id, labelText:"Value: ", value:"0x00", width:44});
     appendBr(container);
     appendButton(container, "Send").onclick = () => {
         service_port_request_any(input_cmd_el_id, input_param1_el_id, input_param2_el_id);
     };
+}
+
+
+function dummy_handler() {
+  console.error("service port - dummy handler was called");
+}
+function write_confirm_handler()
+{
+  console.info("service port - write confirm");
+}
+let expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
+let currentRxCount = 0;
+let currentRxBuff = [];
+function CalcCheckSum(buffer) {
+    let chksum = 0;
+    for (let i=2;i<buffer.length;i++)
+        chksum ^= buffer[i];
+    return chksum;
+}
+
+function cmd00_02_04_06_7F_handler() {
+  let value = (currentRxBuff[1] << 14) |
+              (currentRxBuff[2] << 7) |
+              (currentRxBuff[3]);
+  console.log("service port rx value: " + hex(value) + " " + value);
+  console.log(cpu.getCallStackString());
+}
+
+function packNibbles(nibblebytes, offset) {
+  let bytes = [];
+  for (let i=offset;i<nibblebytes.length;i+=2) {
+    bytes.push((nibblebytes[i] << 4) | nibblebytes[i+1])
+  }
+  return bytes;
+}
+
+function cmd_20_handler() {
+  let text = "";
+  let bytes = packNibbles(currentRxBuff, 1);
+  for (let i=0;i<20;i++) {
+    text += printPrintable(bytes[i]);
+  }
+  console.log("service port cmd 20 rx: >>>" + text + "<<<");
+}
+
+let error_codes = {
+  '0':"Sensor radiator return (GT1)",
+  '1':"Outdoor sensor (GT2)",
+  '2':"Sensor hot water (GT3)",
+  '3':"Mixing valve sensor (GT4)",
+  '4':"Room sensor (GT5)",
+  '5':"Sensor compressor (GT6)",
+  '6':"Sensor heat transf. fluid out (GT8)",
+  '7':"Sensor heat transf. fluid in (GT9)",
+  '8':"Sensor cold transf. fluid in (GT10)",
+  '9':"Sensor cold transf. fluid in (GT11)",
+  '10':"Compresor circuit switch",
+  '11':"Electrical cassette",
+  '12':"HTF C=pump switch (MB2)",
+  '13':"Low pressure switch (LP)",
+  '14':"High pressure switch (HP)",
+  '15':"High return HP (GT9)",
+  '16':"HTF out max (GT8)",
+  '17':"HTF in under limit (GT10)",
+  '18':"HTF out under limit (GT11)",
+  '19':"Compressor superhear (GT6)",
+  '20':"3-phase incorrect order",
+  '21':"Power failure",
+  '22':"Varmetr. delta hoch",
+}
+
+function cmd_40_42_handler() {
+  let text = "";
+  let bytes = packNibbles(currentRxBuff, 1);
+  for (let i=1;i<16;i++) {
+    text += printPrintable(bytes[i], true);
+  }
+  console.log(cpu.pr)
+  console.log("service port cmd 40_42 rx: >>>" + error_codes[bytes[0]] + " - " + text + "<<<");
+}
+
+const extectedRxCountVsCmd = [
+  {cmd:0x00, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x01, len:1, handler:write_confirm_handler},
+  {cmd:0x02, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x03, len:1, handler:write_confirm_handler},
+  {cmd:0x04, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x05, len:1, handler:write_confirm_handler},
+  {cmd:0x06, len:5, handler:cmd00_02_04_06_7F_handler},
+  {cmd:0x07, len:1, handler:write_confirm_handler},
+  {cmd:0x20, len:42, handler:cmd_20_handler},
+  {cmd:0x40, len:42, handler:cmd_40_42_handler},
+  {cmd:0x42, len:42, handler:cmd_40_42_handler},
+  {cmd:0x7F, len:5, handler:cmd00_02_04_06_7F_handler},
+];
+function getExpectedRxStruct(cmd) {
+  for (let i=0;i<extectedRxCountVsCmd.length; i++) {
+    if (extectedRxCountVsCmd[i].cmd == cmd) {
+      return extectedRxCountVsCmd[i];
+    }
+  }
+  return undefined; // not found
+}
+
+let lastSendCmd = 0;
+function service_port_send(cmd, param1=0x00, param2=0x00) {
+    let responseStruct = getExpectedRxStruct(cmd);
+    if (responseStruct == undefined) {
+      console.log("service_port_send - unknown cmd: " + cmd);
+      expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
+      return;
+    }
+    expectedRxStruct = responseStruct;
+    lastSendCmd = cmd;
+    const buffer = [
+      0x81, 
+      cmd,
+      ((param1 >> 14) & 0x7F),
+      ((param1 >> 7) & 0x7F),
+      (param1 & 0x7F),
+      ((param2 >> 14) & 0x7F),
+      ((param2 >> 7) & 0x7F),
+      (param2 & 0x7F)
+    ];
+    buffer.push(CalcCheckSum(buffer));
+
+    console.log("Service Port Send: [" + getBytesInAsciiHex(buffer, ', ') + ']');
+    currentRxCount = 0;
+    currentRxBuff = [];
+    cpu.uart.rxBytes(buffer);
+}
+function service_port_request_any(cmd_el_id, param1_el_id, param2_el_id) {
+  let cmd = parseNumber(document.getElementById(cmd_el_id).value);
+  let param1 = parseNumber(document.getElementById(param1_el_id).value);
+  let param2 = parseNumber(document.getElementById(param2_el_id).value);
+  service_port_send(cmd, param1, param2);
+}
+
+// on TX mean when the MCU sends data to the client
+function uart_on_tx_handler(byte, ninthBit) {
+  currentRxBuff[currentRxCount++] = byte;
+  
+  if (currentRxCount == expectedRxStruct.len) {
+    console.log('service port raw answer: [' + getBytesInAsciiHex(currentRxBuff, ', ') + ']');
+    expectedRxStruct.handler();
+    
+  }
+}
+function set_uart_handler() {
+  cpu.uart.onTx(uart_on_tx_handler);
 }

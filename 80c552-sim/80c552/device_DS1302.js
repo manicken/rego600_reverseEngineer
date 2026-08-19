@@ -30,6 +30,7 @@ function DS1302() {
     this._target = null    // {isRam, addr, burst}
     this._outBit = 0
     this._suppressNextFall = false
+    this.useSystemTime = true;
 }
 
 DS1302.prototype._regArray = function () {
@@ -74,36 +75,16 @@ DS1302.prototype._daysInMonth = function (month, year2digit) {
  * a no-op, matching real hardware.
  */
 DS1302.prototype.tick = function () {
-    
-    if (this.clock[0] & 0x80) return // CH set: oscillator halted
-    //console.log("ds1302 tick");
-    // 1 seconds 
-    /*this.clock[0]++;
-    if (this.clock[0] >= 10) {
-        this.clock[0] = 0;
-        // 10 seconds
-        this.clock[1]++;
-        if (this.clock[1] >= 6) {
-            this.clock[1] = 0;
-            // 1 minutes
-            this.clock[2]++;
-            if (this.clock[2] >= 10) {
-                this.clock[2] = 0;
-                // 10 minutes
-                this.clock[3]++;
-                if (this.clock[3] >= 6) {
-                    this.clock[3] = 0;
-                    
-                    _incHour();
-                }
-            }
-        }
-    }*/
-    let sec = ds1302_fromBCD(this.clock[0] & 0x7F) + 1
-    if (sec >= 60) { sec = 0; this._incMinute() }
-    this.clock[0] = ds1302_toBCD(sec);
 
-    //console.log(this.clock);
+    if (this.clock[0] & 0x80) return // CH set: oscillator halted
+    
+    if (!this.useSystemTime) {
+        let sec = ds1302_fromBCD(this.clock[0] & 0x7F) + 1
+        if (sec >= 60) { sec = 0; this._incMinute() }
+        this.clock[0] = ds1302_toBCD(sec);
+    } else { // update using the current system time
+        this.setDateTime();
+    }
 }
 
 DS1302.prototype._incMinute = function () {
