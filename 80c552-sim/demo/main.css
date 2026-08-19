@@ -40,6 +40,8 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 
 .disassembly-grid-row {
     display: grid;
+    box-sizing: border-box;
+    height: 23px;
 
     grid-template-columns:
         14px    /* breakpoint */
@@ -53,6 +55,9 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 .disassembly-grid-row > div {
     padding: 2px 6px;
     text-align: left;
+}
+.disassembly-grid-row:hover {
+    background: #67684d;
 }
 
 .disassembly-address,
@@ -83,13 +88,13 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 
 .disassembly-breakpoint {
     cursor: pointer;
-    padding: 2px 2px !important;
+    padding: 0px 0px 2px 0px !important;
     color:#ff0000;
 }
 
-.disassembly-curr-exec {
+.disassembly-curr-exec-ptr {
     cursor:default;
-    padding: 2px 0px 2px 2px !important;
+    padding: 0px 0px 2px 6px !important;
 }
 
 .disassembly-label {
@@ -100,6 +105,10 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
     flex: 1 1 0%;
     max-width: 480px;
 }
+
+/*.disassembly-grid-row.current-exec {
+    background: #333;
+}*/
 
 .current-exec::before {
     content: "▶";

@@ -112,6 +112,22 @@ function getCheckBoxWithLabel(label, tooltip) {
     return {label_el, input_el};
 }
 
+function appendCheckBoxWithLabel(container, options={label, tooltip, state, style}, onchange) {
+    const label_el = createNewElement("label", {title:options.tooltip});
+    const input_el = createNewElement("input", {type:"checkbox"});
+    label_el.textContent = options.label;
+    label_el.appendChild(input_el);
+
+    input_el.checked = disasm_auto_scroll;
+    input_el.onchange = () => {
+        onchange(input_el.checked);
+    };
+    for (const [name, value] of Object.entries(options.style)) {
+        label_el.style[name] = value;
+    }
+    container.appendChild( label_el );
+}
+
 
 function renderKeyValueTable(container, regs) {
   let html = "";
