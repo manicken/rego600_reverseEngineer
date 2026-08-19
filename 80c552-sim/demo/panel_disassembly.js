@@ -211,11 +211,29 @@ function disassembly_toFlexGridElement() {
         });
     }
 
-    disassemblyView_el.appendChild(container_el);
+    const spinner_el = createNewElement("div", {
+        className: "disassembly-spinner"
+    });
 
-    rowHeight = disasmLines[0].curr_exec_ptr_el.offsetHeight;
+    const loading_el = createNewElement("div", {
+        className: "disassembly-loading"
+    });
 
-    setCurrentExecLine(cpu, true);
+    loading_el.appendChild(spinner_el);
+    loading_el.appendChild(
+        createNewElement("span", {
+            textContent: "Rendering disassembly..."
+        })
+    );
+
+    disassemblyView_el.appendChild(loading_el);
+
+    setTimeout(() => {
+        disassemblyView_el.appendChild(container_el);
+        rowHeight = disasmLines[0].curr_exec_ptr_el.offsetHeight;
+        loading_el.remove();
+        setCurrentExecLine(cpu, true);
+    }, 100);
 }
 let prevExecLine = undefined;
 /*

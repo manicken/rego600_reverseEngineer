@@ -529,13 +529,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn_print_callstack').onclick = () => {
         console.log(cpu.getCallStackString());
     };
-    //disassembly_toTableElement();
     disassembly_toFlexGridElement();
-    
     render();
     init_SignalInputs();
 
+    // makes the page load first and to make the heavy disassemby print later
+    // it's actually the printing that is slow, the disasm is fast
     
-    //printDissassembly_toConsole();
+
 });
 
