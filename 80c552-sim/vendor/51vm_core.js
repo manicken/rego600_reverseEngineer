@@ -68,6 +68,7 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.DPH = new reg()
     this.XRAM = []
     this.IRAM = []
+    this.IRAM_USE_MAP = []
     this.CODE = []
     this.SFR = {
         0x81: "SP",
@@ -149,7 +150,7 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.peripheral_ticks = [];
     this.callStack = [];
     this.external_hw_ticks = [];
-    
+    this.instruction_ticks = [];
 }
 
 _51cpu.prototype.getCallStackString = function (instructionSize = 0) {

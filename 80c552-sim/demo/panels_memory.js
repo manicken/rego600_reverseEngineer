@@ -133,8 +133,9 @@ function toggleBusPin(port, bit) {
 }
 
 function render_IRAM() {
-  document.getElementById('iram_dump').textContent = getMemoryContentsDump({
+  document.getElementById('iram_dump').innerHTML = getMemoryContentsDump({
     reader: index => cpu.IRAM[index],
+    usemap: cpu.IRAM_USE_MAP,
     ascii: true,
     columns: 16,
     colheader: true,
@@ -209,6 +210,53 @@ function set_IROM_value(addr_element_id, value_element_id)
       cpu.CODE[addr] = (value & 0xFF00) >> 8;
       cpu.CODE[addr+1] = (value & 0xFF);
     }
+}
+
+function getMemoryContentsDump(p={reader, usemap, ascii, columns, colheader, size, offset, addressWidth}) {
+    const lines = [];
+    const totalRows = Math.ceil(p.size/p.columns);
+    const addressPrefix = hex(0, p.addressWidth) + ': ';
+    const colHeaderWidth = addressPrefix.length;
+
+    if (p.colheader) {
+        let colHeader = "";
+        for (let col = 0; col < p.columns; col++) {
+            colHeader += col.toString(16).padStart(2,'0') + " ";
+        }
+        lines.push(" ".repeat(colHeaderWidth) + colHeader);
+    }
+    for (let row = 0; row < totalRows; ++row) {
+        let line = hex(p.offset + row*p.columns, p.addressWidth) + ': ';
+        let ascii_text = "";
+        for (let col = 0; col < p.columns; col++) {
+            let index = row*p.columns + col;
+            if (index >= p.size) { break; }
+            let addr = p.offset + index;
+            let value = p.reader(addr);
+            
+            if (value === undefined) { break; } // handle out of bounds
+            if (p.usemap === undefined || !p.usemap[addr]) {
+              line += `${value.toString(16).padStart(2,'0')} `;
+            } else {
+              line += `<span class="used_ram_highlight">${value.toString(16).padStart(2,'0')}</span> `;
+            }
+            
+
+            if (p.ascii) {
+                ascii_text += printPrintable(value);
+            }
+        }
+        if (p.ascii) {
+          while (ascii_text.length < p.columns) {
+              ascii_text += ' ';
+          }
+          lines.push(line + " " + ascii_text);
+        } else {
+          lines.push(line);
+        }
+        
+    }
+    return lines.join('\n');
 }
 
 /*

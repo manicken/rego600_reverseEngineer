@@ -26,6 +26,7 @@ CYCLE_TABLE[0xA4] = 4; // MUL AB
 CYCLE_TABLE[0xB2] = 1;
 
 _51cpu.prototype.execute_one = function () {
+    let opcode_start_PC = this.PC.get();
     let opcode = this.fetch_opcode() 
     if (opcode.test(0x01, 0x1F)) {
         //AJMP addr11
@@ -55,9 +56,14 @@ _51cpu.prototype.execute_one = function () {
         console.log("error opcode cyclecount not defined: " + opcode.value);
         cycles = 0;
     }
+    if (this.instruction_ticks) {
+        for (const tick of this.instruction_ticks) {
+            tick(cycles, opcode_start_PC);
+        }
+    }
     if (this.external_hw_ticks) {
         for (const tick of this.external_hw_ticks) {
-            tick(cycles);
+            tick(cycles, opcode_start_PC);
         }
     }
 
@@ -70,7 +76,7 @@ _51cpu.prototype.execute_one = function () {
     }
     if (this.peripheral_ticks) {
         for (const tick of this.peripheral_ticks) {
-            tick(cycles);
+            tick(cycles, opcode_start_PC);
         }
     }
     return cycles;

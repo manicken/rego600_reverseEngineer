@@ -97,6 +97,7 @@
         let mnemonic = null
         let operands = ''
         let target = null
+        let iscall = false;
 
         function need(n) {
             // läser n extra bytes direkt efter det som redan konsumerats
@@ -129,13 +130,14 @@
             let [lo] = need(1)
             let next_addr = addr + bytes.length
             target = addr11Target(b0, lo, next_addr)
-            mnemonic = 'AJMP'; operands = hex4(target)
+            mnemonic = 'AJMP'; operands = [hex4(target)];
         } else if ((b0 & 0x1F) === 0x11) {
             // ACALL addr11
             let [lo] = need(1)
             let next_addr = addr + bytes.length
             target = addr11Target(b0, lo, next_addr)
-            mnemonic = 'ACALL'; operands = hex4(target)
+            iscall = true;
+            mnemonic = 'ACALL'; operands = [hex4(target)]
         } else if (b0 < 0x80) {
             if (b0 < 0x40) {
                 decode_00_3F(b0)
@@ -166,18 +168,18 @@
             } else if (b0 === 0x02) {
                 let [hi, lo] = need(2)
                 target = (hi << 8) + lo
-                mnemonic = 'LJMP'; operands = hex4(target)
+                mnemonic = 'LJMP'; operands = [hex4(target)]
             } else if (b0 === 0x03) {
-                mnemonic = 'RR'; operands = 'A'
+                mnemonic = 'RR'; operands = ['A']
             } else if (b0 === 0x04) {
-                mnemonic = 'INC'; operands = 'A'
+                mnemonic = 'INC'; operands = ['A']
             } else if (b0 === 0x05) {
                 let [d] = need(1)
-                mnemonic = 'INC'; operands = directName(d, sfr_map)
+                mnemonic = 'INC'; operands = [directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x06) {
-                mnemonic = 'INC'; operands = RiName(b0)
+                mnemonic = 'INC'; operands = [RiName(b0)]
             } else if ((b0 & 0xF8) === 0x08) {
-                mnemonic = 'INC'; operands = RnName(b0)
+                mnemonic = 'INC'; operands = [RnName(b0)]
             }
         }
 
@@ -187,22 +189,23 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JBC'; operands = bitName(bitaddr, sfr_map) + ',' + hex4(target)
+                mnemonic = 'JBC'; operands = [bitName(bitaddr, sfr_map), hex4(target)]
             } else if (b0 === 0x12) {
                 let [hi, lo] = need(2)
                 target = (hi << 8) + lo
-                mnemonic = 'LCALL'; operands = hex4(target)
+                mnemonic = 'LCALL'; operands = [hex4(target)]
+                iscall = true;
             } else if (b0 === 0x13) {
-                mnemonic = 'RRC'; operands = 'A'
+                mnemonic = 'RRC'; operands = ['A']
             } else if (b0 === 0x14) {
-                mnemonic = 'DEC'; operands = 'A'
+                mnemonic = 'DEC'; operands = ['A']
             } else if (b0 === 0x15) {
                 let [d] = need(1)
-                mnemonic = 'DEC'; operands = directName(d, sfr_map)
+                mnemonic = 'DEC'; operands = [directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x16) {
-                mnemonic = 'DEC'; operands = RiName(b0)
+                mnemonic = 'DEC'; operands = [RiName(b0)]
             } else if ((b0 & 0xF8) === 0x18) {
-                mnemonic = 'DEC'; operands = RnName(b0)
+                mnemonic = 'DEC'; operands = [RnName(b0)]
             }
         }
 
@@ -212,21 +215,21 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JB'; operands = bitName(bitaddr, sfr_map) + ',' + hex4(target)
+                mnemonic = 'JB'; operands = [bitName(bitaddr, sfr_map), hex4(target)]
             } else if (b0 === 0x22) {
                 mnemonic = 'RET'
             } else if (b0 === 0x23) {
-                mnemonic = 'RL'; operands = 'A'
+                mnemonic = 'RL'; operands = ['A']
             } else if (b0 === 0x24) {
                 let [imm] = need(1)
-                mnemonic = 'ADD'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'ADD'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x25) {
                 let [d] = need(1)
-                mnemonic = 'ADD'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'ADD'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x26) {
-                mnemonic = 'ADD'; operands = 'A,' + RiName(b0)
+                mnemonic = 'ADD'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x28) {
-                mnemonic = 'ADD'; operands = 'A,' + RnName(b0)
+                mnemonic = 'ADD'; operands = ['A', RnName(b0)]
             }
         }
 
@@ -236,21 +239,21 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JNB'; operands = bitName(bitaddr, sfr_map) + ',' + hex4(target)
+                mnemonic = 'JNB'; operands = [bitName(bitaddr, sfr_map), hex4(target)]
             } else if (b0 === 0x32) {
                 mnemonic = 'RETI'
             } else if (b0 === 0x33) {
-                mnemonic = 'RLC'; operands = 'A'
+                mnemonic = 'RLC'; operands = ['A']
             } else if (b0 === 0x34) {
                 let [imm] = need(1)
-                mnemonic = 'ADDC'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'ADDC'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x35) {
                 let [d] = need(1)
-                mnemonic = 'ADDC'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'ADDC'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x36) {
-                mnemonic = 'ADDC'; operands = 'A,' + RiName(b0)
+                mnemonic = 'ADDC'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x38) {
-                mnemonic = 'ADDC'; operands = 'A,' + RnName(b0)
+                mnemonic = 'ADDC'; operands = ['A', RnName(b0)]
             }
         }
 
@@ -269,23 +272,23 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JC'; operands = hex4(target)
+                mnemonic = 'JC'; operands = [hex4(target)]
             } else if (b0 === 0x42) {
                 let [d] = need(1)
-                mnemonic = 'ORL'; operands = directName(d, sfr_map) + ',A'
+                mnemonic = 'ORL'; operands = [directName(d, sfr_map), 'A']
             } else if (b0 === 0x43) {
                 let [d] = need(1); let [imm] = need(1)
-                mnemonic = 'ORL'; operands = directName(d, sfr_map) + ',#' + hex2(imm)
+                mnemonic = 'ORL'; operands = [directName(d, sfr_map), '#' + hex2(imm)]
             } else if (b0 === 0x44) {
                 let [imm] = need(1)
-                mnemonic = 'ORL'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'ORL'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x45) {
                 let [d] = need(1)
-                mnemonic = 'ORL'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'ORL'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x46) {
-                mnemonic = 'ORL'; operands = 'A,' + RiName(b0)
+                mnemonic = 'ORL'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x48) {
-                mnemonic = 'ORL'; operands = 'A,' + RnName(b0)
+                mnemonic = 'ORL'; operands = ['A', RnName(b0)]
             }
         }
 
@@ -294,23 +297,23 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JNC'; operands = hex4(target)
+                mnemonic = 'JNC'; operands = [hex4(target)]
             } else if (b0 === 0x52) {
                 let [d] = need(1)
-                mnemonic = 'ANL'; operands = directName(d, sfr_map) + ',A'
+                mnemonic = 'ANL'; operands = [directName(d, sfr_map), 'A']
             } else if (b0 === 0x53) {
                 let [d] = need(1); let [imm] = need(1)
-                mnemonic = 'ANL'; operands = directName(d, sfr_map) + ',#' + hex2(imm)
+                mnemonic = 'ANL'; operands = [directName(d, sfr_map), '#' + hex2(imm)]
             } else if (b0 === 0x54) {
                 let [imm] = need(1)
-                mnemonic = 'ANL'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'ANL'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x55) {
                 let [d] = need(1)
-                mnemonic = 'ANL'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'ANL'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x56) {
-                mnemonic = 'ANL'; operands = 'A,' + RiName(b0)
+                mnemonic = 'ANL'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x58) {
-                mnemonic = 'ANL'; operands = 'A,' + RnName(b0)
+                mnemonic = 'ANL'; operands = ['A', RnName(b0)]
             }
         }
 
@@ -319,23 +322,23 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JZ'; operands = hex4(target)
+                mnemonic = 'JZ'; operands = [hex4(target)]
             } else if (b0 === 0x62) {
                 let [d] = need(1)
-                mnemonic = 'XRL'; operands = directName(d, sfr_map) + ',A'
+                mnemonic = 'XRL'; operands = [directName(d, sfr_map), 'A']
             } else if (b0 === 0x63) {
                 let [d] = need(1); let [imm] = need(1)
-                mnemonic = 'XRL'; operands = directName(d, sfr_map) + ',#' + hex2(imm)
+                mnemonic = 'XRL'; operands = [directName(d, sfr_map), '#' + hex2(imm)]
             } else if (b0 === 0x64) {
                 let [imm] = need(1)
-                mnemonic = 'XRL'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'XRL'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x65) {
                 let [d] = need(1)
-                mnemonic = 'XRL'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'XRL'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x66) {
-                mnemonic = 'XRL'; operands = 'A,' + RiName(b0)
+                mnemonic = 'XRL'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x68) {
-                mnemonic = 'XRL'; operands = 'A,' + RnName(b0)
+                mnemonic = 'XRL'; operands = ['A', RnName(b0)]
             }
         }
 
@@ -344,25 +347,25 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'JNZ'; operands = hex4(target)
+                mnemonic = 'JNZ'; operands = [hex4(target)]
             } else if (b0 === 0x72) {
                 let [bitaddr] = need(1)
-                mnemonic = 'ORL'; operands = 'C,' + bitName(bitaddr, sfr_map)
+                mnemonic = 'ORL'; operands = ['C', bitName(bitaddr, sfr_map)]
             } else if (b0 === 0x73) {
-                mnemonic = 'JMP'; operands = '@A+DPTR'
+                mnemonic = 'JMP'; operands = ['@A+DPTR']
                 // dynamiskt mål - kan inte räknas ut statiskt, target lämnas null
             } else if (b0 === 0x74) {
                 let [imm] = need(1)
-                mnemonic = 'MOV'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'MOV'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x75) {
                 let [d] = need(1); let [imm] = need(1)
-                mnemonic = 'MOV'; operands = directName(d, sfr_map) + ',#' + hex2(imm)
+                mnemonic = 'MOV'; operands = [directName(d, sfr_map), '#' + hex2(imm)]
             } else if ((b0 & 0xFE) === 0x76) {
                 let [imm] = need(1)
-                mnemonic = 'MOV'; operands = RiName(b0) + ',#' + hex2(imm)
+                mnemonic = 'MOV'; operands = [RiName(b0), '#' + hex2(imm)]
             } else if ((b0 & 0xF8) === 0x78) {
                 let [imm] = need(1)
-                mnemonic = 'MOV'; operands = RnName(b0) + ',#' + hex2(imm)
+                mnemonic = 'MOV'; operands = [RnName(b0), '#' + hex2(imm)]
             }
         }
 
@@ -381,99 +384,99 @@
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'SJMP'; operands = hex4(target)
+                mnemonic = 'SJMP'; operands = [hex4(target)]
             } else if (b0 === 0x82) {
                 let [bitaddr] = need(1)
-                mnemonic = 'ANL'; operands = 'C,' + bitName(bitaddr, sfr_map)
+                mnemonic = 'ANL'; operands = ['C', bitName(bitaddr, sfr_map)]
             } else if (b0 === 0x83) {
-                mnemonic = 'MOVC'; operands = 'A,@A+PC'
+                mnemonic = 'MOVC'; operands = ['A','@A+PC']
             } else if (b0 === 0x84) {
-                mnemonic = 'DIV'; operands = 'AB'
+                mnemonic = 'DIV'; operands = ['AB']
             } else if (b0 === 0x85) {
                 let [src] = need(1); let [dest] = need(1)
-                mnemonic = 'MOV'; operands = directName(dest, sfr_map) + ',' + directName(src, sfr_map)
+                mnemonic = 'MOV'; operands = [directName(dest, sfr_map), directName(src, sfr_map)]
             } else if ((b0 & 0xFE) === 0x86) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = directName(d, sfr_map) + ',' + RiName(b0)
+                mnemonic = 'MOV'; operands = [directName(d, sfr_map), RiName(b0)]
             } else if ((b0 & 0xF8) === 0x88) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = directName(d, sfr_map) + ',' + RnName(b0)
+                mnemonic = 'MOV'; operands = [directName(d, sfr_map), RnName(b0)]
             }
         }
 
         function decode_90_9F(b0) {
             if (b0 === 0x90) {
                 let [hi, lo] = need(2)
-                mnemonic = 'MOV'; operands = 'DPTR,#' + hex4((hi << 8) + lo)
+                mnemonic = 'MOV'; operands = ['DPTR', '#' + hex4((hi << 8) + lo)]
             } else if (b0 === 0x92) {
                 let [bitaddr] = need(1)
-                mnemonic = 'MOV'; operands = bitName(bitaddr, sfr_map) + ',C'
+                mnemonic = 'MOV'; operands = [bitName(bitaddr, sfr_map), 'C']
             } else if (b0 === 0x93) {
-                mnemonic = 'MOVC'; operands = 'A,@A+DPTR'
+                mnemonic = 'MOVC'; operands = ['A', '@A+DPTR']
             } else if (b0 === 0x94) {
                 let [imm] = need(1)
-                mnemonic = 'SUBB'; operands = 'A,#' + hex2(imm)
+                mnemonic = 'SUBB'; operands = ['A', '#' + hex2(imm)]
             } else if (b0 === 0x95) {
                 let [d] = need(1)
-                mnemonic = 'SUBB'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'SUBB'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0x96) {
-                mnemonic = 'SUBB'; operands = 'A,' + RiName(b0)
+                mnemonic = 'SUBB'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0x98) {
-                mnemonic = 'SUBB'; operands = 'A,' + RnName(b0)
+                mnemonic = 'SUBB'; operands = ['A', RnName(b0)]
             }
         }
 
         function decode_A0_AF(b0) {
             if (b0 === 0xA0) {
                 let [bitaddr] = need(1)
-                mnemonic = 'ORL'; operands = 'C,/' + bitName(bitaddr, sfr_map)
+                mnemonic = 'ORL'; operands = ['C', '/' + bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xA2) {
                 let [bitaddr] = need(1)
-                mnemonic = 'MOV'; operands = 'C,' + bitName(bitaddr, sfr_map)
+                mnemonic = 'MOV'; operands = ['C', bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xA3) {
-                mnemonic = 'INC'; operands = 'DPTR'
+                mnemonic = 'INC'; operands = ['DPTR']
             } else if (b0 === 0xA4) {
-                mnemonic = 'MUL'; operands = 'AB'
+                mnemonic = 'MUL'; operands = ['AB']
             } else if (b0 === 0xA5) {
                 mnemonic = 'RESERVED' // "USER DEFINED" i core - 0xA5 finns ej i standard 8051
             } else if ((b0 & 0xFE) === 0xA6) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = RiName(b0) + ',' + directName(d, sfr_map)
+                mnemonic = 'MOV'; operands = [RiName(b0), directName(d, sfr_map)]
             } else if ((b0 & 0xF8) === 0xA8) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = RnName(b0) + ',' + directName(d, sfr_map)
+                mnemonic = 'MOV'; operands = [RnName(b0), directName(d, sfr_map)]
             }
         }
 
         function decode_B0_BF(b0) {
             if (b0 === 0xB0) {
                 let [bitaddr] = need(1)
-                mnemonic = 'ANL'; operands = 'C,/' + bitName(bitaddr, sfr_map)
+                mnemonic = 'ANL'; operands = ['C', '/' + bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xB2) {
                 let [bitaddr] = need(1)
-                mnemonic = 'CPL'; operands = bitName(bitaddr, sfr_map)
+                mnemonic = 'CPL'; operands = [bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xB3) {
-                mnemonic = 'CPL'; operands = 'C'
+                mnemonic = 'CPL'; operands = ['C']
             } else if (b0 === 0xB4) {
                 let [imm] = need(1); let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'CJNE'; operands = 'A,#' + hex2(imm) + ',' + hex4(target)
+                mnemonic = 'CJNE'; operands = ['A', '#' + hex2(imm), + hex4(target)]
             } else if (b0 === 0xB5) {
                 let [d] = need(1); let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'CJNE'; operands = 'A,' + directName(d, sfr_map) + ',' + hex4(target)
+                mnemonic = 'CJNE'; operands = ['A', directName(d, sfr_map), hex4(target)]
             } else if ((b0 & 0xFE) === 0xB6) {
                 let [imm] = need(1); let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'CJNE'; operands = RiName(b0) + ',#' + hex2(imm) + ',' + hex4(target)
+                mnemonic = 'CJNE'; operands = [RiName(b0), '#' + hex2(imm), hex4(target)]
             } else if ((b0 & 0xF8) === 0xB8) {
                 let [imm] = need(1); let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'CJNE'; operands = RnName(b0) + ',#' + hex2(imm) + ',' + hex4(target)
+                mnemonic = 'CJNE'; operands = [RnName(b0), '#' + hex2(imm), hex4(target)]
             }
         }
 
@@ -490,81 +493,81 @@
         function decode_C0_CF(b0) {
             if (b0 === 0xC0) {
                 let [d] = need(1)
-                mnemonic = 'PUSH'; operands = directName(d, sfr_map)
+                mnemonic = 'PUSH'; operands = [directName(d, sfr_map)]
             } else if (b0 === 0xC2) {
                 let [bitaddr] = need(1)
-                mnemonic = 'CLR'; operands = bitName(bitaddr, sfr_map)
+                mnemonic = 'CLR'; operands = [bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xC3) {
-                mnemonic = 'CLR'; operands = 'C'
+                mnemonic = 'CLR'; operands = ['C']
             } else if (b0 === 0xC4) {
-                mnemonic = 'SWAP'; operands = 'A'
+                mnemonic = 'SWAP'; operands = ['A']
             } else if (b0 === 0xC5) {
                 let [d] = need(1)
-                mnemonic = 'XCH'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'XCH'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0xC6) {
-                mnemonic = 'XCH'; operands = 'A,' + RiName(b0)
+                mnemonic = 'XCH'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0xC8) {
-                mnemonic = 'XCH'; operands = 'A,' + RnName(b0)
+                mnemonic = 'XCH'; operands = ['A', RnName(b0)]
             }
         }
 
         function decode_D0_DF(b0) {
             if (b0 === 0xD0) {
                 let [d] = need(1)
-                mnemonic = 'POP'; operands = directName(d, sfr_map)
+                mnemonic = 'POP'; operands = [directName(d, sfr_map)]
             } else if (b0 === 0xD2) {
                 let [bitaddr] = need(1)
-                mnemonic = 'SETB'; operands = bitName(bitaddr, sfr_map)
+                mnemonic = 'SETB'; operands = [bitName(bitaddr, sfr_map)]
             } else if (b0 === 0xD3) {
-                mnemonic = 'SETB'; operands = 'C'
+                mnemonic = 'SETB'; operands = ['C']
             } else if (b0 === 0xD4) {
-                mnemonic = 'DA'; operands = 'A'
+                mnemonic = 'DA'; operands = ['A']
             } else if (b0 === 0xD5) {
                 let [d] = need(1); let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'DJNZ'; operands = directName(d, sfr_map) + ',' + hex4(target)
+                mnemonic = 'DJNZ'; operands = [directName(d, sfr_map), hex4(target)]
             } else if ((b0 & 0xFE) === 0xD6) {
-                mnemonic = 'XCHD'; operands = 'A,' + RiName(b0)
+                mnemonic = 'XCHD'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0xD8) {
                 let [off] = need(1)
                 let next_addr = addr + bytes.length
                 target = relTarget(next_addr, off)
-                mnemonic = 'DJNZ'; operands = RnName(b0) + ',' + hex4(target)
+                mnemonic = 'DJNZ'; operands = [RnName(b0), hex4(target)]
             }
         }
 
         function decode_E0_EF(b0) {
             if (b0 === 0xE0) {
-                mnemonic = 'MOVX'; operands = 'A,@DPTR'
+                mnemonic = 'MOVX'; operands = ['A', '@DPTR']
             } else if ((b0 & 0xFE) === 0xE2) {
-                mnemonic = 'MOVX'; operands = 'A,' + RiName(b0)
+                mnemonic = 'MOVX'; operands = ['A', RiName(b0)]
             } else if (b0 === 0xE4) {
-                mnemonic = 'CLR'; operands = 'A'
+                mnemonic = 'CLR'; operands = ['A']
             } else if (b0 === 0xE5) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = 'A,' + directName(d, sfr_map)
+                mnemonic = 'MOV'; operands = ['A', directName(d, sfr_map)]
             } else if ((b0 & 0xFE) === 0xE6) {
-                mnemonic = 'MOV'; operands = 'A,' + RiName(b0)
+                mnemonic = 'MOV'; operands = ['A', RiName(b0)]
             } else if ((b0 & 0xF8) === 0xE8) {
-                mnemonic = 'MOV'; operands = 'A,' + RnName(b0)
+                mnemonic = 'MOV'; operands = ['A', RnName(b0)]
             }
         }
 
         function decode_F0_FF(b0) {
             if (b0 === 0xF0) {
-                mnemonic = 'MOVX'; operands = '@DPTR,A'
+                mnemonic = 'MOVX'; operands = ['@DPTR', 'A']
             } else if ((b0 & 0xFE) === 0xF2) {
-                mnemonic = 'MOVX'; operands = RiName(b0) + ',A'
+                mnemonic = 'MOVX'; operands = [RiName(b0), 'A']
             } else if (b0 === 0xF4) {
-                mnemonic = 'CPL'; operands = 'A'
+                mnemonic = 'CPL'; operands = ['A']
             } else if (b0 === 0xF5) {
                 let [d] = need(1)
-                mnemonic = 'MOV'; operands = directName(d, sfr_map) + ',A'
+                mnemonic = 'MOV'; operands = [directName(d, sfr_map), 'A']
             } else if ((b0 & 0xFE) === 0xF6) {
-                mnemonic = 'MOV'; operands = RiName(b0) + ',A'
+                mnemonic = 'MOV'; operands = [RiName(b0), 'A']
             } else if ((b0 & 0xF8) === 0xF8) {
-                mnemonic = 'MOV'; operands = RnName(b0) + ',A'
+                mnemonic = 'MOV'; operands = [RnName(b0), 'A']
             }
         }
 
@@ -574,17 +577,17 @@
             mnemonic = 'DB'; operands = hex2(b0)
         }
 
-        let text = operands ? (mnemonic + ' ' + operands) : mnemonic
-
         return {
             addr,
             length: bytes.length,
             bytes,
+            opcode:b0,
             mnemonic,
             operands,
-            text,
+            //text, is set by finalize
             next_addr: addr + bytes.length,
-            target
+            target,
+            iscall
         }
     }
 
@@ -620,9 +623,9 @@
     // bara reset-vektorn som entry point får man ungefär vad en linker
     // skulle kalla "reachable code" - vilket är precis den delen där
     // alignment annars är tvetydig.
-    function disassemble_recursive(rom, entry_points, sfr_map) {
-        let visited = new Map() // addr -> insn
-        let queue = entry_points.slice()
+    function disassemble_recursive(rom, entry_points, sfr_map, visited=undefined) {
+        if (visited == undefined) visited = new Map();
+        let queue = entry_points.map((entry) => (typeof entry === "object")?entry.addr:entry );
 
         while (queue.length) {
             let addr = queue.pop()
@@ -635,10 +638,10 @@
             let m = insn.mnemonic
             let isUnconditionalStop = (m === 'RET' || m === 'RETI' || m === 'AJMP' ||
                                         m === 'LJMP' || m === 'SJMP')
-            // JMP @A+DPTR (0x73) är dynamiskt - vi kan inte följa target,
-            // men det stoppar inte fall-through-antagandet, för det finns
-            // inget fall-through: det ÄR ett ovillkorligt hopp.
-            let isDynamicJump = (m === 'JMP' && insn.operands === '@A+DPTR')
+            // JMP @A+DPTR (0x73) is dynamic - cannot follow target,
+            // but it wont stop the fall-through situation, 
+            // for it do not exist a fall-through: it's a unconditional jump.
+            let isDynamicJump = (m === 'JMP' && insn.operands[0] === '@A+DPTR')
 
             if (insn.target !== null) {
                 queue.push(insn.target)
@@ -648,6 +651,46 @@
             }
         }
 
+        for (let entry of entry_points) {
+            let insn = visited.get(
+                typeof entry === "object" ? entry.addr : entry
+            );
+
+            if (insn && typeof entry === "object" && entry.label !== undefined) {
+                insn.label = entry.label;
+                insn.userLabel = true;
+            }
+        }
+
+        for (let [addr, insn] of visited) {
+            if (insn.iscall && insn.target !== null) {
+                let target_insn = visited.get(insn.target);
+                if (!target_insn.isFuncStart && !target_insn.userLabel) {
+                    target_insn.isFuncStart = true;
+                    target_insn.label = "FUNC_CODE_" + insn.target.toString(16).toUpperCase().padStart(4, '0');
+                }
+            } else if (insn.target !== null) {
+                let target_insn = visited.get(insn.target);
+                if (target_insn.label == undefined) {
+                    target_insn.label = "JMP_CODE_" + insn.target.toString(16).toUpperCase().padStart(4, '0');
+                }
+            }
+        }
+        // cleanup and finalize
+        for (let [addr, insn] of visited) {
+            if (insn.userLabel) {
+                delete insn.userLabel;
+            }
+            if (insn.target !== null) {
+                let target_insn = visited.get(insn.target);
+                insn.operands[insn.operands.length-1] = target_insn.label;
+            }
+        }
+        // debug
+        /*const addrs = [...visited.keys()].sort((a, b) => a - b);
+        disasmEntries = addrs.map(addr => visited.get(addr));
+        console.log(disasmEntries);
+        */
         return visited
     }
 

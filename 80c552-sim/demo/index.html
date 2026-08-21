@@ -62,7 +62,7 @@
   <div class="row main-layout">
     <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
     <div class="simulator-content">
-      <!--<div class="row">
+      <div class="row">
         <div class="panel">
           <h2>Firmware</h2>
           <input type="file" id="fw_file">
@@ -73,7 +73,7 @@
           <input type="file" id="data_flash_file">
           <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
         </div>
-      </div>-->
+      </div>
     <div class="row">
       <div class="panel">
         
@@ -141,8 +141,8 @@
     </div>
 
     <div class="row">
-      <div class="panel" style="min-width:90px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
-      <div class="panel" style="min-width:90px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
+      <div class="panel" style="max-width:95px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
+      <div class="panel" style="max-width:80px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
       <div class="panel" style="min-width:440px;"><h2>INTERNAL RAM</h2><div class="memdump" id="iram_dump" style="max-height: 400px;"></div></div>
       <div class="panel" style="min-width:130px;"><h2>Sensor Inputs</h2><div id="input_signals"></div></div>
       <div class="panel" style="max-width:100px;"><h2>Power Control Outputs</h2><table id="pwr_output_signals"></table></div>

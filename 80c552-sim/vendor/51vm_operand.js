@@ -42,7 +42,9 @@ _51cpu.prototype.get_iram_cell = function (addr) {
     }
     return {
         set: function (val) {
-            cpu_ref.IRAM[addr] = val
+            cpu_ref.IRAM[addr] = val;
+            cpu_ref.IRAM_USE_MAP[addr] = true;
+            //console.log(`iram written @ ${addr} value = ${val}`);
         },
         get: function () {
             return cpu_ref.IRAM[addr]

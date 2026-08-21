@@ -31,6 +31,7 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 
 .disassembly-container {
     max-height: 800px;
+    min-width: 380px;
     overflow-y: auto;
 }
 
@@ -172,4 +173,8 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
     to {
         transform: rotate(360deg);
     }
+}
+
+.used_ram_highlight {
+    background-color: #006400;
 }

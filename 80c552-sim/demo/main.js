@@ -168,14 +168,17 @@ let CD4051_mux_B = undefined;
 let CD4094_A = undefined;
 let CD4094_B = undefined;
 
-function initCpu() {
+async function initCpu() {
   i2cBus = new I2CBus();
 	
   cpu = create_80c552({
     i2cBus:i2cBus
   });
   if (builtin_flashCodeData) {
-	cpu.CODE = builtin_flashCodeData;
+	  cpu.CODE = builtin_flashCodeData;
+    const hash = await sha256(builtin_flashCodeData);
+    log("built in firmware hash:" + hex(hash, 32));
+    console.log("built in firmware hash:" + hex(hash, 32));
   }
   if(builtin_flashData) {
 	cpu.bus.flash.loadImage(builtin_flashData);
@@ -425,12 +428,14 @@ let coreRegs_el;
 let peripheralRegs_el;
 let pwr_output_signals_el;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     coreRegs_el = document.getElementById('coreRegs');
     peripheralRegs_el = document.getElementById('peripheralRegs');
     pwr_output_signals_el = document.getElementById('pwr_output_signals');
 
-    initCpu();
+    await initCpu();
+   // cpu.set_addr_break(0x8a9e); // uart read sysreg cmd 02
+   // cpu.set_addr_break(0x8b87); // uart get ver cmd 7f
 
     init_memory_panels();
 
@@ -439,35 +444,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     //document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
     if (document.getElementById('fw_file')) {
-        document.getElementById('fw_file').onchange = function () {
+        document.getElementById('fw_file').onchange = async function () {
             const file = this.files[0];
             if (!file) return;
             const isHex = /\.(hex|ihx)$/i.test(file.name);
             const reader = new FileReader();
             if (isHex) {
-                reader.onloadend = () => {
-                cpu.CODE = decode_ihex(reader.result);
-                cpu.reset();
-                log('Loaded Intel HEX: ' + file.name);
-                render();
+                reader.onloadend = async () => {
+                  cpu.CODE = decode_ihex(reader.result);
+                  const hash = await sha256(cpu.CODE);
+                  log("firmware hash:" + hex(hash, 32));
+                  cpu.reset();
+                  log('Loaded Intel HEX: ' + file.name);
+                  render();
                 };
                 reader.readAsText(file);
             } else {
-                reader.onloadend = () => {
-                const bytes = new Uint8Array(reader.result);
-                cpu.CODE = Array.from(bytes);
-                //dumpHex(cpu.CODE);
-                //console.log(cpu.CODE.join(", "));
-                cpu.reset();
-                log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
-                render();
+                reader.onloadend = async () => {
+                  const bytes = new Uint8Array(reader.result);
+                  cpu.CODE = Array.from(bytes);
+                  const hash = await sha256(cpu.CODE);
+                  log("firmware hash:" + hex(hash, 32));
+                  //dumpHex(cpu.CODE);
+                  //console.log(cpu.CODE.join(", "));
+                  cpu.reset();
+                  log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
+                  render();
                 };
                 reader.readAsArrayBuffer(file);
             }
         };
     }
     if (document.getElementById('data_flash_file')) {
-        document.getElementById('data_flash_file').onchange = function () {
+        document.getElementById('data_flash_file').onchange = async function () {
             const file = this.files[0];
             if (!file) return;
             const isHex = /\.(hex|ihx)$/i.test(file.name);
@@ -529,10 +538,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn_print_callstack').onclick = () => {
         console.log(cpu.getCallStackString());
     };
-    disassembly_toFlexGridElement();
+    disassembly_init();
     render();
     init_SignalInputs();
 
+
+    
     // makes the page load first and to make the heavy disassemby print later
     // it's actually the printing that is slow, the disasm is fast
     
