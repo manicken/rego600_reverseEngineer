@@ -1,3 +1,5 @@
+
+
 class DisasmLine {
     constructor() {
         /** @type {HTMLElement} */
@@ -29,104 +31,86 @@ class DisasmLine {
 
 let disasmContextMenu_el = undefined;
 let disasmLineContext = undefined;
+let gotoTargetList = [];
 
-function initDisasmContextMenu() {
-    disasmContextMenu_el = createNewElement("div", {
-        className: "disasm-context-menu"
-    });
+let disasmContextMenu_items = {
+    editLabel:{ className:"disasm-context-item", label:"Edit label", handler:editDisasmLabel, comment:"Edit the label of the current row, it automatically updates all references as well." },
+    editComment: { className:"disasm-context-item", label:"Edit comment", handler:editDisasmComment, comment:"Edit the tooltip comment shown when hovering over the row." },
+    gotoTargetSeparator: { className:"disasm-context-separator" },
+    gotoTarget: { className: "disasm-context-item", label:"Goto target", handler:gotoTarget, comment:"Goto the target. Use 'Goto back' to return to the previous address." },
+    gotoBack: { className: "disasm-context-item", label:"Goto back", handler:gotoTarget_Back, comment:"Return to the address where Goto target was last used." },
+    copySeparator: { className:"disasm-context-separator" },
+    copyAddress:{ className:"disasm-context-item", label:"Copy address", handler:copyAddress, comment:"Copy the current address to the clipboard." },
+    copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the raw instruction bytes as hexadecimal." },
+    copyInstruction: { className:"disasm-context-item", label: "Copy instruction", handler:copyInstruction, comment:"Copy the decoded instruction text." },
+    toggleBreakpointSeparator: { className:"disasm-context-separator" },
+    toggleBreakpoint: { className:"disasm-context-item", label: "Toggle Breakpoint", handler:toggleDisasmBreakpoint, comment:"Toggle the breakpoint, can also be set/unset using the leftmost column."}
+};
 
-    disasmContextMenu_el.innerHTML = `
-        <div class="disasm-context-item" data-action="label">
-            Set label...
-        </div>
-        <div class="disasm-context-item" data-action="comment">
-            Add comment...
-        </div>
+function gotoDisasmAddress(addr) {
 
-        <div class="disasm-context-separator"></div>
+    const index = disasmAddrToIndex.get(addr);
 
-        <div class="disasm-context-item" data-action="copy-address">
-            Copy address
-        </div>
-        <div class="disasm-context-item" data-action="copy-raw-data">
-            Copy raw data as text
-        </div>
-        <div class="disasm-context-item" data-action="copy-instruction">
-            Copy instruction
-        </div>
-
-        <div class="disasm-context-separator"></div>
-
-        <div class="disasm-context-item" data-action="breakpoint">
-            Toggle breakpoint
-        </div>
-    `;
-
-    document.body.appendChild(disasmContextMenu_el);
-
-    disasmContextMenu_el.addEventListener("click", (event) => {
-        const item = event.target.closest(".disasm-context-item");
-
-        if (!item)
-            return;
-
-        const action = item.dataset.action;
-        const line = disasmLineContext;
-
-        hideDisasmContextMenu();
-
-        if (!line || !line.data)
-            return;
-
-        if (action === "label") {
-            setDisasmLabel(line);
-        }
-        else if (action === "comment") {
-            setDisasmComment(line);
-        }
-        else if (action === "copy-address") {
-            navigator.clipboard.writeText(hex(line.data.addr, 4));
-        }
-        else if (action === "copy-raw-data") {
-            const rawBytesText = line.data.bytes.map(b => hex(b, 2, false)).join(' ');
-            navigator.clipboard.writeText(rawBytesText);
-        }
-        else if (action === "copy-instruction") {
-            let insn = line.data;
-            let text = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic
-            navigator.clipboard.writeText(text);
-        }
-        else if (action === "breakpoint") {
-            toggleDisasmBreakpoint(line);
-        }
-    });
-
-    document.addEventListener("click", () => {
-        hideDisasmContextMenu();
-    });
-
-    document.addEventListener("contextmenu", (event) => {
-        if (!event.target.closest(".disassembly-grid-row")) {
-            hideDisasmContextMenu();
-        }
-    });
+    if (index === undefined) {
+        console.log("could not find addr index for " + hex(addr,4));
+        return false;
+    }
+    //console.log("scrolling to index: " + index);
+    scrollToIndex(index);
+    return true;
 }
 
-function setDisasmLabel(line) {
+function gotoTarget() {
+    let line = disasmLineContext;
+    
+    if (gotoDisasmAddress(line.data.target)) {
+        gotoTargetList.push(line.data.addr);
+    }
+}
+
+function gotoTarget_Back() {
+    if (gotoTargetList.length != 0) {
+        gotoDisasmAddress(gotoTargetList.pop());
+    }
+}
+
+function copyAddress() {
+    const text = hex(disasmLineContext.data.addr, 4);
+    navigator.clipboard.writeText(text);
+}
+function copyRawData() {
+    const text = disasmLineContext.data.bytes.map(b => hex(b, 2, false)).join(' ');
+    navigator.clipboard.writeText(text);
+}
+
+function copyInstruction() {
+    const insn = line.data;
+    const text = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic
+    navigator.clipboard.writeText(text);
+}
+
+function editDisasmLabel() {
+    let line = disasmLineContext;
     if (!line.data)
-        return; // kan bara sätta etikett på en instruktionsrad, inte på en label-rad
+        return; // can only set a label on a instruction row not on a label row, TODO make it possible to right click on labels and edit them directly
 
     const addr = line.data.addr;
     const current = line.data.label || "";
-    const text = window.prompt("Etikett vid " + hex(addr, 4) + ":", current);
+    const text = window.prompt("Label @ " + hex(addr, 4) + ":", current);
 
     if (text === null)
-        return; // avbrutet
+        return; // cancel
 
     if (text.trim() === "")
-        line.data.label = undefined;//.delete(addr);
+        line.data.label = undefined;
     else
-        line.data.label = text.trim();//.set(addr, text.trim());
+        line.data.label = text.trim();
+
+    for (const insn of disasmEntries) {
+        if (insn.target == addr) {
+            insn.operands[insn.operands.length-1] = line.data.label;
+        }
+    }
 
     // Etiketter lägger till/tar bort en rad i display-listan, så hela listan
     // (och sizer-höjden) måste byggas om.
@@ -134,7 +118,8 @@ function setDisasmLabel(line) {
     renderVisibleDisasmRows();
 }
 
-function setDisasmComment(line) {
+function editDisasmComment() {
+    let line = disasmLineContext;
     if (!line.data)
         return;
 
@@ -154,7 +139,8 @@ function setDisasmComment(line) {
     renderVisibleDisasmRows();
 }
 
-function toggleDisasmBreakpoint(line) {
+function toggleDisasmBreakpoint() {
+    let line = disasmLineContext;
     if (!line.data)
         return;
 
@@ -171,11 +157,49 @@ function toggleDisasmBreakpoint(line) {
     }
 }
 
+function initDisasmContextMenu() {
+    disasmContextMenu_el = createNewElement("div", {
+        className: "disasm-context-menu"
+    });
+    for (const [key, item] of Object.entries(disasmContextMenu_items)) {
+        
+        let new_el = createNewElement("div", {className:item.className});
+        if (item.label != undefined) {
+            new_el.textContent = item.label;
+        }
+        if (item.handler != undefined) {
+            new_el.onclick = item.handler;
+        }
+        if (item.comment != undefined) {
+            new_el.title = item.comment;
+        }
+        item.element = new_el;
+        disasmContextMenu_el.appendChild( new_el );
+    }
+    console.log(disasmContextMenu_items);
+
+    document.body.appendChild(disasmContextMenu_el);
+
+    document.addEventListener("click", () => {
+        hideDisasmContextMenu();
+    });
+
+    document.addEventListener("contextmenu", (event) => {
+        if (!event.target.closest(".disassembly-grid-row")) {
+            hideDisasmContextMenu();
+        }
+    });
+}
+
 function showDisasmContextMenu(event, disasmLine) {
     event.preventDefault();
     event.stopPropagation();
 
     disasmLineContext = disasmLine;
+    //console.log(disasmLine.data);
+    disasmContextMenu_items.gotoTargetSeparator.element.style.display = (disasmLine.data.target !== null) || (gotoTargetList.length != 0) ? "" : "none";
+    disasmContextMenu_items.gotoTarget.element.style.display = (disasmLine.data.target !== null) ? "" : "none";
+    disasmContextMenu_items.gotoBack.element.style.display = (gotoTargetList.length != 0) ? "" : "none";
 
     const menu = disasmContextMenu_el;
 
@@ -255,7 +279,7 @@ function rebuildDisasmDisplayList() {
     const list = [];
 
     for (const insn of disasmEntries) {
-        const label = insn.label;// disasmLabels.get(insn.addr);
+        const label = insn.label;
         if (label)
             list.push({ type: "label", addr: insn.addr, text: label });
 
@@ -277,85 +301,6 @@ function rebuildDisasmDisplayList() {
 let insn_map = null;
 // {addr:0x, label:""},
 
-let entry_points_3021 = [
-    {addr:0x0000, label:"reset", comment:"Program execution starts here."}, 
-    {addr:0x000B, label:"TIMER0_IRQ_VECTOR"}, 
-    {addr:0x0023, label:"UART_IRQ_VECTOR"},
-    {addr:0x002B, label:"I2C_IRQ_VECTOR"},
-];
-
-let entry_points_3060 = [
-    {addr:0x0000, label:"reset", comment:"Program execution starts here."}, 
-    {addr:0x000B, label:"TIMER0_IRQ_VECTOR"}, 
-    {addr:0x0023, label:"UART_IRQ_VECTOR"},
-    {addr:0x002B, label:"I2C_IRQ_VECTOR"},
-    {addr:0x002E, label:"START_AFTER_RESET_VECTOR"}, 
-    {addr:0x0136, label:"sensor_apply_gain_offset"},
-    {addr:0x0160, label:"signed_divide_16bit_wrapper"},
-    {addr:0x069E, label:"CMD_DISPATCH_TABLE_LOOKUP"},
-    {addr:0x0883, label:"ReadMemory_to_R5_R6_R7"},
-    {addr:0x0889, label:"ReadSelectedMemoryType"},
-    {addr:0x0A16, label:"SetupMemoryAccessAbsolute"},
-    {addr:0x0A3A, label:"SetupMemoryAccessOffset"},
-    {addr:0x0B5A, label:"intmem_read_3bytes_to_R5_R6_R7"},
-    {addr:0x67D7, label:"extram_zerofill"}, 
-    {addr:0x6829, label:"TIMER0_IRQ_HANDLER"}, 
-
-    {addr:0x6869, label:"I2C_IRQ_HANDLER"},
-    {addr:0x68EE, label:"i2c_status_08"},
-    {addr:0x68FD, label:"i2c_status_10"},
-    {addr:0x690C, label:"i2c_status_18"},
-    {addr:0x691B, label:"i2c_status_20"},
-    {addr:0x692D, label:"i2c_status_28"},
-    {addr:0x6951, label:"i2c_status_30"},
-    {addr:0x695C, label:"i2c_status_38"},
-    {addr:0x696A, label:"i2c_status_40"},
-    {addr:0x696F, label:"i2c_status_48"},
-    {addr:0x697A, label:"i2c_status_50"},
-    {addr:0x698C, label:"i2c_status_58"},
-    {addr:0x69A7, label:"i2c_status_others"},
-    {addr:0x69BA, label:"i2c_status_common_end"},
-
-    {addr:0x6A42, label:"UART_RX_START_BYTE_CHECK"},
-    {addr:0x6A6A, label:"UART_IRQ_HANDLER"},
-    {addr:0x6B2C, label:"UART_SEND_ONE_BYTE"},
-
-    {addr:0x6B48, label:"Read_DS1302_byte"}, // RTC
-    {addr:0x6B72, label:"DS1302_BurstRead_DateTime"},
-    {addr:0x6BF1, label:"DS1302_Write_Register_Byte"},
-    {addr:0x6C6A, label:"DS1302_Read_Register_Byte"},
-    {addr:0x6CB4, label:"DS1302_WriteTimeFromTemporary"},
-    {addr:0x6CE2, label:"DS1302_RTC_init"},
-
-    {addr:0x8919, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM"},
-    {addr:0x8A81, label:"uart_cmd_01_front_panel_write"},
-    {addr:0x8A9E, label:"uart_cmd_02_sys_reg_read"},
-    {addr:0x8AB5, label:"uart_cmd_03_sys_reg_write"},
-    {addr:0x8AE1, label:"uart_cmd_04_timer_reg_read"},
-    {addr:0x8AFA, label:"uart_cmd_05_timer_reg_write"},
-    {addr:0x8B16, label:"uart_cmd_06_menu_reg_read"},
-    {addr:0x8B2E, label:"uart_cmd_07_menu_reg_write"},
-    {addr:0x8B4A, label:"uart_cmd_20_display_reg_read"},
-    {addr:0x8B5F, label:"uart_cmd_40_read_last_error_line"},
-    {addr:0x8B73, label:"uart_cmd_42_read_prev_error_line"},
-    {addr:0x8B87, label:"uart_cmd_7F_read_rego_ver"},
-    {addr:0x8B90, label:"uart_cmd_reset_rx_index"},
-];
-
-let entry_points_3120 = [
-    {addr:0x0000, label:"reset", comment:"Program execution starts here."}, 
-    {addr:0x000B, label:"TIMER0_IRQ_VECTOR"}, 
-    {addr:0x0023, label:"UART_IRQ_VECTOR"},
-    {addr:0x002B, label:"I2C_IRQ_VECTOR"},
-];
-
-let versions = [
-    {ver:"3.021", entry_points: entry_points_3021, targets:["rego634"],           hash:"4AE4D6CE67A84CEE2CCC19738CF3BDD91D865238FE8DC4822DE0D291F5F4EA8B"},
-    {ver:"3.06", entry_points: entry_points_3060, targets:["rego637","rego637e"], hash:"BD8E616AE8F6B31BB731104EBEE6154A3DD8DD7DC07E0153915ADFEDC2BA291E"},
-    {ver:"3.12", entry_points: entry_points_3120, targets:["rego637w"],           hash:"63827F591D37163F2DA75BE7323F6EB70478277A0243C898E79DE14475524F1B"}
-];
-// currently cheat by just setting it directly
-let entry_points = entry_points_3060;
 
 function disassembly_init() {
 
@@ -363,7 +308,7 @@ function disassembly_init() {
         if (!insn_map.has(pc)) {
             console.log("new code:", hex(pc, 4));
 
-            entry_points.push(pc);
+            curr_firmware.entry_points.push(pc);
 
             js51_disasm.disassemble_recursive(
                 cpu.CODE,
@@ -378,7 +323,7 @@ function disassembly_init() {
 
     //let entry_points = ;//, 0x7863, 0x7841, 0x788F, 0x780C, 0x693D, 0x04D4, 0x0B36, 0x8218, 0x0B2E, 0x0B25, 0xEF2E, 0x694C, 0x6940, 0x692D, 0x6935, 0x6D26, 0x692F, 0xEF37, 0x04D0, 0x0B3B];
 
-    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, entry_points, cpu.SFR);
+    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.entry_points, cpu.SFR);
 
     // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
     const addrs = [...insn_map.keys()].sort((a, b) => a - b);
@@ -675,7 +620,7 @@ function setCurrentExecLine(cpu, force = false) {
     let insn = insn_map.get(address);
     if (index === undefined || insn === undefined) {
         //console.log("asdress not disasm, executing disasm:" + hex(address,4));
-        entry_points.push(address); // push so that we can save it to local storage later to avoid same sitaution again
+        curr_firmware.entry_points.push(address); // push so that we can save it to local storage later to avoid same sitaution again
         insn_map = js51_disasm.disassemble_recursive(cpu.CODE, [address], cpu.SFR, insn_map);
         const addrs = [...insn_map.keys()].sort((a, b) => a - b);
         disasmEntries = addrs.map(addr => insn_map.get(addr));

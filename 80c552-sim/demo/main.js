@@ -20,8 +20,8 @@ function invertedBinaryStateConvert(value) {
 }
 function rawValue(val) { return val; }
 function rego600_reverse_Temp_to_ADC_val(temp) {
-  let addressOffset = 0xF7C6;
-  let indexOffset = 9;
+  let addressOffset = curr_firmware.adc_lookup_table_addr;
+  let indexOffset = curr_firmware.adc_lookup_table_index_offset;
   let bestIndex = -1;
   let bestDiff = Infinity;
 
@@ -168,6 +168,16 @@ let CD4051_mux_B = undefined;
 let CD4094_A = undefined;
 let CD4094_B = undefined;
 
+async function setCODE_LoadProfile_ResetCpu(codeData) {
+    cpu.CODE = codeData;
+    const hash = await sha256(codeData);
+    const hashString = hex(hash, 32, false);
+    log("loaded firmware hash:" + hashString);
+    console.log("loaded firmware hash:" + hashString);
+    setCurrentFirmwareProfile(hashString);
+    cpu.reset();
+}
+
 async function initCpu() {
   i2cBus = new I2CBus();
 	
@@ -175,10 +185,7 @@ async function initCpu() {
     i2cBus:i2cBus
   });
   if (builtin_flashCodeData) {
-	  cpu.CODE = builtin_flashCodeData;
-    const hash = await sha256(builtin_flashCodeData);
-    log("built in firmware hash:" + hex(hash, 32));
-    console.log("built in firmware hash:" + hex(hash, 32));
+	  setCODE_LoadProfile_ResetCpu(builtin_flashCodeData);
   }
   if(builtin_flashData) {
 	cpu.bus.flash.loadImage(builtin_flashData);
@@ -292,8 +299,6 @@ async function initCpu() {
       }
   });
 
-  cpu.reset();
-
   cpu.PSW.setlistener.push((oldval, newval) => {
 	  let oldBank = oldval & 0x18;
     let newBank = newval & 0x18;
@@ -360,8 +365,8 @@ function getPeripheralRegs() {
 
 function getPowerOutputSignals() {
   return [
-    ['S1', readPinLatch(CD4094_A.outputs,0)?'on':'off'],
-    ['S2', readPinLatch(CD4094_A.outputs,1)?'on':'off'],
+    ['SV1 CLOSE', readPinLatch(CD4094_A.outputs,0)?'on':'off'],
+    ['SV1 OPEN', readPinLatch(CD4094_A.outputs,1)?'on':'off'],
     ['P1', readPinLatch(CD4094_A.outputs,3)?'on':'off'],
     ['P2', readPinLatch(CD4094_A.outputs,5)?'on':'off'],
     ['P3', readPinLatch(CD4094_A.outputs,7)?'on':'off'],
@@ -451,23 +456,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             const reader = new FileReader();
             if (isHex) {
                 reader.onloadend = async () => {
-                  cpu.CODE = decode_ihex(reader.result);
-                  const hash = await sha256(cpu.CODE);
-                  log("firmware hash:" + hex(hash, 32));
-                  cpu.reset();
+                  setCODE_LoadProfile_ResetCpu(decode_ihex(reader.result))      
                   log('Loaded Intel HEX: ' + file.name);
                   render();
                 };
                 reader.readAsText(file);
             } else {
                 reader.onloadend = async () => {
-                  const bytes = new Uint8Array(reader.result);
-                  cpu.CODE = Array.from(bytes);
-                  const hash = await sha256(cpu.CODE);
-                  log("firmware hash:" + hex(hash, 32));
-                  //dumpHex(cpu.CODE);
-                  //console.log(cpu.CODE.join(", "));
-                  cpu.reset();
+                  setCODE_LoadProfile_ResetCpu(Array.from(new Uint8Array(reader.result)))
                   log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
                   render();
                 };

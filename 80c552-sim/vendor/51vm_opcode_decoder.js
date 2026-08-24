@@ -377,9 +377,12 @@ _51cpu.prototype.__execute_decode_70_7F = function (opcode) {
         //JMP @A+DPTR
         //console.log("0x73 jmp happend" + hex(this.PC.get()));
         let opcodePC = this.PC.get()-1;
-        if (opcodePC == 0xB29 /*v3.06*/ || opcodePC == 0xB3B /*v3.06*/ || opcodePC == 0xB46 /*v3.16*/ || opcodePC == 0xB58 /*v3.16*/) {
-            this.op_ret_track(); // 
+
+        // firmware specific indirect jumps, so our call stack tracker works
+        if (curr_firmware.indirect_jumps.has(opcodePC)) {
+            this.op_ret_track();
         }
+        
         this.PC.set(this.A.get() + this.DPTR.get())
     } else if (opcode.test(0x74)) {
         //MOV A,#immed

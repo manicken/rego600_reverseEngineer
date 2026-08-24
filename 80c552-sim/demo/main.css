@@ -65,18 +65,21 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
 .disassembly-bytes {
     font-family: monospace;
     white-space: nowrap;
+    cursor: default;
 }
 
 .disassembly-mnemonic {
     font-family: monospace;
     white-space: nowrap;
     color:#4ec9b0;
+    cursor: default;
 }
 
 .disassembly-operands {
     font-family: monospace;
     white-space: nowrap;
     color:#ce9178;
+    cursor: default;
 }
 
 .disassembly-address {
