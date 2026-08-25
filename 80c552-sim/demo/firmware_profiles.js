@@ -1,3 +1,4 @@
+
 let default_entry_points = [
     {addr:0x0000, label:"reset", comment:"Program execution starts here."}, 
     {addr:0x000B, label:"TIMER0_IRQ_VECTOR"}, 
@@ -12,14 +13,17 @@ let entry_points_3021 = [
 let entry_points_3060 = [
     ...default_entry_points,
     {addr:0x002E, label:"START_AFTER_RESET_VECTOR"}, 
-    {addr:0x0136, label:"sensor_apply_gain_offset"},
+    {addr:0x0136, label:"fixed_mul_8_8_r2r3_r4r5_wrapper"},
+    {addr:0x013a, label:"fixed_mul_8_8_r2r3_r4r5"},
     {addr:0x0160, label:"signed_divide_16bit_wrapper"},
     {addr:0x069E, label:"BY_CMD_DISPATCH_TABLE_LOOKUP"},
-    {addr:0x0883, label:"ReadMemory_to_R5_R6_R7"},
+    {addr:0x0883, label:"ReadMemory_using_R5_R6_R7"},
+    {addr:0x0887, label:"ReadMemory_using_R1_R2_R3"},
     {addr:0x0889, label:"ReadSelectedMemoryType"},
     {addr:0x0A16, label:"SetupMemoryAccessAbsolute"},
     {addr:0x0A3A, label:"SetupMemoryAccessOffset"},
-    {addr:0x0B5A, label:"intmem_read_3bytes_to_R5_R6_R7"},
+    {addr:0x0B5A, label:"intmem_read_3bytes_to_R7_R6_R5"},
+    {addr:0x0BC3, label:"extmem_read_3bytes_to_R7_R6_R5"},
     {addr:0x67D7, label:"extram_zerofill"}, 
     {addr:0x6829, label:"TIMER0_IRQ_HANDLER"}, 
 
@@ -49,6 +53,12 @@ let entry_points_3060 = [
     {addr:0x6CB4, label:"DS1302_WriteTimeFromTemporary"},
     {addr:0x6CE2, label:"DS1302_RTC_init"},
 
+    {addr:0x6E89, label:"read_29f040_settings_from_bank0"},
+    {addr:0x707F, label:"GET_ERROR_FROM_LOG"},
+    {addr:0x72DF, label:"AM29F040_CommandUnlockAndWaitDQ7"},
+    {addr:0x73C6, label:"SaveSettingTo29F040Journal"},
+    {addr:0x75EF, label:"AM29f040_write_alternative"},
+
     {addr:0x8919, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM"},
     {addr:0x8A81, label:"uart_cmd_01_front_panel_write"},
     {addr:0x8A9E, label:"uart_cmd_02_sys_reg_read"},
@@ -66,7 +76,7 @@ let entry_points_3060 = [
     {addr:0x94C9, label:"menu_function_lockup"},
     {addr:0x952A, label:"menu_func_trampoline_00"},
     {addr:0x9530, label:"menu_func_trampoline_01"},
-    {addr:0x953C, label:"menu_func_trampoline_04"},
+    {addr:0x953C, label:"menu_func_trampoline_05"},
     {addr:0x9542, label:"menu_func_trampoline_06"},
     {addr:0x9547, label:"menu_func_trampoline_07"},
     {addr:0x954C, label:"menu_func_trampoline_08"},
@@ -94,7 +104,7 @@ let entry_points_3060 = [
     {addr:0x9597, label:"menu_func_trampoline_20"},
     {addr:0x95A6, label:"menu_func_trampoline_21"},
     {addr:0x9536, label:"menu_func_trampoline_2D"},
-    {addr:0x95C6, label:"menu_func_trampoline_RET", comment:"just a simple ret"},
+    {addr:0x95C6, label:"menu_func_trampoline_RET"},
 
     {addr:0x95C7, label:"menu_func_00"},
     {addr:0x95F2, label:"menu_func_01"},
@@ -117,7 +127,7 @@ let entry_points_3060 = [
     {addr:0xC6CC, label:"menu_func_17"},
     {addr:0xC9DC, label:"menu_func_18"},
     {addr:0xCAA2, label:"menu_func_19"},
-    {addr:0xCB13, label:"menu_func_1A"},
+    {addr:0xCB13, label:"menu_func_1A_ROOT_MENU"},
     {addr:0xCB87, label:"menu_func_1B"},
     {addr:0xD46C, label:"menu_func_1C"},
     {addr:0xD836, label:"menu_func_1D_LOG_VIEW"},
@@ -125,6 +135,8 @@ let entry_points_3060 = [
     {addr:0xDA49, label:"menu_func_1F"},
     {addr:0xDD18, label:"menu_func_20"},
     {addr:0xDE23, label:"menu_func_21"},
+
+    {addr:0xD402, label:"show_current_access_level"}
     //{addr:0x9822, label:"menu_func_2D"},
 ];
 
