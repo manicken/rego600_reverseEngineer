@@ -29,24 +29,6 @@ class DisasmLine {
     }
 }
 
-let disasmContextMenu_el = undefined;
-let disasmLineContext = undefined;
-let gotoTargetList = [];
-
-let disasmContextMenu_items = {
-    editLabel:{ className:"disasm-context-item", label:"Edit label", handler:editDisasmLabel, comment:"Edit the label of the current row, it automatically updates all references as well." },
-    editComment: { className:"disasm-context-item", label:"Edit comment", handler:editDisasmComment, comment:"Edit the tooltip comment shown when hovering over the row." },
-    gotoTargetSeparator: { className:"disasm-context-separator" },
-    gotoTarget: { className: "disasm-context-item", label:"Goto target", handler:gotoTarget, comment:"Goto the target. Use 'Goto back' to return to the previous address." },
-    gotoBack: { className: "disasm-context-item", label:"Goto back", handler:gotoTarget_Back, comment:"Return to the address where Goto target was last used." },
-    copySeparator: { className:"disasm-context-separator" },
-    copyAddress:{ className:"disasm-context-item", label:"Copy address", handler:copyAddress, comment:"Copy the current address to the clipboard." },
-    copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the raw instruction bytes as hexadecimal." },
-    copyInstruction: { className:"disasm-context-item", label: "Copy instruction", handler:copyInstruction, comment:"Copy the decoded instruction text." },
-    toggleBreakpointSeparator: { className:"disasm-context-separator" },
-    toggleBreakpoint: { className:"disasm-context-item", label: "Toggle Breakpoint", handler:toggleDisasmBreakpoint, comment:"Toggle the breakpoint, can also be set/unset using the leftmost column."}
-};
-
 function gotoDisasmAddress(addr) {
 
     const index = disasmAddrToIndex.get(addr);
@@ -58,6 +40,22 @@ function gotoDisasmAddress(addr) {
     //console.log("scrolling to index: " + index);
     scrollToIndex(index);
     return true;
+}
+
+function editCode() {
+    let line = disasmLineContext;
+    window.hex_edit_modal.open();
+    window.hexEditor.loadBytes(cpu.CODE);
+    window.hexEditor.jumpTo(line.data.addr);
+}
+
+function gotoAddress() {
+    const text = window.prompt("Goto address (hex): ", "");
+
+    if ((text === null) || (text.trim() === ""))
+        return; // cancel
+
+    gotoDisasmAddress(parseInt(text, 16));
 }
 
 function gotoTarget() {
@@ -106,9 +104,12 @@ function editDisasmLabel() {
     else
         line.data.label = text.trim();
 
+    line.data.labelType = js51_disasm.LabelType.User;
+
     for (const insn of disasmEntries) {
         if (insn.target == addr) {
-            insn.operands[insn.operands.length-1] = line.data.label;
+            
+            insn.operands[insn.operands.length-1] = line.data.label?line.data.label:hex(addr,4);
         }
     }
 
@@ -157,77 +158,7 @@ function toggleDisasmBreakpoint() {
     }
 }
 
-function initDisasmContextMenu() {
-    disasmContextMenu_el = createNewElement("div", {
-        className: "disasm-context-menu"
-    });
-    for (const [key, item] of Object.entries(disasmContextMenu_items)) {
-        
-        let new_el = createNewElement("div", {className:item.className});
-        if (item.label != undefined) {
-            new_el.textContent = item.label;
-        }
-        if (item.handler != undefined) {
-            new_el.onclick = item.handler;
-        }
-        if (item.comment != undefined) {
-            new_el.title = item.comment;
-        }
-        item.element = new_el;
-        disasmContextMenu_el.appendChild( new_el );
-    }
-    console.log(disasmContextMenu_items);
 
-    document.body.appendChild(disasmContextMenu_el);
-
-    document.addEventListener("click", () => {
-        hideDisasmContextMenu();
-    });
-
-    document.addEventListener("contextmenu", (event) => {
-        if (!event.target.closest(".disassembly-grid-row")) {
-            hideDisasmContextMenu();
-        }
-    });
-}
-
-function showDisasmContextMenu(event, disasmLine) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    disasmLineContext = disasmLine;
-    //console.log(disasmLine.data);
-    disasmContextMenu_items.gotoTargetSeparator.element.style.display = (disasmLine.data.target !== null) || (gotoTargetList.length != 0) ? "" : "none";
-    disasmContextMenu_items.gotoTarget.element.style.display = (disasmLine.data.target !== null) ? "" : "none";
-    disasmContextMenu_items.gotoBack.element.style.display = (gotoTargetList.length != 0) ? "" : "none";
-
-    const menu = disasmContextMenu_el;
-
-    menu.style.display = "block";
-
-    // Positionera först ungefär där musen är
-    let x = event.clientX;
-    let y = event.clientY;
-
-    // Hindra menyn från att gå utanför fönstret
-    const rect = menu.getBoundingClientRect();
-
-    if (x + rect.width > window.innerWidth)
-        x = window.innerWidth - rect.width - 4;
-
-    if (y + rect.height > window.innerHeight)
-        y = window.innerHeight - rect.height - 4;
-
-    menu.style.left = `${Math.max(4, x)}px`;
-    menu.style.top = `${Math.max(4, y)}px`;
-}
-
-function hideDisasmContextMenu() {
-    if (disasmContextMenu_el)
-        disasmContextMenu_el.style.display = "none";
-
-    disasmContextAddress = undefined;
-}
 
 
 // ============================================================
@@ -322,29 +253,30 @@ function disassembly_init() {
     });
 
     //let entry_points = ;//, 0x7863, 0x7841, 0x788F, 0x780C, 0x693D, 0x04D4, 0x0B36, 0x8218, 0x0B2E, 0x0B25, 0xEF2E, 0x694C, 0x6940, 0x692D, 0x6935, 0x6D26, 0x692F, 0xEF37, 0x04D0, 0x0B3B];
-
+    console.log(curr_firmware.entry_points);
     insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.entry_points, cpu.SFR);
-
+    console.log(insn_map);
     // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
     const addrs = [...insn_map.keys()].sort((a, b) => a - b);
     disasmEntries = addrs.map(addr => insn_map.get(addr));
-    //console.log(disasmEntries);
+    console.log(disasmEntries);
 
     rebuildDisasmDisplayList(); // bygger disasmDisplayList + disasmAddrToIndex (inga etiketter satta ännu, så = disasmEntries)
 
     initDisasmContextMenu();
     const disassemblyView_el = document.getElementById("disassemblyView");
+    const disasmToolBar_el = appendNewElement(disassemblyView_el, 'div', {className:"panel"});
 
     // Live tracking checkbox
     let liveTracking_ToolTip = "Enable live tracing while the simulator runs, stepping however always use Tracking";
-    appendCheckBoxWithLabel(disassemblyView_el,
+    appendCheckBoxWithLabel(disasmToolBar_el,
         { label: "Live Tracking", tooltip: liveTracking_ToolTip, state: disasm_live_update, style: { marginLeft: "10px", marginBottom: "10px" } },
         (value) => { disasm_live_update = value; }
     );
 
     let autoscroll_ToolTip = "Enable live tracing scrolling while the simulator runs, stepping however always use Tracking";
-    appendCheckBoxWithLabel(disassemblyView_el,
-        { label: "Live Scroll", tooltip: autoscroll_ToolTip, state: disasm_auto_scroll, style: { marginLeft: "10px", marginBottom: "10px" } },
+    appendCheckBoxWithLabel(disasmToolBar_el,
+        { label: "Live Scroll", tooltip: autoscroll_ToolTip, state: disasm_auto_scroll, style: { marginLeft: "20px", marginBottom: "10px" } },
         (value) => { disasm_auto_scroll = value; }
     );
 
@@ -442,8 +374,9 @@ function buildPoolRow() {
     };
 
     row_el.addEventListener("contextmenu", (event) => {
-        if (disasmLine.data)
+        if (disasmLine.data) {
             showDisasmContextMenu(event, disasmLine);
+        }
     });
 
     return disasmLine;

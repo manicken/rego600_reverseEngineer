@@ -94,6 +94,11 @@ function createNewElement(tag, options = {}) {
     for (const [name, value] of Object.entries(options)) {
         el[name] = value;
     }
+    if (typeof options.styles === "object") {
+        for (const [name, value] of Object.entries(options.styles)) {
+            el.style[name] = value;
+        }
+    }
     
     return el;
 }

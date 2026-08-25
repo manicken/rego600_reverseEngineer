@@ -3,6 +3,9 @@
 <head>
   <link rel="stylesheet" href="main.css">
   <link rel="stylesheet" href="led-panel.css">
+  <link rel="stylesheet" href="modal.css">
+  <link rel="stylesheet" href="hex-editor.css">
+  <link rel="stylesheet" href="panel_disassembly_goto_label_form.css">
   <meta charset="UTF-8">
   <title>80C552 Simulator (js51-based)</title>
 </head>
@@ -11,6 +14,8 @@
   <!-- hex function -->
   <script src="helpers.js"></script>
   <script src="dom_helpers.js"></script>
+  <script src="modal.js"></script>
+  <script src="hex-editor.js"></script>
 
   <!-- vendor js51 core (unmodified) -->
   <script src="../vendor/51vm_core.js"></script>
@@ -53,6 +58,9 @@
   <script src="panel_service_interface.js"></script> 
   <script src="panels_memory.js"></script> 
   <script src="panel_disassembly.js"></script>
+   <script src="panel_disassembly_goto_label_form.js"></script>
+  <script src="panel_disassembly_contextmenu.js"></script>
+ 
 
   <script src="firmware_profiles.js"></script>
 
@@ -60,7 +68,7 @@
 
   <!-- BODY CONTENTS -->
 
-  <h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>
+  <!--<h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>-->
   <div class="row main-layout">
     <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
     <div class="simulator-content">
@@ -165,7 +173,5 @@
     <h2>Log</h2>
     <div id="log"></div>
   </div>
-
-
 </body>
 </html>

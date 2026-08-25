@@ -113,10 +113,12 @@ function setCurrentFirmwareProfile(hashString) {
     for (const profile of firmware_profiles) {
         if (profile.hash === hashString) {
             curr_firmware = profile;
+            console.log("selected firmware profile:", curr_firmware);
             log("selected firmware profile for: " + profile.version + ", hash:" + hashString);
             return;
         }
     }
     curr_firmware = firmware_profiles[0];
+    console.error("ERROR COULD NOT FIND THE FIRMWARE PROFILE FOR hash: " + hashString);
     log("ERROR COULD NOT FIND THE FIRMWARE PROFILE FOR hash: " + hashString);
 }

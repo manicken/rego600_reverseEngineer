@@ -170,10 +170,11 @@ let CD4094_B = undefined;
 
 async function setCODE_LoadProfile_ResetCpu(codeData) {
     cpu.CODE = codeData;
+    cpu.CODE_ORIGINAL = [...codeData];
     const hash = await sha256(codeData);
     const hashString = hex(hash, 32, false);
-    log("loaded firmware hash:" + hashString);
-    console.log("loaded firmware hash:" + hashString);
+    //log("loaded firmware hash:" + hashString);
+    //console.log("loaded firmware hash:" + hashString);
     setCurrentFirmwareProfile(hashString);
     cpu.reset();
 }
@@ -185,10 +186,10 @@ async function initCpu() {
     i2cBus:i2cBus
   });
   if (builtin_flashCodeData) {
-	  setCODE_LoadProfile_ResetCpu(builtin_flashCodeData);
+	  await setCODE_LoadProfile_ResetCpu(builtin_flashCodeData);
   }
   if(builtin_flashData) {
-	cpu.bus.flash.loadImage(builtin_flashData);
+	  cpu.bus.flash.loadImage(builtin_flashData);
   }
 
   ext_wdt = new TC1232({timeoutMs:1200});
@@ -538,11 +539,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     render();
     init_SignalInputs();
 
+    window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
+    window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
+    
+    const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 
-    
-    // makes the page load first and to make the heavy disassemby print later
-    // it's actually the printing that is slow, the disasm is fast
-    
+    window.hex_edit_modal.setBody(hex_editor_root_el);
+    window.hex_edit_modal.mount();
+   // window.hex_edit_modal.open();
+
+    const editor = new ModalHexEditor(hex_editor_root_el, {
+      size: 0x10000,
+      height: '100%',
+      width: '100%',
+      bytesPerRow: 16,
+      mode:ModalHexEditor.Modes.Insert,
+      onChange: (addr, value) => { 
+        console.log(`@ ${hex(addr,4)} changed to ${hex(value,2)}`); 
+        cpu.CODE[addr] = value;
+
+        for (let i = 0; i < cpu.CODE.length; i++) {
+          if (cpu.CODE[i] != cpu.CODE_ORIGINAL[i]) {
+              console.log(
+                  `0x${i.toString(16).padStart(4, "0").toUpperCase()}: ` +
+                  `${cpu.CODE_ORIGINAL[i].toString(16).padStart(2, "0").toUpperCase()} -> ` +
+                  `${cpu.CODE[i].toString(16).padStart(2, "0").toUpperCase()}`
+              );
+
+          }
+        }
+      },
+      onSave: (bytes) => { console.log('onSave fired,', bytes.length, 'bytes'); }
+    });
+
+    // Example annotations from the REGO600 reverse-engineering notes —
+    // remove or replace these once wired to real analysis data.
+    editor.addBookmark(0x1EFC, 'standby / root menu record');
+    editor.highlightRange(0x1EFC, 0x1EFC + 31, 'menu record (32B struct)');
+
+    window.hexEditor = editor;
+    editor.viewport.focus();
 
 });
 

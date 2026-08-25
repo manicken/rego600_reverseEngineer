@@ -16,6 +16,12 @@
 
 ;(function (global) {
 
+    let LabelType = {
+        User:"USR",
+        Func:"FUN",
+        Jump:"JMP"
+    };
+
     // ---------- låg-nivå byte-läsning ----------
 
     function readByte(rom, addr) {
@@ -658,29 +664,29 @@
 
             if (insn && typeof entry === "object" && entry.label !== undefined) {
                 insn.label = entry.label;
-                insn.userLabel = true;
+                insn.labelType = LabelType.User;
             }
         }
 
         for (let [addr, insn] of visited) {
             if (insn.iscall && insn.target !== null) {
                 let target_insn = visited.get(insn.target);
-                if (!target_insn.isFuncStart && !target_insn.userLabel) {
+                if (!target_insn.isFuncStart && target_insn.labelType !== LabelType.User) {
                     target_insn.isFuncStart = true;
+                    target_insn.labelType = LabelType.Func;
                     target_insn.label = "FUNC_CODE_" + insn.target.toString(16).toUpperCase().padStart(4, '0');
                 }
             } else if (insn.target !== null) {
                 let target_insn = visited.get(insn.target);
                 if (target_insn.label == undefined) {
+                    target_insn.labelType = LabelType.Jump;
                     target_insn.label = "JMP_CODE_" + insn.target.toString(16).toUpperCase().padStart(4, '0');
                 }
             }
         }
         // cleanup and finalize
         for (let [addr, insn] of visited) {
-            if (insn.userLabel) {
-                delete insn.userLabel;
-            }
+
             if (insn.target !== null) {
                 let target_insn = visited.get(insn.target);
                 insn.operands[insn.operands.length-1] = target_insn.label;
@@ -697,6 +703,7 @@
     // ---------- export ----------
 
     let api = {
+        LabelType,
         disassemble_one,
         disassemble_range,
         disassemble_recursive,
