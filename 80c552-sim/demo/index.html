@@ -5,7 +5,9 @@
   <link rel="stylesheet" href="led-panel.css">
   <link rel="stylesheet" href="modal.css">
   <link rel="stylesheet" href="hex-editor.css">
+  <link rel="stylesheet" href="panel_disassembly.css">
   <link rel="stylesheet" href="panel_disassembly_goto_label_form.css">
+  <link rel="stylesheet" href="menu.css">
   <meta charset="UTF-8">
   <title>80C552 Simulator (js51-based)</title>
 </head>
@@ -60,6 +62,8 @@
   <script src="panel_disassembly.js"></script>
    <script src="panel_disassembly_goto_label_form.js"></script>
   <script src="panel_disassembly_contextmenu.js"></script>
+
+  <script src="menu.js"></script>
  
 
   <script src="firmware_profiles.js"></script>
@@ -69,11 +73,11 @@
   <!-- BODY CONTENTS -->
 
   <!--<h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>-->
-  <div class="row main-layout">
-    <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
-    <div class="simulator-content">
-      <div class="row">
-        <div class="panel">
+  <div class="row">
+    <div class="panel">
+      <div class="main-menu" id="main-menu"></div>
+        
+    </div>
           <h2>Firmware</h2>
           <input type="file" id="fw_file">
           <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
@@ -83,7 +87,11 @@
           <input type="file" id="data_flash_file">
           <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
         </div>
-      </div>
+  </div>
+  <div class="row main-layout">
+    <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
+    <div class="simulator-content">
+
     <div class="row">
       <div class="panel">
         

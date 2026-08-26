@@ -593,7 +593,13 @@
             //text, is set by finalize
             next_addr: addr + bytes.length,
             target,
-            iscall
+            iscall,
+            text() {
+                const addrText = addr.toString(16).toUpperCase().padStart(4, '0');
+                const rawBytesText = bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ').padEnd(8, ' ');
+                const opText = operands ? (mnemonic + ' ' + operands.join(',')) : mnemonic;
+                return ` ${addrText}  [ ${rawBytesText} ]  ${opText}`;
+            }
         }
     }
 

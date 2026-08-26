@@ -14,9 +14,10 @@ let disasmContextMenu_items = {
     gotoLabel: { className: "disasm-context-item", label:"Goto any label", handler:gotoLabel, comment:"Goto any label from a list." },
     gotoAddress: { className: "disasm-context-item", label:"Goto address", handler:gotoAddress, comment:"Goto a user-selected address." },
     copySeparator: { className:"disasm-context-separator" },
-    copyAddress:{ className:"disasm-context-item", label:"Copy address", handler:copyAddress, comment:"Copy the current address to the clipboard." },
-    copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the raw instruction bytes as hexadecimal." },
+    copySelection: { className:"disasm-context-item", label:"Copy disassembly", handler:copyDisassembly, comment:"Copy the selected instruction(s) as formatted disassembly to the clipboard."},
+    copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the selected raw instruction bytes as hexadecimal." },
     copyInstruction: { className:"disasm-context-item", label: "Copy instruction", handler:copyInstruction, comment:"Copy the decoded instruction text." },
+    copyAddress:{ className:"disasm-context-item", label:"Copy address", handler:copyAddress, comment:"Copy the selected instruction address(es) to the clipboard." },
     toggleBreakpointSeparator: { className:"disasm-context-separator" },
     toggleBreakpoint: { className:"disasm-context-item", label: "Toggle Breakpoint", handler:toggleDisasmBreakpoint, comment:"Toggle the breakpoint, can also be set/unset using the leftmost column."}
 };

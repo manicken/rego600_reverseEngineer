@@ -1,3 +1,5 @@
+
+
 let xram_views = [];
 
 function init_memory_panels() {
@@ -19,15 +21,19 @@ function render_XRAM_windows() {
 
 function init_xram_view(view_el) {
     
-    appendH2_from_data_title(view_el);
+  let header_el = createNewElement("div", {className:"row"});
 
-    let index_el = appendInputFieldWithLabel(view_el, {type:"number", labelText:"Index(0-127): ", value:view_el.dataset.start_index, min:0, max:127, step:1, width:64});
+    appendH2(header_el, view_el.dataset.title);
+    //appendH2_from_data_title(header_el);
+
+    let index_el = appendInputFieldWithLabel(header_el, {type:"number", labelText:"Index(0-127): ", value:view_el.dataset.start_index, min:0, max:127, step:1, styles:{width:'64px', height:'22px', paddingBottom:'0px', paddingTop:'0px'}});
     let memdump_el = createNewElement("div", {className:"memdump"});
 
     let component = { memdump_el, index_el };
     index_el.oninput = () => {
         render_XRAM_window(component);
     };
+    view_el.appendChild(header_el);
     view_el.appendChild(memdump_el);
     return component;
 }

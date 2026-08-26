@@ -12,10 +12,24 @@ function SRAM62256(size = 0x8000) {
 }
 
 SRAM62256.prototype.read = function (addr) {
+    if (addr >= 0x1368 && addr <= 0x1369) {
+        console.log(
+            `setting 0x3E read: addr=0x${addr.toString(16)}, ` +
+            `value=0x${this.mem[addr & (this.size - 1)].toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+    }
     return this.mem[addr & (this.size - 1)]
 }
 
 SRAM62256.prototype.write = function (addr, val) {
+    if (addr >= 0x1368 && addr <= 0x1369) {
+        console.log(
+            `setting 0x3E write: addr=0x${addr.toString(16)}, ` +
+            `value=0x${val.toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+    }
     /*if (addr == 0x13d0) {
         console.log(`0x13d0 write happend - new value (${val}):\n` + cpu.getCallStackString());
     } else if (addr == 0x1c16 || addr == 0x1c17) {

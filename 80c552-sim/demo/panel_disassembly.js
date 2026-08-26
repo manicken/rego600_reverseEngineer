@@ -29,6 +29,11 @@ class DisasmLine {
     }
 }
 
+const DisAsmLineType = {
+    Label:0,
+    Instruction:1
+};
+
 function gotoDisasmAddress(addr) {
 
     const index = disasmAddrToIndex.get(addr);
@@ -72,18 +77,61 @@ function gotoTarget_Back() {
     }
 }
 
+function getSelectedItems() {
+    const range = getSelectedRange();
+
+    return disasmDisplayList.slice(range.start, range.end + 1);
+}
+
+function copyDisassembly() {
+    let text = "";
+
+    getSelectedItems().forEach(item => {
+        if (item.type == DisAsmLineType.Instruction) {
+            text += item.insn.text() + '\n';
+        } else if (item.type == DisAsmLineType.Label) {
+            text += '\n' + item.text + ':\n';
+        }
+    });
+    navigator.clipboard.writeText(text);
+}
+
 function copyAddress() {
-    const text = hex(disasmLineContext.data.addr, 4);
+    let text = "";
+    getSelectedItems().forEach(item => {
+        if (item.type == DisAsmLineType.Instruction) {
+            text += hex(item.insn.addr, 4) + '\n';
+        } else if (item.type == DisAsmLineType.Label) {
+            text += '\n' + item.text + ':\n';
+        }
+    });
+   //const text = hex(disasmLineContext.data.addr, 4);
     navigator.clipboard.writeText(text);
 }
 function copyRawData() {
-    const text = disasmLineContext.data.bytes.map(b => hex(b, 2, false)).join(' ');
+    let text = "";
+    getSelectedItems().forEach(item => {
+        if (item.type == DisAsmLineType.Instruction) {
+            text += item.insn.bytes.map(b => hex(b, 2, false)).join(' ') + '\n';
+        } else if (item.type == DisAsmLineType.Label) {
+            text += '\n' + item.text + ':\n';
+        }
+    });
+    //const text = disasmLineContext.data.bytes.map(b => hex(b, 2, false)).join(' ');
     navigator.clipboard.writeText(text);
 }
 
 function copyInstruction() {
-    const insn = line.data;
-    const text = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic
+    let text = "";
+    getSelectedItems().forEach(item => {
+        if (item.type == DisAsmLineType.Instruction) {
+            const insn = item.insn;
+            const opText = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic;
+            text += opText + '\n';
+        } else if (item.type == DisAsmLineType.Label) {
+            text += '\n' + item.text + ':\n';
+        }
+    });
     navigator.clipboard.writeText(text);
 }
 
@@ -212,16 +260,16 @@ function rebuildDisasmDisplayList() {
     for (const insn of disasmEntries) {
         const label = insn.label;
         if (label)
-            list.push({ type: "label", addr: insn.addr, text: label });
+            list.push({ type: DisAsmLineType.Label, addr: insn.addr, text: label });
 
-        list.push({ type: "insn", insn });
+        list.push({ type: DisAsmLineType.Instruction, insn });
     }
 
     disasmDisplayList = list;
 
     disasmAddrToIndex = new Map();
     list.forEach((item, i) => {
-        if (item.type === "insn")
+        if (item.type === DisAsmLineType.Instruction)
             disasmAddrToIndex.set(item.insn.addr, i);
     });
 
@@ -339,6 +387,69 @@ function disassembly_init() {
 
     console.log("disassembly: " + disasmEntries.length + " rows, rowHeight=" + rowHeight + ", pool=" + disasmPool.length + ", viewport clientHeight=" + viewport_el.clientHeight);
 
+    initSelectFunctionality(disassemblyView_el);
+}
+
+let isDragging = false;
+
+let selStartIndex = null;
+let selEndIndex= null;
+
+function getSelectedRange() {
+  if (selStartIndex === null || selEndIndex === null) return {start:0, end:0, length:0};
+  const start = Math.min(selStartIndex, selEndIndex);
+  const end = Math.max(selStartIndex, selEndIndex)
+  return {start, end, length:end-start, includes(value) { return (value >= start) && (value <= end); }};
+}
+
+function initSelectFunctionality(disassemblyView_el) {
+    /**
+     * drag select functionality
+     */
+    
+
+    disassemblyView_el.addEventListener('mousedown', (e) => {
+        const selCount = getSelectedRange().length;
+
+        if (e.button != 0 && selCount > 1 ) {
+            return;
+        }
+        const row = e.target.closest('.disassembly-grid-row');
+
+        if (!row) return;
+
+        isDragging = true;
+        selStartIndex = row.dataSource.index;
+        selEndIndex = selStartIndex;
+        updateSelectionHighlight();
+        renderVisibleDisasmRows();
+        e.preventDefault(); // undvik textmarkering i browsern
+        console.log("start drag");
+    });
+
+    disassemblyView_el.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const row = e.target.closest('.disassembly-grid-row');
+
+        if (!row) return; // musen är utanför en rad (t.ex. mellanrum) - ignorera tick
+        
+        selEndIndex = row.dataSource.index;
+        updateSelectionHighlight();
+        renderVisibleDisasmRows();
+        console.log("dragging");
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        console.log("stop dragging");
+    });
+
+    function updateSelectionHighlight() {
+        const range = getSelectedRange();
+        for (let i=0; i< disasmDisplayList.length; i++) {
+            disasmDisplayList[i].selected = range.includes(i);
+        }
+    }
 }
 
 /** Skapar en enda pool-rad (DOM), obunden till någon instruktion ännu. */
@@ -352,6 +463,8 @@ function buildPoolRow() {
     row_el.style.left = "0";
     row_el.style.right = "0";
     row_el.style.top = "0px";
+
+    row_el.onclick
 
     const disasmLine = new DisasmLine();
     disasmLine.row_el = row_el;
@@ -389,6 +502,7 @@ function initDisasmPool() {
     disasmPool = [];
     for (let i = 0; i < poolSize; i++) {
         const line = buildPoolRow();
+        line.row_el.dataset.index = i;
         line.row_el.style.display = "none";
         disasmSizer_el.appendChild(line.row_el);
         disasmPool.push(line);
@@ -402,6 +516,7 @@ function resizeDisasmPool() {
 
     while (disasmPool.length < needed) {
         const line = buildPoolRow();
+        line.row_el.dataset.index = disasmPool.length-1;
         line.row_el.style.display = "none";
         disasmSizer_el.appendChild(line.row_el);
         disasmPool.push(line);
@@ -463,9 +578,14 @@ function bindPoolRow(line, item, index) {
     line.index = index;
 
     line.row_el.style.display = "";
+    line.row_el.classList.remove('selected');
+    if (item.selected) {
+        line.row_el.classList.add('selected');
+    }
     line.row_el.style.top = (index * rowHeight) + "px";
+    line.row_el.dataSource = line;
 
-    if (item.type === "label") {
+    if (item.type === DisAsmLineType.Label) {
         line.data = null;
         line.row_el.classList.add("disassembly-label-row");
         line.row_el.title = "";
@@ -484,6 +604,7 @@ function bindPoolRow(line, item, index) {
 
     const insn = item.insn;
     line.data = insn;
+    
     line.row_el.classList.remove("disassembly-label-row");
 
     line.label_el.style.display = "none";

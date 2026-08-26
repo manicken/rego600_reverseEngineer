@@ -469,9 +469,9 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
         if (addr >= 0xFFD6) {
           //console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
         }
-        if (addr >= 0x2dF8 && addr <= 0x2e38) {
+        /*if (addr >= 0x2dF8 && addr <= 0x2e38) {
             console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
-        }
+        }*/
         /*if (addr >= 0x2dF8 && addr <= 0x2dff) {
             console.log(`MOVC 0x93 happend getting value ${hex(data)} from adress ${hex(addr)}\n ${this.getCallStackString(1)}`);
         }*/

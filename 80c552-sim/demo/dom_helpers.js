@@ -13,9 +13,13 @@ function appendInputFieldWithLabel(container, inputOptions) {
     inputEl.min = inputOptions.min;
     inputEl.max = inputOptions.max;
     inputEl.step = inputOptions.step;
-    if (inputOptions.width) {
-        inputEl.style.width = `${inputOptions.width}px`
+
+    if (typeof inputOptions.styles === "object") {
+        for (const [name, value] of Object.entries(inputOptions.styles)) {
+            inputEl.style[name] = value;
+        }
     }
+    
     container.appendChild(inputEl);
     return inputEl;
 }
@@ -41,8 +45,8 @@ function appendWriteValueToAddressControl(container_id, id_base, initial_addr, i
         initial_value = "0x00";
     }
     container.appendChild(document.createElement('hr'));
-    appendInputFieldWithLabel(control, {type:"text", id:addrInputId, labelText:"Address:", value:initial_addr, width:48});
-    appendInputFieldWithLabel(control, {type:"text", id:valueInputId, labelText:"Value:", value:initial_value, width:48});
+    appendInputFieldWithLabel(control, {type:"text", id:addrInputId, labelText:"Address:", value:initial_addr, styles:{width:'48px'}});
+    appendInputFieldWithLabel(control, {type:"text", id:valueInputId, labelText:"Value:", value:initial_value, styles:{width:'48px'}});
     let btnSet = document.createElement("button");
     btnSet.textContent = "Set";
     btnSet.onclick = function () {

@@ -439,6 +439,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     peripheralRegs_el = document.getElementById('peripheralRegs');
     pwr_output_signals_el = document.getElementById('pwr_output_signals');
 
+    createMenu(document.getElementById("main-menu"), menu);
+
     await initCpu();
    // cpu.set_addr_break(0x8a9e); // uart read sysreg cmd 02
    // cpu.set_addr_break(0x8b87); // uart get ver cmd 7f

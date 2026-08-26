@@ -82,9 +82,9 @@ function append_SPIF_customSender(container, id) {
     let input_param1_row_el = appendDiv(container, "row");
     let input_param2_row_el = appendDiv(container, "row");
     appendBr(container);
-    appendInputFieldWithLabel(input_cmd_row_el, {type:"text", id:input_cmd_el_id, labelText:"Cmd: ", value:"0x00", width:32});
-    appendInputFieldWithLabel(input_param1_row_el, {type:"text", id:input_param1_el_id, labelText:"Reg index: ", value:"0x00", width:44});
-    appendInputFieldWithLabel(input_param2_row_el, {type:"text", id:input_param2_el_id, labelText:"Value: ", value:"0x00", width:44});
+    appendInputFieldWithLabel(input_cmd_row_el, {type:"text", id:input_cmd_el_id, labelText:"Cmd: ", value:"0x00", styles:{width:'32px'}});
+    appendInputFieldWithLabel(input_param1_row_el, {type:"text", id:input_param1_el_id, labelText:"Reg index: ", value:"0x00", styles:{width:'44px'}});
+    appendInputFieldWithLabel(input_param2_row_el, {type:"text", id:input_param2_el_id, labelText:"Value: ", value:"0x00", styles:{width:'44px'}});
     appendBr(container);
     appendButton(container, "Send").onclick = () => {
         service_port_request_any(input_cmd_el_id, input_param1_el_id, input_param2_el_id);
