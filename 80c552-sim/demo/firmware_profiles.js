@@ -23,7 +23,9 @@ let entry_points_3060 = [
     {addr:0x0A16, label:"SetupMemoryAccessAbsolute"},
     {addr:0x0A3A, label:"SetupMemoryAccessOffset"},
     {addr:0x0B5A, label:"intmem_read_3bytes_to_R7_R6_R5"},
-    {addr:0x0B9D, label:"convert_index_to_16_bit_adress_using_R7"},
+    {addr:0x0B93, label:"convert_index_to_16_bit_address_using_R5"},
+    {addr:0x0B9D, label:"convert_index_to_16_bit_address_using_R7"},
+    {addr:0x0B9F, label:"convert_index_to_16_bit_adress_using_A_B"},
     {addr:0x0BC3, label:"extmem_read_3bytes_to_R7_R6_R5"},
     {addr:0x67D7, label:"extram_zerofill"}, 
     {addr:0x6829, label:"TIMER0_IRQ_HANDLER"}, 
@@ -62,6 +64,7 @@ let entry_points_3060 = [
 
     {addr:0x8126, label:"write_LCD_using_IRAM_2A_2B_2C"},
 
+    {addr:0x88B6, label:"UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM"},
     {addr:0x8919, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM"},
     {addr:0x8A68, label:"uart_cmd_00_front_panel_read"},
     {addr:0x8A81, label:"uart_cmd_01_front_panel_write"},

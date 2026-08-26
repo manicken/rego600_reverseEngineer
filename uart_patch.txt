@@ -1,0 +1,97 @@
+
+R register som uart funktioner ändrar på
+R0, R1, R4, R5, R6, R7
+
+uart_cmd_00_front_panel_read:
+       
+
+	   
+uart_cmd_02_sys_reg_read: (original 23 inst, modded 6, diff 17 bytes)
+	   [ 90 12 EC ]  MOV DPTR,#0x12EC
+       [ 80 xx    ]  SJMP uart_common_read
+	   
+uart_cmd_04_timer_reg_read: (original 25 bytes, patched 5 bytes)
+ 8B21  [ 90 1A EC ]  MOV DPTR,#0x1AEC
+ 8B24  [ 80 1A    ]  SJMP uart_common_read
+	   
+uart_cmd_05_timer_reg_write: (original 28 bytes, patched 5 bytes)
+ 8B26  [ 90 1A EC ]  MOV DPTR,#0x1AEC
+ 8B29  [ 80 08    ]  SJMP uart_common_write
+
+uart_cmd_06_menu_reg_read: (original 24 bytes, patched 5 bytes)
+ 8B2B  [ 90 1B 08 ]  MOV DPTR,#0x1B08
+ 8B2E  [ 80 10    ]  SJMP uart_common_read
+	   
+uart_cmd_07_menu_reg_write: (original 28 bytes, patched 3 bytes)
+ 8B30  [ 90 1B 08 ]  MOV DPTR,#0x1B08
+	   
+uart_common_write: (new function 13 bytes)
+ 8B33  [ 12 8B 64 ]  LCALL uart_common_set_addr_from_index_params
+ 8B36  [ 78 3F    ]  MOV R0,#0x3F
+ 8B38  [ E6       ]  MOV A,@R0
+ 8B39  [ F0       ]  MOVX @DPTR,A
+ 8B3A  [ A3       ]  INC DPTR
+ 8B3B  [ 08       ]  INC R0
+ 8B3C  [ E6       ]  MOV A,@R0
+ 8B3D  [ F0       ]  MOVX @DPTR,A
+ 8B3E  [ 80 4C    ]  SJMP uart_cmd_reset_rx_index
+	   
+uart_common_read: (new function 14 bytes)
+ 8B40  [ 12 8B 64 ]  LCALL uart_common_set_addr_from_index_params
+ 8B43  [ E0       ]  MOVX A,@DPTR
+ 8B44  [ FD       ]  MOV R5,A
+ 8B45  [ A3       ]  INC DPTR
+ 8B46  [ E0       ]  MOVX A,@DPTR
+ 8B47  [ FC       ]  MOV R4,A
+ 8B48  [ 12 89 19 ]  LCALL UART_SEND_AS_3_BYTES_PLUS_CHECKSUM
+ 8B4B  [ 80 3F    ]  SJMP uart_cmd_reset_rx_index
+ 
+uart_cmd_20_display_reg_read: (original 21 bytes)
+ 8B4D  [ 78 3E    ]  MOV R0,#0x3E
+ 8B4F  [ E6       ]  MOV A,@R0
+ 8B50  [ 75 F0 15 ]  MOV B,#0x15
+ 8B53  [ A4       ]  MUL AB
+ 8B54  [ 24 6E    ]  ADD A,#0x6E
+ 8B56  [ FD       ]  MOV R5,A
+ 8B57  [ E4       ]  CLR A
+ 8B58  [ 34 0A    ]  ADDC A,#0x0A
+ 8B5A  [ FE       ]  MOV R6,A
+ 8B5B  [ 7F 01    ]  MOV R7,#0x01
+ 8B5D  [ 12 88 B6 ]  LCALL UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM
+ 8B60  [ 80 2A    ]  SJMP uart_cmd_reset_rx_index
+	   
+uart_common_set_addr_from_index_params: (new function 11 bytes)
+ 8B62  [ 78 3D    ]  MOV R0,#0x3D
+ 8B64  [ E6       ]  MOV A,@R0
+ 8B65  [ F5 F0    ]  MOV B,A
+ 8B67  [ 08       ]  INC R0
+ 8B68  [ E6       ]  MOV A,@R0
+ 8B69  [ 12 0B 9F ]  LCALL convert_index_to_16_bit_adress_using_A_B
+ 8B6C  [ 22       ]  RET	   
+
+uart_cmd_40_read_last_error_line: 
+ 8B6D  [ 7C 00    ]  MOV R4,#0x00
+ 8B6F  [ 80 02    ]  SJMP #8B75
+ 
+uart_cmd_42_read_prev_error_line:
+ 8B71  [ 7C 01    ]  MOV R4,#0x01
+ 8B73  [ 7D 41    ]  MOV R5,#0x41
+ 8B75  [ E4       ]  CLR A
+ 8B76  [ FE       ]  MOV R6,A
+ 8B77  [ FF       ]  MOV R7,A
+ 8B78  [ 12 70 7F ]  LCALL GET_ERROR_FROM_LOG
+ 8B7B  [ 7D 41    ]  MOV R5,#0x41
+ 8B7D  [ E4       ]  CLR A
+ 8B7E  [ FE       ]  MOV R6,A
+ 8B7F  [ FF       ]  MOV R7,A
+ 8B80  [ 12 88 B6 ]  LCALL UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM
+ 8B83  [ 80 07    ]  SJMP uart_cmd_reset_rx_index
+ 
+ uart_cmd_7F_read_rego_ver: (original 9 bytes, patch 7 bytes,
+ 8B89  [ 7D 02    ]  MOV R5,#0x02
+ 8B8B  [ 7C 58    ]  MOV R4,#0x58
+ 8B8D  [ 12 89 19 ]  LCALL UART_SEND_AS_3_BYTES_PLUS_CHECKSUM
+ 
+uart_cmd_reset_rx_index:
+ 8B90  [ 78 7F    ]  MOV R0,#0x7F
+ 8B92  [ 76 00    ]  MOV @R0,#0x00
