@@ -1,14 +1,36 @@
 
 R register som uart funktioner ändrar på
 R0, R1, R4, R5, R6, R7
+original uart_cmd_00 begun at 8A68 148 bytes saved
 
-uart_cmd_00_front_panel_read:
-       
+uart_cmd_00_front_panel_read: (original 25 inst, modded 5, diff 20 bytes)
+ 8AFC      [ 90 09 A6 ]  MOV DPTR,#0x09A6
+ 8AFF  [ 80 3F    ]  SJMP uart_common_read
 
+uart_cmd_01_front_panel_write: (original 29 inst, modded 5, diff 24 bytes)
+ 8B01  [ 90 09 A6 ]  MOV DPTR,#0x09A6
+ 8B04  [ 80 2D    ]  SJMP uart_common_write
 	   
-uart_cmd_02_sys_reg_read: (original 23 inst, modded 6, diff 17 bytes)
-	   [ 90 12 EC ]  MOV DPTR,#0x12EC
-       [ 80 xx    ]  SJMP uart_common_read
+uart_cmd_02_sys_reg_read: (original 23 inst, modded 5, diff 18 bytes)
+ 8B06  [ 90 12 EC ]  MOV DPTR,#0x12EC
+ 8B09  [ 80 35    ]  SJMP uart_common_read
+	   
+uart_cmd_03_sys_reg_write: (original 44 bytes, patched 22 bytes)
+ 8B0B  [ 78 3F    ]  MOV R0,#0x3F
+ 8B0D  [ E6       ]  MOV A,@R0
+ 8B0E  [ FF       ]  MOV R7,A
+ 8B0F  [ 08       ]  INC R0
+ 8B10  [ E6       ]  MOV A,@R0
+ 8B11  [ FE       ]  MOV R6,A
+ 8B12  [ 78 3D    ]  MOV R0,#0x3D
+ 8B14  [ E6       ]  MOV A,@R0
+ 8B15  [ FD       ]  MOV R5,A
+ 8B16  [ 08       ]  INC R0
+ 8B17  [ E6       ]  MOV A,@R0
+ 8B18  [ FC       ]  MOV R4,A
+ 8B19  [ 12 73 C6 ]  LCALL SaveSettingTo29F040Journal
+ 8B1C  [ 90 12 EC ]  MOV DPTR,#0x12EC
+ 8B1F  [ 80 12    ]  SJMP uart_common_write
 	   
 uart_cmd_04_timer_reg_read: (original 25 bytes, patched 5 bytes)
  8B21  [ 90 1A EC ]  MOV DPTR,#0x1AEC
@@ -71,10 +93,11 @@ uart_common_set_addr_from_index_params: (new function 11 bytes)
 
 uart_cmd_40_read_last_error_line: 
  8B6D  [ 7C 00    ]  MOV R4,#0x00
- 8B6F  [ 80 02    ]  SJMP #8B75
+ 8B6F  [ 80 02    ]  SJMP uart_cmd_40_42_read_error_line_common
  
 uart_cmd_42_read_prev_error_line:
  8B71  [ 7C 01    ]  MOV R4,#0x01
+uart_cmd_read_error_line_common:
  8B73  [ 7D 41    ]  MOV R5,#0x41
  8B75  [ E4       ]  CLR A
  8B76  [ FE       ]  MOV R6,A
