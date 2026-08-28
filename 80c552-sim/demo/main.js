@@ -543,6 +543,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
     window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
+    window.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
     
     const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 

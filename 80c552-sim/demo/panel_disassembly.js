@@ -48,10 +48,9 @@ function gotoDisasmAddress(addr) {
 }
 
 function editCode() {
-    let line = disasmLineContext;
     window.hex_edit_modal.open();
     window.hexEditor.loadBytes(cpu.CODE);
-    window.hexEditor.jumpTo(line.data.addr);
+    window.hexEditor.jumpTo(disasmLineContext.data.addr);
 }
 
 function gotoAddress() {
@@ -61,6 +60,14 @@ function gotoAddress() {
         return; // cancel
 
     gotoDisasmAddress(parseInt(text, 16));
+}
+
+function gotoLabel() {
+    showGotoLabelModal();
+}
+
+function showAddressReferences() {
+    showReferencesToLabelModal(disasmLineContext.data.addr);
 }
 
 function gotoTarget() {
@@ -287,7 +294,7 @@ function disassembly_init() {
         if (!insn_map.has(pc)) {
             console.log("new code:", hex(pc, 4));
 
-            curr_firmware.entry_points.push(pc);
+            curr_firmware.code_map.push(pc);
 
             js51_disasm.disassemble_recursive(
                 cpu.CODE,
@@ -300,14 +307,13 @@ function disassembly_init() {
         }
     });
 
-    //let entry_points = ;//, 0x7863, 0x7841, 0x788F, 0x780C, 0x693D, 0x04D4, 0x0B36, 0x8218, 0x0B2E, 0x0B25, 0xEF2E, 0x694C, 0x6940, 0x692D, 0x6935, 0x6D26, 0x692F, 0xEF37, 0x04D0, 0x0B3B];
-    console.log(curr_firmware.entry_points);
-    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.entry_points, cpu.SFR);
-    console.log(insn_map);
+    //console.log(curr_firmware.code_map);
+    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
+    //console.log(insn_map);
     // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
     const addrs = [...insn_map.keys()].sort((a, b) => a - b);
     disasmEntries = addrs.map(addr => insn_map.get(addr));
-    console.log(disasmEntries);
+    //console.log(disasmEntries);
 
     rebuildDisasmDisplayList(); // bygger disasmDisplayList + disasmAddrToIndex (inga etiketter satta ännu, så = disasmEntries)
 
@@ -674,7 +680,7 @@ function setCurrentExecLine(cpu, force = false) {
     let insn = insn_map.get(address);
     if (index === undefined || insn === undefined) {
         //console.log("asdress not disasm, executing disasm:" + hex(address,4));
-        curr_firmware.entry_points.push(address); // push so that we can save it to local storage later to avoid same sitaution again
+        curr_firmware.code_map.push(address); // push so that we can save it to local storage later to avoid same sitaution again
         insn_map = js51_disasm.disassemble_recursive(cpu.CODE, [address], cpu.SFR, insn_map);
         const addrs = [...insn_map.keys()].sort((a, b) => a - b);
         disasmEntries = addrs.map(addr => insn_map.get(addr));

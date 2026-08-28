@@ -1,7 +1,3 @@
-function gotoLabel() {
-    showGotoLabelModal();
-}
-
 
 function showGotoLabelModal() {
 

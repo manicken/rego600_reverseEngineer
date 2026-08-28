@@ -13,6 +13,8 @@ let disasmContextMenu_items = {
     gotoSeparator: { className:"disasm-context-separator" },
     gotoLabel: { className: "disasm-context-item", label:"Goto any label", handler:gotoLabel, comment:"Goto any label from a list." },
     gotoAddress: { className: "disasm-context-item", label:"Goto address", handler:gotoAddress, comment:"Goto a user-selected address." },
+    showAddressReferencesSeparator: { className:"disasm-context-separator" },
+    showAddressReferences: { className: "disasm-context-item", label:"Show References to Address", handler:showAddressReferences, comment:"Show Call and Jump References to this address." },
     copySeparator: { className:"disasm-context-separator" },
     copySelection: { className:"disasm-context-item", label:"Copy disassembly", handler:copyDisassembly, comment:"Copy the selected instruction(s) as formatted disassembly to the clipboard."},
     copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the selected raw instruction bytes as hexadecimal." },

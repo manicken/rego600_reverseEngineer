@@ -1,0 +1,136 @@
+fixed IRAM locations used by UART
+0x7B UART_RX_CURRENT_BYTE
+
+0x7E UART_RX_STATE
+0x80 UART_RX_DONE
+0x98 ????
+
+UART new ISR handler direct in vector area,
+uses unused area before UART vector that normally belong to 
+TIMER1 overflow ISR, but as timer2 is not used this is good
+ 
+UART_ISR_RX_TRAMPOLINE:
+ 001D  [ 02 6A 6A ] LJMP 6A6Ah
+UART_ISR_TX_TRAMPOLINE:
+ 0020  [ 32       ] RETI
+UART_ISR_VECTOR:
+ 0023  [ 10 98 F7 ] JBC S0CON.RI,UART_ISR_RX_TRAMPOLINE
+ 0026  [ 10 99 F7 ] JBC S0CON.TI,UART_ISR_TX_TRAMPOLINE
+ 0029  [ 32       ] RETI (failsafe)
+
+
+UART_SEND_AS_3_BYTES_PLUS_CHECKSUM: (original 82 bytes, patched: 35 bytes)
+E4				CLR   A
+FF				MOV   R7, A
+12 xx xx        LCALL UART_SEND_R4_R5_AS_3x7BIT_BYTES
+02 xx xx		LJMP UART_SEND_CHECKSUM_IN_R7 
+				
+UART_SEND_R4_R5_AS_3x7BIT_BYTES:
+            ; --- INIT & BYTE 1 ---
+7E              MOV   A, R4         ; Hämta Byte 1
+FE              MOV   R6, A         ; copy
+C4              SWAP  A             ; Flytta bit 7-4 till botten
+03              RR    A             ; Rotera höger...
+03              RR    A             ; ...totalt 2 steg till höger (ger bit 7-6 i botten)
+54              ANL   A, #03H       ; Maskera så bara de 2 bitarna är kvar
+FC              MOV   R4, A         ; Lägg i R4 inför UART-anrop
+6F              XRL   A, R7         ; Uppdatera checksumman: R7 = R7 XOR Byte 2
+FF              MOV   R7, A
+12 6B 2C        LCALL UART_SEND_ONE_BYTE
+
+            ; --- BYTE 2 ---
+ED              MOV   A, R5         ; Hämta Byte 2
+33              RLC   A             ; Skjut ut MSB (bit 7) till Carry-flaggan
+EE              MOV   A, R6         ; Hämta Byte 1 ifrån copy
+33              RLC   A             ; Skjut in Carry i bit 0. Bit 0-5 flyttas upp.
+54              ANL   A, #7FH       ; Nollställ bit 7
+FC              MOV   R4, A         ; Lägg i R4 inför UART-anrop
+6F              XRL   A, R7         ; Uppdatera checksumman: R7 = R7 XOR Byte 2
+FF              MOV   R7, A
+12 6B 2C        LCALL UART_SEND_ONE_BYTE
+
+            ; --- BYTE 3 ---
+ED              MOV   A, R5         ; Hämta Byte 2 igen
+54              ANL   A, #7FH       ; Nollställ bit 7
+FC              MOV   R4, A         ; Lägg i R4 inför UART-anrop
+6F              XRL   A, R7         ; Uppdatera checksumman: A = R7 XOR Byte 3
+FF              MOV   R7, A
+02 6B 2C        LJMP UART_SEND_ONE_BYTE uses RET of UART_SEND_ONE_BYTE
+
+            ; --- CHECKSUMMA ---
+UART_SEND_CHECKSUM_IN_R7:
+EC              MOV   A, R7         ; Hämta den slutgiltiga checksumman från R7
+FC              MOV   R4, A         ; Flytta till R4 inför sista sändningen
+02 6B 2C        LJMP  UART_SEND_ONE_BYTE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Maskinkod   Assembler-kod
+-------------------------------------------------------------------------
+            UART_SEND_BYTES_UNPACKED_GENERIC:
+E4              CLR   A
+FF              MOV   R7, A         ; R7 = Löpande checksumma (istället för RAM 0x28)
+
+            STREAM_LOOP:
+; --- STEG 1: Läs en hel byte från minnet (1 gång istället för 2) ---
+; Vi måste ladda DPTR med vårt index. Eftersom R3 räknar ner, kan vi ha en loop-räknare.
+; Men för att matcha din originalkod som ökar ett index, antar vi att DPTR 
+; (eller indexet i DPL) sätts upp av ReadMemory-rutinen eller ökar externt.
+; Om originalet använder ett index på RAM 0x26 som ökar, gör vi det här i R2 istället:
+
+            ; Förbered DPTR inför minnesläsningen (ersätter kompilatons DPTR-slöseri)
+            ; Vi antar här att din "ReadMemory_using_R5_R6_R7" läser från [R5:R6:R7] + index i DPL.
+            ; För att göra det helt generiskt, sätter vi DPL till nuvarande index (låt oss använda R2 som index):
+8A       82     MOV   DPL, R2       ; Hämta nuvarande byte-index (börja på 0)
+75       83 00  MOV   DPH, #00H
+12       08 83  LCALL ReadMemory_using_R5_R6_R7 ; Läser hel byte till A. Ex: [High_nibble : Low_nibble]
+FE              MOV   R6, A         ; Spara originalbyten i R6 för low-nibble senare
+
+; --- STEG 2: Processa HIGH NIBBLE ---
+C4              SWAP  A             ; Byt plats så High Nibble hamnar i botten
+54       0F     ANL   A, #0FH       ; Isolera High Nibble
+FC              MOV   R4, A         ; Förbered för UART
+6F              XRL   A, R7         ; Uppdatera checksumma
+FF              MOV   R7, A         ; Spara checksumma i R7
+12       6B 2C  LCALL UART_SEND_ONE_BYTE
+
+; --- STEG 3: Processa LOW NIBBLE ---
+EE              MOV   A, R6         ; Hämta tillbaka originalbyten
+54       0F     ANL   A, #0FH       ; Isolera Low Nibble
+FC              MOV   R4, A         ; Förbered för UART
+6F              XRL   A, R7         ; Uppdatera checksumma
+FF              MOV   R7, A         ; Spara checksumma i R7
+12       6B 2C  LCALL UART_SEND_ONE_BYTE
+
+; --- STEG 4: Loop-kontroll ---
+0A              INC   R2            ; Öka minnesindexet till nästa byte
+DA       E2     DJNZ  R3, STREAM_LOOP ; Minska R3 (antal bytes). Loopa om inte 0.
+
+; --- STEG 5: Skicka slutgiltig checksumma ---
+EC              MOV   A, R7         ; Hämta checksumman från R7
+FC              MOV   R4, A         ; Förbered för UART
+02       6B 2C  LJMP  UART_SEND_ONE_BYTE ; Skicka checksumman och gör RET därifrån

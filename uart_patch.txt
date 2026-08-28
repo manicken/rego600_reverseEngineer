@@ -68,6 +68,9 @@ uart_common_read: (new function 14 bytes)
  8B48  [ 12 89 19 ]  LCALL UART_SEND_AS_3_BYTES_PLUS_CHECKSUM
  8B4B  [ 80 3F    ]  SJMP uart_cmd_reset_rx_index
  
+ 
+ 
+ 
 uart_cmd_20_display_reg_read: (original 21 bytes)
  8B4D  [ 78 3E    ]  MOV R0,#0x3E
  8B4F  [ E6       ]  MOV A,@R0

@@ -623,11 +623,11 @@
     // ---------- disassemble_recursive ----------
     //
     // Löser alignment-problemet genom att bara lita på adresser vi VET är
-    // instruktionsgränser: entry_points (t.ex. reset-vektorn 0x0000,
+    // instruktionsgränser: code_map (t.ex. reset-vektorn 0x0000,
     // interrupt-vektorer) plus varje bekräftat hopp/anrop-mål vi hittar
     // under vägen. Går inte i "gissa nästa byte"-stil rakt igenom ROM.
     //
-    // entry_points: array av startadresser, t.ex. [0, 0x0B, 0x13, ...]
+    // code_map: array av startadresser, t.ex. [0, 0x0B, 0x13, ...]
     // (reset + interrupt-vektorerna för 80C552)
     //
     // Returnerar en Map<addr, insn> över alla bekräftade instruktioner,
@@ -635,9 +635,9 @@
     // bara reset-vektorn som entry point får man ungefär vad en linker
     // skulle kalla "reachable code" - vilket är precis den delen där
     // alignment annars är tvetydig.
-    function disassemble_recursive(rom, entry_points, sfr_map, visited=undefined) {
+    function disassemble_recursive(rom, code_map, sfr_map, visited=undefined) {
         if (visited == undefined) visited = new Map();
-        let queue = entry_points.map((entry) => (typeof entry === "object")?entry.addr:entry );
+        let queue = code_map.map((entry) => (typeof entry === "object")?entry.start:entry );
 
         while (queue.length) {
             let addr = queue.pop()
@@ -663,9 +663,9 @@
             }
         }
 
-        for (let entry of entry_points) {
+        for (let entry of code_map) {
             let insn = visited.get(
-                typeof entry === "object" ? entry.addr : entry
+                typeof entry === "object" ? entry.start : entry
             );
 
             if (insn && typeof entry === "object" && entry.label !== undefined) {
