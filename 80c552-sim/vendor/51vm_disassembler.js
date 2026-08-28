@@ -637,14 +637,50 @@
     // alignment annars är tvetydig.
     function disassemble_recursive(rom, code_map, sfr_map, visited=undefined) {
         if (visited == undefined) visited = new Map();
-        let queue = code_map.map((entry) => (typeof entry === "object")?entry.start:entry );
+
+        const code_entries = code_map.filter(entry =>
+            typeof entry !== "object" || entry.type === MAP_TYPE.FUNC
+        );
+
+        const data_entries = code_map.filter((entry) => {
+                if (typeof entry !== "object") return false;
+                if (entry.type !== MAP_TYPE.DATA) return false;
+                if (entry.end === undefined) {
+                    console.error("cannot resolve data entry because it don't have .end defined:", entry);
+                    return false;
+                }
+                if (entry.end < entry.start) {
+                    console.error("cannot resolve data entry because end is smaller than start:", entry);
+                    return false;
+                }
+                return true;
+            }
+        );
+
+        function isData(addr) {
+            for (let item of data_entries) {
+                if (addr < item.start) continue;
+                if (addr > item.end) continue;
+                console.log("found data @ address:" + hex(addr,4));
+                return true;
+            }
+            return false;
+        }
+
+        let queue = code_entries.map(entry =>
+            typeof entry === "object" ? entry.start : entry
+        );
 
         while (queue.length) {
             let addr = queue.pop()
             if (visited.has(addr)) continue
             if (addr < 0 || addr >= rom.length) continue
+            
+            if (isData(addr)) continue;
 
-            let insn = disassemble_one(rom, addr, sfr_map)
+            let insn = disassemble_one(rom, addr, sfr_map);
+
+
             visited.set(addr, insn)
 
             let m = insn.mnemonic

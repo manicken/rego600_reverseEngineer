@@ -86,6 +86,7 @@ let code_map_3060 = [
     {start:0x7C95, type:MAP_TYPE.FUNC, label:"update_both_4094"},
 
     {start:0x7DE4, type:MAP_TYPE.FUNC, label:"front_panel_update_prepare_data_and_send_line"},
+    {start:0x7EE6, end:0x7EFB, type:MAP_TYPE.DATA, label:"front panel translate character table"},
     {start:0x8126, type:MAP_TYPE.FUNC, label:"write_LCD_using_IRAM_2A_2B_2C"},
     {start:0x83DF, type:MAP_TYPE.FUNC, label:"REFRESH_FRONT_PANEL_OUTPUTS"},
     {start:0x84AD, type:MAP_TYPE.FUNC, label:"decode_front_panel_input_states"},
@@ -96,6 +97,7 @@ let code_map_3060 = [
     {start:0x88B6, type:MAP_TYPE.FUNC, label:"UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM"},
     {start:0x8919, type:MAP_TYPE.FUNC, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM"},
     {start:0x8970, type:MAP_TYPE.FUNC, label:"JMP_CODE_UART_RX_TASK"},
+    {start:0x8A40, end:0x8A67, type:MAP_TYPE.DATA, label:"UART_RX_CMD_LOOKUP_TABLE"},
     {start:0x8A68, type:MAP_TYPE.FUNC, label:"uart_cmd_00_front_panel_read"},
     {start:0x8A81, type:MAP_TYPE.FUNC, label:"uart_cmd_01_front_panel_write"},
     {start:0x8A9E, type:MAP_TYPE.FUNC, label:"uart_cmd_02_sys_reg_read"},
@@ -116,6 +118,7 @@ let code_map_3060 = [
     {start:0x8E3A, type:MAP_TYPE.FUNC, label:"ProcessFrontPanelAndMenuState"},
 
     {start:0x94C9, type:MAP_TYPE.FUNC, label:"menu_function_lockup"},
+    {start:0x94CC, end:0x9529, type:MAP_TYPE.DATA, label:"menu_function_lockup_table"},
     {start:0x952A, type:MAP_TYPE.FUNC, label:"menu_type_00_trampoline"},
     {start:0x9530, type:MAP_TYPE.FUNC, label:"menu_type_01_trampoline"},
     {start:0x953C, type:MAP_TYPE.FUNC, label:"menu_type_05_trampoline"},
@@ -166,24 +169,36 @@ let code_map_3060 = [
     {start:0xC3FD, type:MAP_TYPE.FUNC, label:"menu_type_14_func"},
     {start:0xC476, type:MAP_TYPE.FUNC, label:"menu_type_15_func"}, // THIS is the only meny type that can print the mysterious 'Adress' string
     {start:0xC6CC, type:MAP_TYPE.FUNC, label:"menu_type_16_func"},
+    {start:0xC723, end:0xC735, type:MAP_TYPE.DATA, label:"menu_type_16_subtype_lockup_table"},
+    {start:0xC736, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_48_func"},
+    {start:0xC793, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_4A_func"},
+    {start:0xC864, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_4C_func"},
+    {start:0xC8C1, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_4E_func"},
+    {start:0xC987, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_46_func"},
+    {start:0xC9DB, type:MAP_TYPE.FUNC, label:"menu_type_16_subtype_default_func"},
     {start:0xC9DC, type:MAP_TYPE.FUNC, label:"menu_type_17_func"},
     {start:0xCAA2, type:MAP_TYPE.FUNC, label:"menu_type_18_func"},
+    {start:0xCB13, type:MAP_TYPE.FUNC, label:"menu_type_20_func"},
     {start:0xCB87, type:MAP_TYPE.FUNC, label:"menu_type_19_func"},
     {start:0xCD87, type:MAP_TYPE.FUNC, label:"menu_type_1A_ROOT_MENU"},
-    {start:0xD836, type:MAP_TYPE.FUNC, label:"menu_type_1B_LOG_VIEW"},
     {start:0xD22D, type:MAP_TYPE.FUNC, label:"menu_type_1C_func"},
-    {start:0xDA49, type:MAP_TYPE.FUNC, label:"menu_type_1D_func"},
-    {start:0xDD18, type:MAP_TYPE.FUNC, label:"menu_type_1E_func"},
-    {start:0xDE23, type:MAP_TYPE.FUNC, label:"menu_type_1F_func"},
-    {start:0xCB13, type:MAP_TYPE.FUNC, label:"menu_type_20_func"},
-    {start:0xD46C, type:MAP_TYPE.FUNC, label:"menu_type_21_func"},
-
     {start:0xD402, type:MAP_TYPE.FUNC, label:"show_current_access_level"},
+    {start:0xD40F, end:0xD41E, type:MAP_TYPE.DATA, label:"show_current_access_level_lockup_table"},
     {start:0xD41F, type:MAP_TYPE.FUNC, label:"show_current_access_level_01"},
     {start:0xD432, type:MAP_TYPE.FUNC, label:"show_current_access_level_02"},
     {start:0xD445, type:MAP_TYPE.FUNC, label:"show_current_access_level_04"},
     {start:0xD458, type:MAP_TYPE.FUNC, label:"show_current_access_level_08"},
     {start:0xD46B, type:MAP_TYPE.FUNC, label:"show_current_access_level_RET"},
+    {start:0xD46C, type:MAP_TYPE.FUNC, label:"menu_type_21_func"},
+    {start:0xD836, type:MAP_TYPE.FUNC, label:"menu_type_1B_LOG_VIEW"},
+    
+    {start:0xDA49, type:MAP_TYPE.FUNC, label:"menu_type_1D_func"},
+    {start:0xDD18, type:MAP_TYPE.FUNC, label:"menu_type_1E_func"},
+    {start:0xDE23, type:MAP_TYPE.FUNC, label:"menu_type_1F_func"},
+    
+    
+
+    
     
 ];
 
