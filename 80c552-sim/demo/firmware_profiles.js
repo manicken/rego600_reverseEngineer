@@ -1,7 +1,8 @@
 
 const MAP_TYPE = {
     FUNC:0,
-    DATA:1
+    DATA:1,
+    FREE:2
 };
 
 let default_code_map = [
@@ -20,9 +21,20 @@ let code_map_3021 = [
 let code_map_3060 = [
     ...default_code_map,
     {start:0x002E, type:MAP_TYPE.FUNC, label:"START_AFTER_RESET_VECTOR"}, 
-    {start:0x0136, type:MAP_TYPE.FUNC, label:"fixed_mul_8_8_r2r3_r4r5_wrapper"},
-    {start:0x013a, type:MAP_TYPE.FUNC, label:"fixed_mul_8_8_r2r3_r4r5"},
+    {start:0x00BA, type:MAP_TYPE.FUNC, label:"copy_from_code_to_iram_using_struct_at_dptr"}, 
+    {start:0x00D8, type:MAP_TYPE.FUNC, label:"copy_from_code_to_xram_using_struct_at_dptr"}, 
+    {start:0x010F, end:0x0112, type:MAP_TYPE.DATA, label:"some data copy range type A"},
+    {start:0x0113, end:0x0116, type:MAP_TYPE.DATA, label:"some data copy range type A"},
+    {start:0x0117, end:0x011A, type:MAP_TYPE.DATA, label:"some data copy range type A"},
+    {start:0x011B, end:0x0120, type:MAP_TYPE.DATA, label:"some data copy range type B"},
+    {start:0x0121, end:0x0126, type:MAP_TYPE.DATA, label:"some data copy range type B"},
+    {start:0x0127, end:0x012C, type:MAP_TYPE.DATA, label:"some data copy range type B"},
+    {start:0x012D, type:MAP_TYPE.FUNC, label:"infinite loop failsafe"},
+    {start:0x012F, type:MAP_TYPE.FUNC, label:"fixed_mul_8_8_r2r3_r0r1_r6r7_wrapper"},
+    {start:0x0136, type:MAP_TYPE.FUNC, label:"fixed_mul_8_8_r2r3_r0r1_r4r5_wrapper"},
+    {start:0x013a, type:MAP_TYPE.FUNC, label:"fixed_mul_8_8_r2r3_r0r1"},
     {start:0x0160, type:MAP_TYPE.FUNC, label:"signed_divide_16bit_wrapper"},
+    {start:0x0668, type:MAP_TYPE.FUNC, label:"BY_INDEX_DISPATCH_TABLE_LOOKUP"},
     {start:0x069E, type:MAP_TYPE.FUNC, label:"BY_CMD_DISPATCH_TABLE_LOOKUP"},
     {start:0x0883, type:MAP_TYPE.FUNC, label:"ReadMemory_using_R5_R6_R7"},
     {start:0x0887, type:MAP_TYPE.FUNC, label:"ReadMemory_using_R1_R2_R3"},
@@ -34,6 +46,10 @@ let code_map_3060 = [
     {start:0x0B9D, type:MAP_TYPE.FUNC, label:"convert_index_to_16_bit_address_using_R7"},
     {start:0x0B9F, type:MAP_TYPE.FUNC, label:"convert_index_to_16_bit_adress_using_A_B"},
     {start:0x0BC3, type:MAP_TYPE.FUNC, label:"extmem_read_3bytes_to_R7_R6_R5"},
+
+    {start:0x0BE1, end:0x0BEC, type:MAP_TYPE.DATA, label:"some IRAM init data"},
+    {start:0x0BED, end:0x2D0D, type:MAP_TYPE.DATA, label:"menu structure copied to xram"},
+    {start:0x2D0C, end:0x2D36, type:MAP_TYPE.DATA, label:"startup_message"},
     {start:0x665F, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_TASK", comment:"this continuously run the main program"},
     {start:0x6799, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_ENTRY", comment:"this need a better name"},
     {start:0x67A2, type:MAP_TYPE.FUNC, label:"BEFORE_MAIN_ENTRY_INIT", comment:"this need a better name"},
@@ -81,9 +97,35 @@ let code_map_3060 = [
     {start:0x72DF, type:MAP_TYPE.FUNC, label:"AM29F040_CommandUnlockAndWaitDQ7"},
     {start:0x73C6, type:MAP_TYPE.FUNC, label:"SaveSettingTo29F040Journal"},
     {start:0x75EF, type:MAP_TYPE.FUNC, label:"AM29f040_write_alternative"},
+    {start:0x7750, end:0x775D, type:MAP_TYPE.DATA, label:"29f040_write_something_lookup_table"},
+    {start:0x775E, type:MAP_TYPE.FUNC, label:"29f040_write_something_lookup_index_0"},
+    {start:0x7778, type:MAP_TYPE.FUNC, label:"29f040_write_something_lookup_index_1"},
+    {start:0x7792, type:MAP_TYPE.FUNC, label:"29f040_write_something_lookup_index_2"},
+    {start:0x77AC, type:MAP_TYPE.FUNC, label:"29f040_write_something_lookup_index_3"},
+    {start:0x77C6, type:MAP_TYPE.FUNC, label:"29f040_write_something_lookup_index_4"},
+    {start:0x77DA, type:MAP_TYPE.FUNC, label:"@29f040_write_something_lookup_default"},
 
-    {start:0x7914, type:MAP_TYPE.FUNC, label:"read_protection_inputs"},
+    {start:0x7914, type:MAP_TYPE.FUNC, label:"read_protection_inputs_and_ADC"},
+
+    {start:0x797B, end:0x799E, type:MAP_TYPE.DATA, label:"sensor_input_to_aquire_lookup_table"},
+    {start:0x7C82, type:MAP_TYPE.FUNC, label:"sensor_input_to_aquire_lookup_table_default_entry"},
     {start:0x7C95, type:MAP_TYPE.FUNC, label:"update_both_4094"},
+    {start:0x799F, type:MAP_TYPE.FUNC, label:"EXT_CONTROL_INPUT_READ"},
+    {start:0x79B9, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT5"},
+    {start:0x79F1, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT4"},
+    {start:0x7A29, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT11"},
+    {start:0x7A61, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT3X"},
+    {start:0x7A99, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT1"},
+    {start:0x7AD1, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT2"},
+    {start:0x7B09, type:MAP_TYPE.FUNC, label:"read_pressure_sensor_LP"},
+    {start:0x7B28, type:MAP_TYPE.FUNC, label:"read_pressure_sensor_HP"},
+    {start:0x7B47, type:MAP_TYPE.FUNC, label:"exec_SERVICE_PORT_ADC_INPUT"},
+    {start:0x7B6B, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT10"},
+    {start:0x7BA3, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT8"},
+    {start:0x7BDB, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT6"},
+    {start:0x7C12, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT3"},
+    {start:0x7C49, type:MAP_TYPE.FUNC, label:"exec_ADC_of_VVP_unused"},
+    {start:0x7C4B, type:MAP_TYPE.FUNC, label:"exec_ADC_of_GT9"},
 
     {start:0x7DE4, type:MAP_TYPE.FUNC, label:"front_panel_update_prepare_data_and_send_line"},
     {start:0x7EE6, end:0x7EFB, type:MAP_TYPE.DATA, label:"front panel translate character table"},
@@ -116,6 +158,14 @@ let code_map_3060 = [
 
     {start:0x8E2E, type:MAP_TYPE.FUNC, label:"BEFORE_MAIN_ENTRY"},
     {start:0x8E3A, type:MAP_TYPE.FUNC, label:"ProcessFrontPanelAndMenuState"},
+
+    {start:0x9120, end:0x922D, type:MAP_TYPE.DATA, label:"maybe_menu_related_lookup_table"},
+    {start:0x912E, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_index_0"},
+    {start:0x91C9, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_index_1"},
+    {start:0x9372, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_index_2"},
+    {start:0x9264, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_index_3"},
+    {start:0x939D, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_index_4"},
+    {start:0x93FC, type:MAP_TYPE.FUNC, label:"maybe_menu_related_lookup_table_default"},
 
     {start:0x94C9, type:MAP_TYPE.FUNC, label:"menu_function_lockup"},
     {start:0x94CC, end:0x9529, type:MAP_TYPE.DATA, label:"menu_function_lockup_table"},
@@ -159,7 +209,30 @@ let code_map_3060 = [
     {start:0xA510, type:MAP_TYPE.FUNC, label:"menu_type_08_func"},
     {start:0xA5B8, type:MAP_TYPE.FUNC, label:"menu_type_09_func"},
     {start:0xA894, type:MAP_TYPE.FUNC, label:"menu_type_0A_func"},
+
     {start:0xA902, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET"},
+    {start:0xAA9F, end:0xAAB0, type:MAP_TYPE.DATA, label:"menu_type_0B_RTC_SET_lockup_table"},
+    {start:0xAAB1, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_0"},
+    {start:0xAACB, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_1"},
+    {start:0xAAE4, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_2"},
+    {start:0xAAF4, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_3"},
+    {start:0xAB04, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_4"},
+    {start:0xAB14, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_5"},
+    {start:0xAB2D, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_index_6"},
+    {start:0xAB4D, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_default"},
+    {start:0xAB55, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_end"},
+
+    {start:0xAB8B, end:0xAB9C, type:MAP_TYPE.DATA, label:"menu_type_0B_RTC_SET_lockup_table_B"},
+    {start:0xAB9D, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_0"},
+    {start:0xABCA, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_1"},
+    {start:0xABF7, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_2"},
+    {start:0xAC24, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_3"},
+    {start:0xAC51, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_4"},
+    {start:0xAC7D, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_5"},
+    {start:0xACA9, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_index_6"},
+    {start:0xACD5, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_B_default"},
+    {start:0xACD5, type:MAP_TYPE.FUNC, label:"menu_type_0B_RTC_SET_lockup_table_end"},
+
     {start:0xAE58, type:MAP_TYPE.FUNC, label:"menu_type_0E_func"},
     {start:0xB5BE, type:MAP_TYPE.FUNC, label:"menu_type_0F_func"},
     //{start:0x9AD6, type:MAP_TYPE.FUNC, label:"menu_type_10_func"},
@@ -196,10 +269,23 @@ let code_map_3060 = [
     {start:0xDD18, type:MAP_TYPE.FUNC, label:"menu_type_1E_func"},
     {start:0xDE23, type:MAP_TYPE.FUNC, label:"menu_type_1F_func"},
     
+    {start:0xE17F, end:0xE192, type:MAP_TYPE.DATA, label:"some_lookup_table"},
+    {start:0xE193, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_0"},
+    {start:0xE1A3, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_1"},
+    {start:0xE1BA, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_2"},
+    {start:0xE1D1, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_3"},
+    {start:0xE1E8, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_4"},
+   // {start:0xE221, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_5"},
+    {start:0xE1FB, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_6"},
+    {start:0xE20E, type:MAP_TYPE.FUNC, label:"some_lookup_table_index_7"},
     
+    {start:0xE221, type:MAP_TYPE.FUNC, label:"some_lookup_table_default_and_index_5"},
+    {start:0xE230, type:MAP_TYPE.FUNC, label:"some_lookup_table_END"},
 
-    
-    
+    {start:0xF7C6, end:0xFFC5, type:MAP_TYPE.DATA, label:"ADC_temp_lookup_table", comment:"16bit entries"},
+    {start:0xFFC6, end:0xFFCB, type:MAP_TYPE.DATA, label:"lcd_char_lookup_table_maybe1"},
+    {start:0xFFCC, end:0xFFD5, type:MAP_TYPE.DATA, label:"lcd_char_lookup_table_maybe2"},
+    {start:0xFFD6, end:0xFFFF, type:MAP_TYPE.FREE}
 ];
 
 //{start:0x, type:MAP_TYPE.FUNC, label:""},

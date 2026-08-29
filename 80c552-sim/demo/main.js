@@ -507,7 +507,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const speedMultiplier = speedEl ? parseFloat(speedEl.value) : 1.0;
         cpu.speed_multipler = speedMultiplier;
     }
-    document.getElementById('btn_reset').onclick = () => { cpu.reset(); log('reset'); render(true); };
+    document.getElementById('btn_reset').onclick = () => { 
+      cpu.reset();
+      cpu.IRAM_USE_MAP = [];
+      log('reset');
+      render(true);
+    };
     document.getElementById('btn_step').onclick = () => { cpu.next(1); render(true); };
     document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(true); };
     document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(true); };
