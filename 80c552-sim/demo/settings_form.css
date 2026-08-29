@@ -1,0 +1,12 @@
+.settings-form-content {
+    display: flex;
+    flex-direction: column;
+
+    width: 95%;
+    height: 95%;
+
+    min-height: 0;
+    padding: 8px;
+    gap:4px;
+
+}

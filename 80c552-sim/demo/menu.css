@@ -11,7 +11,7 @@
 .main-menu {
     display: flex;
     align-items: stretch;
-    height: 32px;
+    height: 24px;
     user-select: none;
 }
 

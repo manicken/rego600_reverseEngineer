@@ -451,11 +451,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     init_service_interface_panel("service_interface");
     init_front_panel("front-panel");
 
-    document.getElementById('cpu_speed_multipler').onchange = () => { 
-        const speedEl = document.getElementById("cpu_speed_multipler");
-        const speedMultiplier = speedEl ? parseFloat(speedEl.value) : 1.0;
-        cpu.speed_multipler = speedMultiplier;
-    }
     document.getElementById('btn_reset').onclick = () => { 
       cpu.reset();
       cpu.IRAM_USE_MAP = [];
@@ -465,17 +460,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById('btn_step').onclick = () => { cpu.next(1); render(true); };
     document.getElementById('btn_step100').onclick = () => { cpu.next(100); render(true); };
     document.getElementById('btn_step1000').onclick = () => { cpu.next(1000); render(true); };
-    document.getElementById('use_realTimeThrottle').onchange = () => { cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked; }
-    document.getElementById('rtc_use_system_clock').onchange = () => { 
-      rtc.useSystemTime = document.getElementById("rtc_use_system_clock").checked;
-    }
     document.getElementById('btn_run').onclick = () => {
         if (cpu.running) return;
         cpu.running = true;
         document.getElementById('run_status').textContent = 'running...';
         init_SignalInputs();
         ext_wdt.startMonitoring();
-        cpu.isRealtime = document.getElementById("use_realTimeThrottle").checked;
         cpu.gui_render_handler = render;
         cpu.start_emulator_loop();
         return;
@@ -498,6 +488,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
     window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
     window.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
+    window.settings_modal = new Modal({title:"Settings", height:768, width:420, resizable: true});
     
     const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 
@@ -647,7 +638,7 @@ const menu = [
             },
             
             {
-                label: "Save Project",
+                label: "Save Project [not implemented yet]",
                 action: () => { console.log("save project stub");}
             }
         ]
@@ -656,12 +647,16 @@ const menu = [
         label: "Window",
         items: [
             {
-                label: "Open Code Hex Editor",
+                label: "Open Code Hex Editor [not implemented yet]",
                 action: () => { console.log("Open Code Hex Editor stub");}
             },
             {
-                label: "Open Goto Label Window",
+                label: "Open Goto Label Window [not implemented yet]",
                 action: () => { console.log("Open Goto Label Window stub");}
+            },
+            {
+                label: "Open Settings Window",
+                action: () => { openSettings(); }
             },
         ]
     }

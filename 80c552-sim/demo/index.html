@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="panel_disassembly.css">
   <link rel="stylesheet" href="panel_disassembly_goto_label_form.css">
   <link rel="stylesheet" href="panel_disassembly_list_label_references_form.css">
+  <link rel="stylesheet" href="settings_form.css">
   <link rel="stylesheet" href="menu.css">
   <meta charset="UTF-8">
   <title>80C552 Simulator (js51-based)</title>
@@ -64,6 +65,7 @@
   <script src="panel_disassembly_goto_label_form.js"></script>
   <script src="panel_disassembly_list_label_references_form.js"></script>
   <script src="panel_disassembly_contextmenu.js"></script>
+  <script src="settings_form.js"></script>
 
   <script src="menu.js"></script>
  
@@ -74,31 +76,17 @@
 
   <!-- BODY CONTENTS -->
 
-  <!--<h1>80C552 Simulator <small>(js51 core + 80C552 SFR/ADC/external-bus extension)</small></h1>-->
-  <div class="row">
-    <div class="panel">
-      <div class="main-menu" id="main-menu"></div>
-        
-    </div>
-          <!--<h2>Firmware</h2>
-          <input type="file" id="fw_file">
-          <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
-        </div>
-        <div class="panel">
-          <h2>29F040 data load</h2>
-          <input type="file" id="data_flash_file">
-          <small>Accepts Intel HEX (.hex) or raw binary (.bin)</small>
-        </div>-->
-  </div>
   <div class="row main-layout">
-    <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
-    <div class="simulator-content">
-
-    <div class="row">
+    <div>
       <div class="panel">
-        
-        <div class="row">
-          
+      <div class="main-menu" id="main-menu"></div>  
+      </div>
+      <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
+    </div>
+    
+    <div class="simulator-content">
+      <div class="panel">
+      <div class="row">
           <button id="btn_reset">Reset</button>
           <button id="btn_step">Step 1</button>
           <button id="btn_step100">Step 100</button>
@@ -108,75 +96,22 @@
           <button id="btn_print_callstack">Print Callstack</button>
           <span id="run_status" style="margin-left:10px;color:#888;"></span>
         </div>
-        <!--<div class="row" style="margin-top: 8px;">
-          <label for="code_rom_addr">Address:</label>
-        <input type="text" id="code_rom_addr" value="0x1b7a" style="width:90px">
-        <label for="code_rom_value">Value:</label>
-        <input type="text" id="code_rom_value" value="0x1efc" style="width:70px">
-        <button onclick="set_IROM_value('code_rom_addr','code_rom_value')">Set</button>
-        </div>-->
-      </div>
-      <!--
-      <div class="panel">
-        <h2>Breakpoints</h2>
-        <div class="row">
-          Address:
-          <input type="text" id="bp_addr" value="0x7de3" style="width:48px;">
-          
-          <button id="btn_add_bp">Add</button>
-          <button id="btn_remove_bp">Remove</button>
-          <button id="btn_clear_bp">Clear all</button>
-
-          <div style="margin-top:8px">
-            Active:
-            <span id="bp_list" class="val"></span>
-          </div>
         </div>
+      <div class="row">
+        <div class="panel" style="max-width:95px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
+        <div class="panel" style="min-width:440px;"><h2>INTERNAL RAM</h2><div class="memdump" id="iram_dump" style="max-height: 400px;"></div></div>
+        <div class="panel" style="min-width:130px;"><h2>Sensor Inputs</h2><div id="input_signals"></div></div>
+        <div class="panel" style="max-width:120px;"><h2>Power Control Outputs</h2><table id="pwr_output_signals"></table></div>
+        <div class="panel" id="front-panel" data-title="Front Panel" data-title2="(simulated like a real one)"></div>
+        <div class="panel" id="service_interface" data-title="Service Interface (simulated like a real one)"></div>
       </div>
-    -->
-
-          <div class="panel">
-            <div class="row">
-              <label title="Run the simulator in real 11.0592 MHz / 80C552-speed. Uncheck to use max speed (Turbo).">
-                <input style="margin-bottom: 10px;" type="checkbox" id="use_realTimeThrottle">
-                Enable Realtime Throttle
-              </label>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="row">
-              <label for="cpu_speed_multipler">Speed Multipler:</label>
-              <input type="number" id="cpu_speed_multipler" name="value" min="0.01" step="0.01" value="1.0" style="width:56px;">
-            </div>
-          </div>
-          <div class="panel">
-            <div class="row">
-              <label title="When checked the RTC is updated using the System Clock, this makes it impossible to set the time from witchin the simulation, uncheck to make it fully simulated, when unchecked the time can be set.">
-                <input style="margin-bottom: 10px;" type="checkbox" checked="" id="rtc_use_system_clock">
-                RTC: Use System Clock
-              </label>
-            </div>
-          </div>
-        
-    </div>
-
-    <div class="row">
-      <div class="panel" style="max-width:95px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
-      <div class="panel" style="max-width:80px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
-      <div class="panel" style="min-width:440px;"><h2>INTERNAL RAM</h2><div class="memdump" id="iram_dump" style="max-height: 400px;"></div></div>
-      <div class="panel" style="min-width:130px;"><h2>Sensor Inputs</h2><div id="input_signals"></div></div>
-      <div class="panel" style="max-width:120px;"><h2>Power Control Outputs</h2><table id="pwr_output_signals"></table></div>
-      <div class="panel" id="front-panel" data-title="Front Panel" data-title2="(simulated like a real one)"></div>
-
-      <div class="panel" id="service_interface" data-title="Service Interface (simulated like a real one)"></div>
-    </div>
-
-    <div class="row">
-      <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window A" data-start_index="10"></div>
-      <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window B" data-start_index="22"></div>
-      <!--<div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window C" data-start_index="27"></div>-->
-      <div class="panel" id="directWriteXRAM" data-title="SRAM (62256) — Direct Write"></div>
-    </div>
+      <div class="row">
+        <div class="panel" style="max-width:95px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
+        <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window A" data-start_index="10"></div>
+        <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window B" data-start_index="22"></div>
+        <!--<div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window C" data-start_index="27"></div>-->
+        <div class="panel" id="directWriteXRAM" data-title="SRAM (62256) — Direct Write"></div>
+      </div>
   </div>
   </div>
   <div class="panel">

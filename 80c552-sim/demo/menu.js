@@ -19,6 +19,9 @@ function createMenuItem(rootcontainer, item) {
     const button = document.createElement("button");
     button.className = "dropdown-item";
     button.textContent = item.label;
+    if (item.comment) {
+        button.title = item.comment;
+    }
 
     el.appendChild(button);
 
