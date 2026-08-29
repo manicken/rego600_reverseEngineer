@@ -244,4 +244,8 @@ _51cpu.prototype.reset = function () {
     this.PC.set(0)
     this.DPTR.set(0)
     this.callStack = [];
+    let IRAMSize = this.IRAM.length;
+    this.IRAM = [];
+    for (let i = 0; i < IRAMSize; ++i)
+        this.IRAM.push(0);
 }

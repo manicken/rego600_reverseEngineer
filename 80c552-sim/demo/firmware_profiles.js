@@ -6,10 +6,10 @@ const MAP_TYPE = {
 };
 
 let default_code_map = [
-    {start:0x0000, label:"reset", comment:"Program execution starts here."}, 
-    {start:0x000B, label:"TIMER0_IRQ_VECTOR"}, 
-    {start:0x0023, label:"UART_IRQ_VECTOR"},
-    {start:0x002B, label:"I2C_IRQ_VECTOR"},
+    {start:0x0000, type:MAP_TYPE.FUNC, label:"reset", comment:"Program execution starts here."}, 
+    {start:0x000B, type:MAP_TYPE.FUNC, label:"TIMER0_IRQ_VECTOR"}, 
+    {start:0x0023, type:MAP_TYPE.FUNC, label:"UART_IRQ_VECTOR"},
+    {start:0x002B, type:MAP_TYPE.FUNC, label:"I2C_IRQ_VECTOR"},
 ];
 
 let code_map_3021 = [
@@ -96,7 +96,7 @@ let code_map_3060 = [
     {start:0x6DA0, type:MAP_TYPE.FUNC, label:"Kick_external_WDT", comment:"TC1232 supervisor"},
 
     {start:0x6E89, type:MAP_TYPE.FUNC, label:"read_29f040_settings_from_bank0"},
-    {start:0x707F, type:MAP_TYPE.FUNC, label:"GET_ERROR_FROM_LOG"},
+    {start:0x707F, type:MAP_TYPE.FUNC, label:"GET_ERROR_FROM_LOG", comment:"note here target refer to where the log is copied to", parameters:{'R4':'(0:last, 1:next)', 'R5':'target_addr_LSB', 'R6':'target_addr_MSB', 'R7':'target_memtype'}},
     {start:0x72DF, type:MAP_TYPE.FUNC, label:"AM29F040_CommandUnlockAndWaitDQ7"},
     {start:0x73C6, type:MAP_TYPE.FUNC, label:"SaveSettingTo29F040Journal"},
     {start:0x75EF, type:MAP_TYPE.FUNC, label:"AM29f040_write_alternative"},
@@ -139,8 +139,8 @@ let code_map_3060 = [
     {start:0x876E, type:MAP_TYPE.FUNC, label:"PHASES_READ_STATES", comment:"used by PHASE_CHECK_TASK"},
     {start:0x87BE, type:MAP_TYPE.FUNC, label:"PHASE_CHECK_TASK", comment:"make sure that the 3 phases are present and make sure that they run in correct order"},
 
-    {start:0x88B6, type:MAP_TYPE.FUNC, label:"UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM"},
-    {start:0x8919, type:MAP_TYPE.FUNC, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM"},
+    {start:0x88B6, type:MAP_TYPE.FUNC, label:"UART_SEND_20_BYTES_UNPACKED_PLUS_CHECKSUM", parameters:{'R5':'source_addr_LSB', 'R6':'source_addr_MSB', 'R7':'source_memtype'}},
+    {start:0x8919, type:MAP_TYPE.FUNC, label:"UART_SEND_AS_3_BYTES_PLUS_CHECKSUM", parameters:{'R5':'data_MSB', 'R4':'data_LSB'}},
     {start:0x8970, type:MAP_TYPE.FUNC, label:"JMP_CODE_UART_RX_TASK"},
     {start:0x8A40, end:0x8A67, type:MAP_TYPE.DATA, label:"UART_RX_CMD_LOOKUP_TABLE"},
     {start:0x8A68, type:MAP_TYPE.FUNC, label:"uart_cmd_00_front_panel_read"},
@@ -291,6 +291,20 @@ let code_map_3060 = [
     {start:0xFFD6, end:0xFFFF, type:MAP_TYPE.FREE}
 ];
 
+function getCodeMapItemTooltipContents(item) {
+    let text = "";
+    if (item?.comment) {
+        text = item.comment + '\n';
+    }
+    if (item?.parameters) {
+        text += '\nParameters:\n';
+        for (const [key, value] of Object.entries(item.parameters)) {
+            text += `${key}: ${value}` + '\n';
+        }
+    }
+    return text;
+}
+
 //{start:0x, type:MAP_TYPE.FUNC, label:""},
 
 let code_map_3120 = [
@@ -337,6 +351,15 @@ let firmware_profiles = [
 ];
 
 let curr_firmware = firmware_profiles[0];
+
+function getCodeMemInfo(addr) {
+    for (let item of curr_firmware.code_map) {
+        if (item.start == addr) {
+            return item;
+        }
+    }
+    return undefined;
+}
 
 function setCurrentFirmwareProfile(hashString) {
     for (const profile of firmware_profiles) {

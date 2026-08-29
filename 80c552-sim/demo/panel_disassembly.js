@@ -309,6 +309,11 @@ function disassembly_init() {
 
     //console.log(curr_firmware.code_map);
     insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
+    for (let item of curr_firmware.code_map) {
+        if (item.comment) {
+            disasmComments.set(item.start, item.comment);
+        }
+    }
     //console.log(insn_map);
     // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
     const addrs = [...insn_map.keys()].sort((a, b) => a - b);
@@ -625,6 +630,14 @@ function bindPoolRow(line, item, index) {
     line.bytes_el.textContent = insn.bytes.map(b => hex(b, 2, false)).join(' ');
     line.mnemonic_el.textContent = insn.mnemonic;
     line.operands_el.textContent = insn.operands?insn.operands.join(','):"";
+    if (insn.target) {
+        let target_code_map_item = getCodeMemInfo(insn.target);
+        let text = getCodeMapItemTooltipContents(target_code_map_item);
+        if (text.length != 0) {
+            line.operands_el.title = text;
+        }
+    }
+   
 
     line.breakpoint_el.textContent = disasmBreakpoints.has(insn.addr) ? "⬤" : " ";
     line.curr_exec_ptr_el.classList.toggle("current-exec", insn.addr === currentExecAddr);

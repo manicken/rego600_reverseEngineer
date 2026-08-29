@@ -433,6 +433,7 @@ function clearBreakpoints() {
 let coreRegs_el;
 let peripheralRegs_el;
 let pwr_output_signals_el;
+let fileInput;
 
 document.addEventListener("DOMContentLoaded", async () => {
     coreRegs_el = document.getElementById('coreRegs');
@@ -450,58 +451,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     init_service_interface_panel("service_interface");
     init_front_panel("front-panel");
 
-    //document.getElementById('btn_clear_bp').onclick = clearBreakpoints;
-    if (document.getElementById('fw_file')) {
-        document.getElementById('fw_file').onchange = async function () {
-            const file = this.files[0];
-            if (!file) return;
-            const isHex = /\.(hex|ihx)$/i.test(file.name);
-            const reader = new FileReader();
-            if (isHex) {
-                reader.onloadend = async () => {
-                  setCODE_LoadProfile_ResetCpu(decode_ihex(reader.result))      
-                  log('Loaded Intel HEX: ' + file.name);
-                  render();
-                };
-                reader.readAsText(file);
-            } else {
-                reader.onloadend = async () => {
-                  setCODE_LoadProfile_ResetCpu(Array.from(new Uint8Array(reader.result)))
-                  log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
-                  render();
-                };
-                reader.readAsArrayBuffer(file);
-            }
-        };
-    }
-    if (document.getElementById('data_flash_file')) {
-        document.getElementById('data_flash_file').onchange = async function () {
-            const file = this.files[0];
-            if (!file) return;
-            const isHex = /\.(hex|ihx)$/i.test(file.name);
-            const reader = new FileReader();
-            if (isHex) {
-                reader.onloadend = () => {
-                    let myFirmwareBytes = decode_ihex(reader.result);
-                cpu.bus.flash.loadImage(myFirmwareBytes);
-                        log('Loaded Intel HEX: ' + file.name);
-                render();
-                };
-                reader.readAsText(file);
-            } else {
-                reader.onloadend = () => {
-                const bytes = new Uint8Array(reader.result);
-                let myFirmwareBytes = Array.from(bytes);
-                //dumpHex(myFirmwareBytes);
-                //console.log(myFirmwareBytes.join(", "));
-                cpu.bus.flash.loadImage(myFirmwareBytes);
-                log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
-                render();
-                };
-                reader.readAsArrayBuffer(file);
-            }
-        };
-    }
     document.getElementById('cpu_speed_multipler').onchange = () => { 
         const speedEl = document.getElementById("cpu_speed_multipler");
         const speedMultiplier = speedEl ? parseFloat(speedEl.value) : 1.0;
@@ -588,5 +537,132 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.hexEditor = editor;
     editor.viewport.focus();
 
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.style.display = 'none';
+   // fileInput.addEventListener('change', _onFileChange);
 });
 
+async function firmware_opened(e) {
+  console.log("firmware_opened");
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const isHex = /\.(hex|ihx)$/i.test(file.name);
+  const reader = new FileReader();
+  if (isHex) {
+      reader.onloadend = async () => {
+        setCODE_LoadProfile_ResetCpu(decode_ihex(reader.result))      
+        log('Loaded Intel HEX: ' + file.name);
+        render();
+      };
+      reader.readAsText(file);
+  } else {
+      reader.onloadend = async () => {
+        setCODE_LoadProfile_ResetCpu(Array.from(new Uint8Array(reader.result)))
+        log('Loaded raw binary: ' + file.name);
+        render();
+      };
+      reader.readAsArrayBuffer(file);
+  }
+}
+async function dataFile_opened(e) {
+  console.log("dataFile_opened");
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const isHex = /\.(hex|ihx)$/i.test(file.name);
+  const reader = new FileReader();
+  if (isHex) {
+      reader.onloadend = () => {
+          let myFirmwareBytes = decode_ihex(reader.result);
+          cpu.bus.flash.loadImage(myFirmwareBytes);
+                  log('Loaded Intel HEX: ' + file.name);
+          render();
+      };
+      reader.readAsText(file);
+  } else {
+      reader.onloadend = () => {
+          const bytes = new Uint8Array(reader.result);
+          let myFirmwareBytes = Array.from(bytes);
+          //dumpHex(myFirmwareBytes);
+          //console.log(myFirmwareBytes.join(", "));
+          cpu.bus.flash.loadImage(myFirmwareBytes);
+          log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
+          render();
+      };
+      reader.readAsArrayBuffer(file);
+  }
+}
+
+function openFirmware(e) {
+  fileInput.onchange = firmware_opened;
+  fileInput.click();
+}
+function openDataFile(e) {
+  fileInput.onchange = dataFile_opened;
+  fileInput.click();
+}
+/*
+this._onFileChange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const buf = new Uint8Array(await f.arrayBuffer());
+  this.loadBytes(buf, { fileName: f.name });
+  this.fnameEl.textContent = `${f.name} — ${this.size} bytes (0x${this.size.toString(16)})`;
+  this.msg = `loaded ${f.name} (${buf.length} bytes)`;
+  this._render();
+};
+*/
+const menu = [
+    {
+        label: "File",
+        items: [
+
+            {
+                label: "New Project",
+                action: () => { console.log("new project stub");}
+            },
+            {
+                label: "Open",
+                submenu: [
+                    { // comment to myself, i can however have autodetect on all files, then you use the same function to open all kind of files
+                        label: "Project (zip/json) [not implemented yet]",
+                        comment: "open a zipped project containing both code and data files + json project data,\nor just a json project data file",
+                        action: () => { console.log("open Project stub");}
+                    },
+                    {
+                        label: "Combined (zip) [not implemented yet]",
+                        action: () => { console.log("open Combined stub");}
+                    },
+                    {
+                        label: "Firmware (27SF512)",
+                        action: openFirmware
+                    },
+                    {
+                        label: "Data (AM29F040)",
+                        action: openDataFile
+                    }
+                ]
+            },
+            
+            {
+                label: "Save Project",
+                action: () => { console.log("save project stub");}
+            }
+        ]
+    }, 
+    {
+        label: "Window",
+        items: [
+            {
+                label: "Open Code Hex Editor",
+                action: () => { console.log("Open Code Hex Editor stub");}
+            },
+            {
+                label: "Open Goto Label Window",
+                action: () => { console.log("Open Goto Label Window stub");}
+            },
+        ]
+    }
+];
