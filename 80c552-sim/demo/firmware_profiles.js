@@ -50,6 +50,9 @@ let code_map_3060 = [
     {start:0x0BE1, end:0x0BEC, type:MAP_TYPE.DATA, label:"some IRAM init data"},
     {start:0x0BED, end:0x2D0D, type:MAP_TYPE.DATA, label:"menu structure copied to xram"},
     {start:0x2D0C, end:0x2D36, type:MAP_TYPE.DATA, label:"startup_message"},
+    {start:0x2D37, end:0x2E37, type:MAP_TYPE.DATA, label:"other_strings"},
+    {start:0x2E38, type:MAP_TYPE.FUNC, label:"APPLY_DEFAULT_SETTINGS"},
+    
     {start:0x665F, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_TASK", comment:"this continuously run the main program"},
     {start:0x6799, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_ENTRY", comment:"this need a better name"},
     {start:0x67A2, type:MAP_TYPE.FUNC, label:"BEFORE_MAIN_ENTRY_INIT", comment:"this need a better name"},
