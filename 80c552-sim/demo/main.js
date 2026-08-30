@@ -532,6 +532,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fileInput.type = 'file';
     fileInput.style.display = 'none';
    // fileInput.addEventListener('change', _onFileChange);
+    initProfiling();
 });
 
 async function firmware_opened(e) {
