@@ -18,7 +18,7 @@ let profilingItems = [
     //{startAddr:0x31c3, endAddr:0x3276},
     //{startAddr:0xe84e, endAddr:0xe902},
     //{startAddr:0xe564, endAddr:0xe657}
-    {startAddr:0x665F, endAddr:0x6798} // main loop
+    //{startAddr:0x665F, endAddr:0x6798} // main loop
 ];
 
 
