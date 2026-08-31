@@ -1,0 +1,38 @@
+[ E4      ] CLR A
+[ 78 81   ] MOV R0,#81
+[ 66      ] XRL A,@R0
+[ 08      ] INC R0
+[ 66      ] XRL A,@R0
+[ 08      ] INC R0
+[ 66      ] XRL A,@R0
+[ 08      ] INC R0
+[ 66      ] XRL A,@R0
+[ 08      ] INC R0
+[ 66      ] XRL A,@R0
+[ 08      ] INC R0
+[ 66      ] XRL A,@R0
+
+
+
+
+
+[ E4       ] CLR A
+[ 78 81    ] MOV R0,#81
+checksum_calc:
+[ 66       ] XRL A,@R0
+[ 08       ] INC R0
+[ B8 87 FB ] CJNE R0,#0x87, checksum_calc
+checksum_calc_done:
+[ 65 3C    ] XRL A,3Ch  here is the received checksum stored
+[ 70 xx    ] JNZ checksum_error:
+[          ] SJMP checksum_ok
+
+
+0F inc R7
+0E inc R6
+0D inc R5
+0C inc R4
+0B inc R3
+0A inc R2
+09 inc R1
+08 inc R0

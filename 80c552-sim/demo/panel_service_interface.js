@@ -198,8 +198,9 @@ function service_port_send(cmd, param1=0x00, param2=0x00) {
     let responseStruct = getExpectedRxStruct(cmd);
     if (responseStruct == undefined) {
       console.log("service_port_send - unknown cmd: " + cmd);
-      expectedRxStruct = {cmd:-1, len:-1, handler:dummy_handler};
-      return;
+      // here we expect a 5 byte answer of 40 00 00 00 00
+      responseStruct = {cmd, len:1, handler:dummy_handler};
+      //return;
     }
     expectedRxStruct = responseStruct;
     lastSendCmd = cmd;
