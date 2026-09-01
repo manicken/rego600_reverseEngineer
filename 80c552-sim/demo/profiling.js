@@ -18,7 +18,9 @@ let profilingItems = [
     //{startAddr:0x31c3, endAddr:0x3276},
     //{startAddr:0xe84e, endAddr:0xe902},
     //{startAddr:0xe564, endAddr:0xe657}
-    //{startAddr:0x665F, endAddr:0x6798} // main loop
+    //{startAddr:0x665F, endAddr:0x6798}, // main loop
+    //{startAddr:0x6A6A, endAddr:0x6B2B} // UART RX IRQ handler original
+    {startAddr:0x6A6A, endAddr:0x6A9A} // UART RX IRQ handler patched
 ];
 
 
@@ -28,7 +30,14 @@ function initProfiling() {
         item.active = false;
         item.cycles = 0;
     }
-    let cycleTime = 1000/921600;
+    function getCyclesTime(cycles) {
+        let time_uS = Math.round((cycles*1000000)/921600);
+        if (time_uS > 1000) {
+            return (time_uS/1000).toFixed(3) + " mS";
+        } else {
+            return time_uS + ' uS';
+        }
+    }
 
     cpu.instruction_ticks.push((cycles, opcode_start_PC) => {
         for (let item of profilingItems) {
@@ -44,7 +53,7 @@ function initProfiling() {
             
             if(item.active && item.endAddr == opcode_start_PC) {
                 item.active = false;
-                console.log(`profiling of range ${hex(item.startAddr,4)} - ${hex(item.endAddr,4)} = ${item.cycles} cycles => ${item.cycles*cycleTime} mS`);
+                console.log(`profiling of range ${hex(item.startAddr,4)} - ${hex(item.endAddr,4)} = ${item.cycles} cycles => ${getCyclesTime(item.cycles)}`);
             }
         }
     });

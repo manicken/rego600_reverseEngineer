@@ -50,7 +50,9 @@ function gotoDisasmAddress(addr) {
 function editCode() {
     window.hex_edit_modal.open();
     window.hexEditor.loadBytes(cpu.CODE);
-    window.hexEditor.jumpTo(disasmLineContext.data.addr);
+    if (disasmLineContext && disasmLineContext.data) {
+        window.hexEditor.jumpTo(disasmLineContext.data.addr);
+    }
 }
 
 function gotoAddress() {
@@ -286,7 +288,24 @@ function rebuildDisasmDisplayList() {
 
 let insn_map = null;
 // {addr:0x, label:""},
+function resetDisassembly()
+{
+    //console.log(curr_firmware.code_map);
+    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
+    for (let item of curr_firmware.code_map) {
+        if (item.comment) {
+            disasmComments.set(item.start, item.comment);
+        }
+    }
+    //console.log(insn_map);
+    // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
+    const addrs = [...insn_map.keys()].sort((a, b) => a - b);
+    disasmEntries = addrs.map(addr => insn_map.get(addr));
+    //console.log(disasmEntries);
 
+    rebuildDisasmDisplayList(); // bygger disasmDisplayList + disasmAddrToIndex (inga etiketter satta ännu, så = disasmEntries)
+
+}
 
 function disassembly_init() {
 
@@ -306,22 +325,8 @@ function disassembly_init() {
             disasmNeedsRebuild = true;
         }
     });
-
-    //console.log(curr_firmware.code_map);
-    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
-    for (let item of curr_firmware.code_map) {
-        if (item.comment) {
-            disasmComments.set(item.start, item.comment);
-        }
-    }
-    //console.log(insn_map);
-    // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
-    const addrs = [...insn_map.keys()].sort((a, b) => a - b);
-    disasmEntries = addrs.map(addr => insn_map.get(addr));
-    //console.log(disasmEntries);
-
-    rebuildDisasmDisplayList(); // bygger disasmDisplayList + disasmAddrToIndex (inga etiketter satta ännu, så = disasmEntries)
-
+    resetDisassembly();
+    
     initDisasmContextMenu();
     const disassemblyView_el = document.getElementById("disassemblyView");
     const disasmToolBar_el = appendNewElement(disassemblyView_el, 'div', {className:"panel"});

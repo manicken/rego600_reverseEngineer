@@ -1,0 +1,125 @@
+before it was using:
+@0x7B UART_RX_BYTE_TEMP
+@0x7C CMD_BYTE
+@0x7D CHECKSUM byte
+@0x7E state
+@0x7F payload byte index
+@0x80 RX_DONE_FLAG
+
+now i think more slim,
+use bank switch of R0-R7 and uses bank3 entirely for UART ISR:
+R0 UART_RX_BYTE_PTR (range 0x80-0x86)
+R1 UART_TX_BYTE_PTR (future use maybe if we can use IRAM as TX buffer
+R7 UART_RX_BYTE_TEMP
+@0x7B UART_RX_DONE_FLAG
+@0x80 UART_RX_BUFF_START (it also now stores CMD_BYTE)
+
+
+[ C0 E0    ] PUSH A
+[ C0 F0    ] PUSH B
+[ C0 82    ] PUSH DPL
+[ C0 83    ] PUSH DPH
+[ C0 D0    ] PUSH PSW
+uart_rx_check_if_uart_done_is_set:
+[ E5 7F    ] MOV A,0x7B ; reuse 7b to store new uart_rx_done as we do not use it for current rx byte anymore, and using adress < 80 makes the check faster as it can direct read state
+[ 70 18    ] JNZ uart_rx_irq_skip
+[ 75 D0 18 ] MOV PSW,#18 ; bank 3
+uart_rx_one_byte:
+[ E5 99    ] MOV A, S0BUF (1 cycle)
+[ FF       ] MOV R7, A ;(1 cycle) uses R7 as current RX byte instead of @7B
+uart_rx_check_start_byte:
+[ 33       ] RLC A
+[ 50 04    ] JNC uart_rx_bytes
+uart_rx_reset:
+[ 78 80    ] MOV R0,#80
+[ 80 1D    ] SJMP uart_rx_irq_end
+uart_rx_bytes:
+[ EF       ] MOV A,R7
+[ F6       ] MOV @R0,A
+[ 08       ] INC R0
+[ B8 88 07 ] CJNE R0,#88, uart_rx_irq_end // here we have rx all 8 bytes
+[ 75 78 01 ] MOV 0x7B,#0x01
+[ 80 02    ] SJMP uart_rx_irq_end
+
+uart_rx_irq_skip:
+[ E5 99    ] MOV A, S0BUF (1 cycle) ; allways consume rx bytes
+uart_rx_irq_end:
+[ D0 D0    ] POP PSW
+[ D0 83    ] POP DPH
+[ D0 82    ] POP DPL
+[ D0 F0    ] POP B
+[ D0 E0    ] POP A
+[ 32       ] RETI
+
+
+
+
+
+
+
+
+as DPH DPL B are not used we can make it even smaller:
+
+uart_rx_irq_handler: @6A6Ah (4 bytes)
+[ C0 E0    ] PUSH A
+[ C0 D0    ] PUSH PSW
+
+uart_rx_check_if_uart_done_is_set: (7 bytes)
+[ EA       ] MOV A,R2 ; use R2 as RX_DONE_FLAG by then cheking in main loop from direct adress 0x1A
+[ 70 22    ] JNZ uart_rx_irq_skip
+[ 75 D0 18 ] MOV PSW,#18h ; bank 3
+
+uart_rx_one_byte: (3 bytes)
+[ E5 99    ] MOV A, S0BUF (1 cycle)
+[ FF       ] MOV R7, A ;(1 cycle) uses R7 as current RX byte instead of @7B
+
+uart_rx_check_start_byte: (7 bytes)
+[ 33       ] RLC A
+[ 50 0A    ] JNC uart_rx_bytes_precheck
+[ 64 02    ] XRL A,#02 ; 0x81 rotated left with C=0 -> 0x02
+[ 70 11    ] JNZ uart_rx_reset
+
+uart_rx_start_received: (6 bytes)
+[ 78 80    ] MOV R0,#80h
+[ 7E 01    ] MOV R6,#01h ; use R6 as start_byte_rx_flag
+[ 80 11    ] SJMP uart_rx_irq_end
+
+uart_rx_bytes_start_byte_rx_check: (3 bytes)
+[ EE       ] MOV A,R6
+[ 70 0E    ] JNZ uart_rx_irq_end  ; jump if start byte have not been rx
+
+uart_rx_bytes: (6 bytes)
+[ EF       ] MOV A,R7
+[ F6       ] MOV @R0,A
+[ 08       ] INC R0
+[ B8 88 08 ] CJNE R0,#88h, uart_rx_irq_end // here we have rx all 8 bytes
+
+uart_rx_done: (2 bytes)
+[ 7A 01    ] MOV R2,#01h ; use R2 as RX_DONE_FLAG by then cheking in main loop from direct adress 0x1A
+
+uart_rx_reset: (4 bytes)
+[ 78 00    ] MOV R6,#00
+[ 80 02    ] SJMP uart_rx_irq_end
+
+uart_rx_irq_skip: (2 bytes)
+[ E5 99    ] MOV A, S0BUF (1 cycle) ; allways consume rx bytes
+
+uart_rx_irq_end: (5 bytes)
+[ D0 D0    ] POP PSW
+[ D0 E0    ] POP A
+[ 32       ] RETI
+
+
+
+UART new ISR handler direct in vector area,
+uses unused area before UART vector that normally belong to 
+TIMER1 overflow ISR, but as timer2 is not used this is good
+ 
+UART_ISR_RX_TRAMPOLINE:
+ 001D  [ 02 6A 6A ] LJMP 6A6Ah
+UART_ISR_TX_TRAMPOLINE:
+ 0020  [ 32       ] RETI
+UART_ISR_VECTOR:
+ 0023  [ 10 98 F7 ] JBC S0CON.RI,UART_ISR_RX_TRAMPOLINE
+ 0026  [ 10 99 F7 ] JBC S0CON.TI,UART_ISR_TX_TRAMPOLINE
+ 0029  [ 32       ] RETI (failsafe)

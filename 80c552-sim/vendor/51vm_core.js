@@ -66,6 +66,14 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.DPTR = new reg(0, 16)
     this.DPL = new reg()
     this.DPH = new reg()
+    this.R0 = new reg()
+    this.R1 = new reg()
+    this.R2 = new reg()
+    this.R3 = new reg()
+    this.R4 = new reg()
+    this.R5 = new reg()
+    this.R6 = new reg()
+    this.R7 = new reg()
     this.XRAM = []
     this.IRAM = []
     this.IRAM_USE_MAP = []
@@ -140,6 +148,35 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
         get:function(){
             return (psw_ref.get() >> 7) & 0x01
         }
+    }
+    this.PSW.getRegisterSelBase = function() {
+        return ((psw_ref.get() >> 3) & 0x03) * 8;
+    }
+    const cpu = this;
+
+    this.R0.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()];
+    }
+    this.R1.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+1];
+    }
+    this.R2.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+2];
+    }
+    this.R3.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+3];
+    }
+    this.R4.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+4];
+    }
+    this.R5.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+5];
+    }
+    this.R6.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+6];
+    }
+    this.R7.get = function () {
+        return cpu.IRAM[cpu.PSW.getRegisterSelBase()+7];
     }
 
     this.interrupt_end_linstener = []

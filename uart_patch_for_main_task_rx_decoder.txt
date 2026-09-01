@@ -28,6 +28,17 @@ checksum_calc_done:
 [          ] SJMP checksum_ok
 
 
+[ E4       ] CLR A
+[ 78 81    ] MOV R0,#81
+checksum_calc:
+[ 66       ] XRL A,@R0
+[ 08       ] INC R0
+[ B8 87 FB ] CJNE R0,#0x88, checksum_calc including received checksum byte
+checksum_calc_done:
+[ 70 xx    ] JNZ checksum_error:
+[          ] SJMP checksum_ok
+
+
 0F inc R7
 0E inc R6
 0D inc R5

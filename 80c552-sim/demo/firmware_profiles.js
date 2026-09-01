@@ -83,6 +83,17 @@ let code_map_3060 = [
 
     {start:0x6A42, type:MAP_TYPE.FUNC, label:"UART_RX_START_BYTE_CHECK"},
     {start:0x6A6A, type:MAP_TYPE.FUNC, label:"UART_IRQ_HANDLER"},
+    {start:0x6A6E, type:MAP_TYPE.FUNC, label:"uart_rx_check_if_uart_done_is_set"},
+    {start:0x6A75, type:MAP_TYPE.FUNC, label:"uart_rx_one_byte"},
+    {start:0x6A78, type:MAP_TYPE.FUNC, label:"uart_rx_check_start_byte"},
+    {start:0x6A7F, type:MAP_TYPE.FUNC, label:"uart_rx_start_received"},
+    {start:0x6A85, type:MAP_TYPE.FUNC, label:"uart_rx_bytes_start_byte_rx_check"},
+    {start:0x6A88, type:MAP_TYPE.FUNC, label:"uart_rx_bytes"},
+    {start:0x6A8E, type:MAP_TYPE.FUNC, label:"uart_rx_done"},
+    {start:0x6A90, type:MAP_TYPE.FUNC, label:"uart_rx_reset"},
+    {start:0x6A94, type:MAP_TYPE.FUNC, label:"uart_rx_irq_skip"},
+    {start:0x6A96, type:MAP_TYPE.FUNC, label:"uart_rx_irq_end"},
+
     {start:0x6B2C, type:MAP_TYPE.FUNC, label:"UART_SEND_ONE_BYTE"},
 
     {start:0x6B48, type:MAP_TYPE.FUNC, label:"Read_DS1302_byte"}, // RTC
@@ -338,6 +349,15 @@ let firmware_profiles = [
         adc_lookup_table_index_offset: 9,
         targets:["rego637","rego637e"],
         hash:"BD8E616AE8F6B31BB731104EBEE6154A3DD8DD7DC07E0153915ADFEDC2BA291E"
+    },
+    {
+        version:"3.06 patched",
+        code_map: code_map_3060,
+        indirect_jumps: new Set([0xB29, 0xB3B]),
+        adc_lookup_table_addr: 0xF7C6,
+        adc_lookup_table_index_offset: 9,
+        targets:["rego637","rego637e"],
+        hash:"8EDF2C5602DDB973289402AA1CCD01646D3EC247B8F20B46E0FCED03E8DAFEF7"
     },
     {
         version:"3.12",

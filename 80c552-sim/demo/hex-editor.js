@@ -84,6 +84,7 @@
       this.original = this.data.slice(); // for "modified" diff highlighting
       this.onChange = opts.onChange || (() => {});
       this.onSave = opts.onSave || (() => {});
+      this.onLoad = opts.onLoad || (() => {});
       this.fileName = opts.fileName || 'untitled';
       this.heightOpt = opts.height || '100%';
       this.widthOpt = opts.width || '100%';
@@ -333,6 +334,7 @@
         this.fnameEl.textContent = `${f.name} — ${this.size} bytes (0x${this.size.toString(16)})`;
         this.msg = `loaded ${f.name} (${buf.length} bytes)`;
         this._render();
+        this.onLoad(buf, { fileName: f.name });
       };
       this.fileInput.addEventListener('change', this._onFileChange);
 

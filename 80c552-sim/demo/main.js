@@ -1,3 +1,4 @@
+
 let cpu = null;
 let i2cBus = null;
 let rtc = null;
@@ -177,6 +178,7 @@ async function setCODE_LoadProfile_ResetCpu(codeData) {
     //console.log("loaded firmware hash:" + hashString);
     setCurrentFirmwareProfile(hashString);
     cpu.reset();
+    resetDisassembly();
 }
 
 async function initCpu() {
@@ -305,7 +307,7 @@ async function initCpu() {
     let newBank = newval & 0x18;
 	  if (oldBank !== newBank) {
         console.log(
-            "PSW Bank switch at PC=" + hex(cpu.PC.value) +
+            "PSW Bank switch at PC=" + hex(cpu.PC.get(), 4) +
             " : " +
             hex(oldBank) +
             " -> " +
@@ -328,14 +330,14 @@ function getCoreRegs() {
       ['DPTR', hex(cpu.DPTR.get(), 4)],
       ['A', hex(cpu.A.get())],
       ['B', hex(cpu.B.get())],
-      ['R0', hex(cpu.IRAM[0])],
-      ['R1', hex(cpu.IRAM[1])],
-      ['R2', hex(cpu.IRAM[2])],
-      ['R3', hex(cpu.IRAM[3])],
-      ['R4', hex(cpu.IRAM[4])],
-      ['R5', hex(cpu.IRAM[5])],
-      ['R6', hex(cpu.IRAM[6])],
-      ['R7', hex(cpu.IRAM[7])],
+      ['R0', hex(cpu.R0.get())],
+      ['R1', hex(cpu.R1.get())],
+      ['R2', hex(cpu.R2.get())],
+      ['R3', hex(cpu.R3.get())],
+      ['R4', hex(cpu.R4.get())],
+      ['R5', hex(cpu.R5.get())],
+      ['R6', hex(cpu.R6.get())],
+      ['R7', hex(cpu.R7.get())],
       ['PSW', hex(cpu.PSW.get())],
       ['error', cpu.error_info.code + (cpu.error_info.code ? ' @' + hex(cpu.error_info.addr,4) : '')],
   ];
@@ -435,6 +437,13 @@ let peripheralRegs_el;
 let pwr_output_signals_el;
 let fileInput;
 
+async function printHashAsync(bytes) {
+  const hash = await sha256(bytes);
+  const hashString = hex(hash, 32, false);
+  console.log("file save hash:" + hashString);
+  log("file save hash:" + hashString);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     coreRegs_el = document.getElementById('coreRegs');
     peripheralRegs_el = document.getElementById('peripheralRegs');
@@ -489,6 +498,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
     window.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
     window.settings_modal = new Modal({title:"Settings", height:768, width:420, resizable: true});
+    window.assemblyEditor_modal = new Modal({title:"Assembly Editor", height:768, width:695, resizable: true});
     
     const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 
@@ -517,7 +527,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         }
       },
-      onSave: (bytes) => { console.log('onSave fired,', bytes.length, 'bytes'); }
+      onSave: (bytes) => { 
+        console.log('onSave fired,', bytes.length, 'bytes');
+        printHashAsync(bytes);
+      },
+      onLoad: (bytes, info) => { 
+        setCODE_LoadProfile_ResetCpu(Array.from(bytes))
+        let logText = `hex editor loaded binary - fileName: ${info.fileName}, size: ${bytes.length} bytes`;
+        console.log(logText);
+        log(logText);
+      }
     });
 
     // Example annotations from the REGO600 reverse-engineering notes —
@@ -535,56 +554,116 @@ document.addEventListener("DOMContentLoaded", async () => {
     initProfiling();
 });
 
-async function firmware_opened(e) {
-  console.log("firmware_opened");
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file) return;
-  const isHex = /\.(hex|ihx)$/i.test(file.name);
-  const reader = new FileReader();
-  if (isHex) {
-      reader.onloadend = async () => {
-        setCODE_LoadProfile_ResetCpu(decode_ihex(reader.result))      
-        log('Loaded Intel HEX: ' + file.name);
+async function firmware_opened(file) {
+
+    console.log("firmware_opened");
+
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+        setCODE_LoadProfile_ResetCpu(
+            Array.from(new Uint8Array(reader.result))
+        );
+
+        log("Loaded raw firmware: " + file.name);
         render();
-      };
-      reader.readAsText(file);
-  } else {
-      reader.onloadend = async () => {
-        setCODE_LoadProfile_ResetCpu(Array.from(new Uint8Array(reader.result)))
-        log('Loaded raw binary: ' + file.name);
-        render();
-      };
-      reader.readAsArrayBuffer(file);
-  }
+    };
+
+    reader.readAsArrayBuffer(file);
 }
-async function dataFile_opened(e) {
-  console.log("dataFile_opened");
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file) return;
-  const isHex = /\.(hex|ihx)$/i.test(file.name);
-  const reader = new FileReader();
-  if (isHex) {
-      reader.onloadend = () => {
-          let myFirmwareBytes = decode_ihex(reader.result);
-          cpu.bus.flash.loadImage(myFirmwareBytes);
-                  log('Loaded Intel HEX: ' + file.name);
-          render();
-      };
-      reader.readAsText(file);
-  } else {
-      reader.onloadend = () => {
-          const bytes = new Uint8Array(reader.result);
-          let myFirmwareBytes = Array.from(bytes);
-          //dumpHex(myFirmwareBytes);
-          //console.log(myFirmwareBytes.join(", "));
-          cpu.bus.flash.loadImage(myFirmwareBytes);
-          log('Loaded raw binary: ' + file.name + ' (' + bytes.length + ' bytes)');
-          render();
-      };
-      reader.readAsArrayBuffer(file);
-  }
+
+async function dataFile_opened(file) {
+
+    console.log("dataFile_opened");
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+        const bytes = new Uint8Array(reader.result);
+
+        cpu.bus.flash.loadImage(Array.from(bytes));
+
+        log(
+            "Loaded raw data: " +
+            file.name +
+            " (" +
+            bytes.length +
+            " bytes)"
+        );
+
+        render();
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+async function genericFirmware_opened(file) {
+
+    console.log("genericFirmware_opened");
+
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+        const bytes = decode_ihex(reader.result);
+
+        setCODE_LoadProfile_ResetCpu(bytes);
+
+        log("Loaded Intel HEX: " + file.name);
+        render();
+    };
+
+    reader.readAsText(file);
+}
+
+function project_opened(file) {
+
+}
+
+function combined_opened(file) {
+
+}
+
+function fileOpened(e) {
+    console.log("dataFile_opened");
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const name = file.name.toLowerCase();
+
+    // Explicit file formats
+    if (name.endsWith(".json")) {
+        project_opened(file);
+        return;
+    }
+
+    if (name.endsWith(".zip")) {
+        combined_opened(file);
+        return;
+    }
+
+    if (/\.(hex|ihx)$/.test(name)) {
+        genericFirmware_opened(file);
+        return;
+    }
+
+    // Raw binary files are identified by size
+    switch (file.size) {
+        case 65536:
+            firmware_opened(file);
+            return;
+
+        case 524288:
+            dataFile_opened(file);
+            return;
+    }
+
+    log("Unknown file type: " + file.name +
+        " (" + file.size + " bytes)");
+}
+
+function openFile(e) {
+  fileInput.onchange = fileOpened;
+  fileInput.click();
 }
 
 function openFirmware(e) {
@@ -595,17 +674,37 @@ function openDataFile(e) {
   fileInput.onchange = dataFile_opened;
   fileInput.click();
 }
-/*
-this._onFileChange = async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const buf = new Uint8Array(await f.arrayBuffer());
-  this.loadBytes(buf, { fileName: f.name });
-  this.fnameEl.textContent = `${f.name} — ${this.size} bytes (0x${this.size.toString(16)})`;
-  this.msg = `loaded ${f.name} (${buf.length} bytes)`;
-  this._render();
-};
-*/
+
+function compileAsm() {
+  const text = window.assemblyEditor_ace.getValue();
+  const asm = ASM51.assemble(text); 
+  let machineCode = "";
+  for (const [address, byte] of [...asm.bytes.entries()].sort((a, b) => a[0] - b[0])) {
+      machineCode +=
+          `0x${address.toString(16).padStart(4, "0")} : ` +
+          `0x${byte.toString(16).padStart(2, "0")}\n`
+      ;
+  }
+  console.log(asm);
+  console.log(machineCode);
+  
+}
+function openAssemblyEditor() {
+  let content = createNewElement('div', {styles:{width:'100%', height:'100%'}});
+  appendButton(content, "Compile").onclick = compileAsm;
+
+  let editor_el = createNewElement('div', {id:'assembly-editor', styles:{width:'100%', height:'100%'}});
+  content.appendChild(editor_el);
+  
+  window.assemblyEditor_modal.setBody(content);
+  window.assemblyEditor_modal.mount();
+  window.assemblyEditor_modal.open();
+
+  window.assemblyEditor_ace = ace.edit(editor_el);
+  window.assemblyEditor_ace.setTheme("ace/theme/gruvbox");
+    window.assemblyEditor_ace.session.setMode("ace/mode/assembly_8051");
+}
+
 const menu = [
     {
         label: "File",
@@ -617,25 +716,14 @@ const menu = [
             },
             {
                 label: "Open",
-                submenu: [
-                    { // comment to myself, i can however have autodetect on all files, then you use the same function to open all kind of files
-                        label: "Project (zip/json) [not implemented yet]",
-                        comment: "open a zipped project containing both code and data files + json project data,\nor just a json project data file",
-                        action: () => { console.log("open Project stub");}
-                    },
-                    {
-                        label: "Combined (zip) [not implemented yet]",
-                        action: () => { console.log("open Combined stub");}
-                    },
-                    {
-                        label: "Firmware (27SF512)",
-                        action: openFirmware
-                    },
-                    {
-                        label: "Data (AM29F040)",
-                        action: openDataFile
-                    }
-                ]
+                comment: "File type is detected automatically:\n" +
+                        "JSON → project data\n" +
+                        "ZIP → project/combined archive\n" +
+                        "HEX → generic firmware image\n" +
+                        "65536 bytes → 27SF512 firmware\n" +
+                        "524288 bytes → AM29F040 data",
+                action: openFile  
+
             },
             
             {
@@ -648,16 +736,20 @@ const menu = [
         label: "Window",
         items: [
             {
-                label: "Open Code Hex Editor [not implemented yet]",
-                action: () => { console.log("Open Code Hex Editor stub");}
+                label: "Code HexEditor",
+                action: () => { editCode() }
             },
             {
-                label: "Open Goto Label Window [not implemented yet]",
-                action: () => { console.log("Open Goto Label Window stub");}
+                label: "Goto Label",
+                action: () => { gotoLabel(); }
             },
             {
-                label: "Open Settings Window",
+                label: "Settings",
                 action: () => { openSettings(); }
+            },
+            {
+                label: "Assembly Editor",
+                action: () => { openAssemblyEditor(); }
             },
         ]
     }
