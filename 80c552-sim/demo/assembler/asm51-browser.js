@@ -100,10 +100,10 @@ function stripComment(line) {
     } else if (c === '"' || c === "'") {
       inStr = true; strCh = c;
     } else if (c === ';') {
-      return line.slice(0, i);
+      return {insn:line.slice(0, i), comment:line.slice(i+1)};
     }
   }
-  return line;
+  return {insn:line, comment:""};
 }
 
 function splitArgs(s) {
@@ -130,8 +130,12 @@ function tokenizeLines(text) {
   const records = [];
   for (let i = 0; i < rawLines.length; i++) {
     const lineNo = i + 1;
-    let line = stripComment(rawLines[i]);
-    if (!line.trim()) continue;
+    let lineData = stripComment(rawLines[i]);
+    let line = lineData.insn;
+    if (!line.trim()) { 
+      records.push({ lineNo, raw:"", label:"", op:"", args:"", comment:lineData.comment });
+      continue;
+    }
 
     let label = null;
     // label: identifierare direkt följd av ':'
@@ -158,7 +162,7 @@ function tokenizeLines(text) {
     const op = opMatch[1];
     const argsRaw = opMatch[2] || '';
     const args = splitArgs(argsRaw);
-    records.push({ lineNo, raw: rawLines[i], label, op, args });
+    records.push({ lineNo, raw: rawLines[i], label, op, args, comment:lineData.comment });
   }
   return records;
 }
@@ -702,6 +706,7 @@ function layout(records, sizes) {
 // Returnerar { bytes: Map<addr,byte>, symbols, listing } eller kastar AsmError.
 function assemble(text) {
   const records = tokenizeLines(text);
+  //console.log(records);
 
   // Generiska JMP/CALL börjar i "värsta läge" (3 byte = LJMP/LCALL) och
   // krymps sedan iterativt tills inget mer ändras (assembler relaxation).

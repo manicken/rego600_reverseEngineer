@@ -498,8 +498,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
     window.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
     window.settings_modal = new Modal({title:"Settings", height:768, width:420, resizable: true});
-    window.assemblyEditor_modal = new Modal({title:"Assembly Editor", height:768, width:695, resizable: true});
+    window.assemblyViewer_modal = new Modal({title:"Assembly Viewer", height:600, width:400, resizable: true});
+    initAssemblyEditor(window.assemblyViewer_modal);
+
+    window.assemblyEditor_modal = new Modal({title:"Assembly Editor", height:600, width:500, resizable: true});
+    initAssemblyEditor(window.assemblyEditor_modal);
+    appendButton(window.assemblyEditor_modal.toolbar_el, "Compile").onclick = compileAsm;
     
+    initHexEditorForm();
+
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.style.display = 'none';
+   // fileInput.addEventListener('change', _onFileChange);
+    initProfiling();
+});
+
+function initHexEditorForm() {
     const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 
     window.hex_edit_modal.setBody(hex_editor_root_el);
@@ -546,13 +561,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.hexEditor = editor;
     editor.viewport.focus();
-
-    fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.style.display = 'none';
-   // fileInput.addEventListener('change', _onFileChange);
-    initProfiling();
-});
+}
 
 async function firmware_opened(file) {
 
@@ -675,35 +684,114 @@ function openDataFile(e) {
   fileInput.click();
 }
 
-function compileAsm() {
-  const text = window.assemblyEditor_ace.getValue();
-  const asm = ASM51.assemble(text); 
+function printCompileResult(asm) {
   let machineCode = "";
-  for (const [address, byte] of [...asm.bytes.entries()].sort((a, b) => a[0] - b[0])) {
-      machineCode +=
-          `0x${address.toString(16).padStart(4, "0")} : ` +
-          `0x${byte.toString(16).padStart(2, "0")}\n`
-      ;
+
+  for (let insn of asm.listing) {
+    if (insn.outBytes.length != 0) {
+        const rawBytesText = insn.outBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ').padEnd(8, ' ');
+        machineCode += `${hex(insn.addr,4)} [ ${rawBytesText} ]\n`;
+    } else {
+        machineCode += '\n';
+    }
   }
-  console.log(asm);
   console.log(machineCode);
-  
 }
-function openAssemblyEditor() {
-  let content = createNewElement('div', {styles:{width:'100%', height:'100%'}});
-  appendButton(content, "Compile").onclick = compileAsm;
 
-  let editor_el = createNewElement('div', {id:'assembly-editor', styles:{width:'100%', height:'100%'}});
-  content.appendChild(editor_el);
-  
-  window.assemblyEditor_modal.setBody(content);
-  window.assemblyEditor_modal.mount();
-  window.assemblyEditor_modal.open();
-
-  window.assemblyEditor_ace = ace.edit(editor_el);
-  window.assemblyEditor_ace.setTheme("ace/theme/gruvbox");
-    window.assemblyEditor_ace.session.setMode("ace/mode/assembly_8051");
+function compileAsm() {
+  const text = window.assemblyEditor_modal.assemblyEditor_ace.getValue();
+  const asm = ASM51.assemble(text); 
+  machineCodeListing = asm.listing;
+  //printCompileResult(asm);
+  console.log(asm);
+  hexNumberRenderer.update(null, window.assemblyEditor_modal.assemblyEditor_ace);
 }
+
+var machineCodeListing = [];
+
+var hexNumberRenderer = {
+    getText: function(session, row) {
+        let gutterLineText = "";
+        //console.log(session);
+        if (machineCodeListing.length != 0) {
+            let insn = machineCodeListing[row];
+            if ( insn && insn.outBytes.length != 0) {
+                const rawBytesText = insn.outBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ').padEnd(8, ' ');
+                gutterLineText = `${hex(insn.addr,4,false)} [ ${rawBytesText} ]  `;
+            } else {
+                //gutterLineText = "".padStart(18);//.repeat(18);
+            }
+            gutterLineText = gutterLineText.padStart(19);
+        }
+        return gutterLineText + (row + 1).toString().padStart(session.doc.$lines.length.toString().length);
+    },
+    getWidth: function(session, lastLineNumber, config) {
+        return Math.max(
+            lastLineNumber.toString(16).length,
+            (config.lastRow + 1).toString(16).length,
+            2
+        ) * config.characterWidth;
+    },
+    update: function(e, editor) {
+        editor.renderer.$loop.schedule(editor.renderer.CHANGE_GUTTER);
+    },
+    attach: function(editor) {
+        editor.renderer.$gutterLayer.$renderer = this;
+        editor.on("changeSelection", this.update);
+        this.update(null, editor);
+    },
+    detach: function(editor) {
+        if (editor.renderer.$gutterLayer.$renderer == this)
+            editor.renderer.$gutterLayer.$renderer = null;
+        editor.off("changeSelection", this.update);
+        this.update(null, editor);
+    }
+};
+
+//let asmEditTheme = "gruvbox";
+let asmEditTheme = "textmate";
+
+
+function initAssemblyEditor(modal_el) {
+    let content_el = createNewElement('div', { styles: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' } });
+
+    let toolbar_el = createNewElement('div', { styles: { width: '100%', height: '32px', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'4px' }})
+    
+    content_el.appendChild(toolbar_el);
+    
+    let ace_editor_el = createNewElement('div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
+    
+    content_el.appendChild(ace_editor_el);
+
+    modal_el.setBody(content_el);
+    modal_el.mount();
+    modal_el.ace_editor_el = ace_editor_el;
+    modal_el.toolbar_el = toolbar_el;
+}
+
+
+function openAssemblyEditor(modal_el, asmCode) {
+    modal_el.open();
+
+    if (!modal_el.assemblyEditor_ace) {
+        modal_el.assemblyEditor_ace = ace.edit(modal_el.ace_editor_el);
+        modal_el.assemblyEditor_ace.setTheme("ace/theme/" + asmEditTheme);
+        modal_el.assemblyEditor_ace.session.setMode("ace/mode/assembly_8051");
+        
+    }
+
+    // this allows to close and reopen the editor
+    // without destroying the content
+    if (asmCode != undefined) {
+        modal_el.assemblyEditor_ace.setValue(asmCode, -1);
+    }
+}
+
+/*
+function setAssemblyMachineCode(text) {
+    window.assemblyEditor_machineCode_ace.setValue(text, -1);
+}
+    */
 
 const menu = [
     {
@@ -749,7 +837,10 @@ const menu = [
             },
             {
                 label: "Assembly Editor",
-                action: () => { openAssemblyEditor(); }
+                action: () => { 
+                    openAssemblyEditor(window.assemblyEditor_modal);
+                    hexNumberRenderer.attach(window.assemblyEditor_modal.assemblyEditor_ace);
+                 }
             },
         ]
     }

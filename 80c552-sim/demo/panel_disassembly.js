@@ -55,6 +55,11 @@ function editCode() {
     }
 }
 
+function viewAsmCode() {
+    let asmCode = getAssemblyInstructions({insn_incr:4});
+    openAssemblyEditor(window.assemblyViewer_modal, asmCode);
+}
+
 function gotoAddress() {
     const text = window.prompt("Goto address (hex): ", "");
 
@@ -130,18 +135,25 @@ function copyRawData() {
     navigator.clipboard.writeText(text);
 }
 
-function copyInstruction() {
+function getAssemblyInstructions(options) {
     let text = "";
     getSelectedItems().forEach(item => {
         if (item.type == DisAsmLineType.Instruction) {
             const insn = item.insn;
             const opText = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic;
+            if (options.insn_incr) {
+                text += ' '.repeat(options.insn_incr);
+            }
             text += opText + '\n';
         } else if (item.type == DisAsmLineType.Label) {
             text += '\n' + item.text + ':\n';
         }
     });
-    navigator.clipboard.writeText(text);
+    return text;
+}
+
+function copyAssemblyInstructions() {
+    navigator.clipboard.writeText(getAssemblyInstructions());
 }
 
 function editDisasmLabel() {

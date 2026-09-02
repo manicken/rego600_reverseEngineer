@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>TabManager</title>
+<style>
+  :root{
+    --tm-bg:            #1b1e24;
+    --tm-strip-bg:      #14161b;
+    --tm-tab-bg:        #1f232b;
+    --tm-tab-bg-hover:  #262b34;
+    --tm-tab-bg-active: #2b4888;
+    --tm-border:        #2c313b;
+    --tm-accent:        #5fb0ff;
+    --tm-text:          #c7cdd6;
+    --tm-text-dim:      #767e8c;
+    --tm-text-active:   #eef1f5;
+    --tm-danger:        #e5636b;
+    --tm-radius:        6px;
+    --tm-tab-h:         34px;
+    --tm-font:          ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    --tm-font-ui:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--tm-bg);
+    color: var(--tm-text);
+    font-family: var(--tm-font-ui);
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .demo-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--tm-border);
+    background: var(--tm-strip-bg);
+  }
+  .demo-toolbar h1{
+    font-size:13px;
+    font-weight:600;
+    color:var(--tm-text-dim);
+    margin:0 auto 0 0;
+    letter-spacing:.02em;
+  }
+  .demo-toolbar button{
+    font: 12px var(--tm-font-ui);
+    background: var(--tm-tab-bg);
+    color: var(--tm-text);
+    border:1px solid var(--tm-border);
+    border-radius: var(--tm-radius);
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .demo-toolbar button:hover{ background: var(--tm-tab-bg-hover); }
+
+  /* ---------- TabManager core ---------- */
+
+  .tabmgr{
+    display:flex;
+    align-items:stretch;
+    background: var(--tm-strip-bg);
+    border-bottom:1px solid var(--tm-border);
+    height: var(--tm-tab-h);
+    position:relative;
+    user-select:none;
+  }
+
+  .tabmgr-scrollbtn{
+    flex:0 0 auto;
+    width:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--tm-strip-bg);
+    color: var(--tm-text-dim);
+    border:none;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .tabmgr-scrollbtn:hover{ color: var(--tm-text-active); }
+  .tabmgr-scrollbtn[hidden]{ display:none; }
+
+  .tabmgr-strip{
+    flex:1 1 auto;
+    display:flex;
+    overflow-x:auto;
+    scrollbar-width:none;
+    scroll-behavior:smooth;
+  }
+  .tabmgr-strip::-webkit-scrollbar{ display:none; }
+
+  .tab{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    max-width:200px;
+    min-width:110px;
+    padding:0 6px 0 10px;
+    background: var(--tm-tab-bg);
+    border-right:1px solid var(--tm-border);
+    color: var(--tm-text);
+    cursor:pointer;
+    position:relative;
+    font: 12.5px var(--tm-font);
+  }
+  .tab:hover{ background: var(--tm-tab-bg-hover); }
+  .tab.active{
+    background: var(--tm-tab-bg-active);
+    color: var(--tm-text-active);
+  }
+  .tab.active::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    height:2px;
+    background: var(--tm-accent);
+  }
+  .tab.drag-over-before::before,
+  .tab.drag-over-after::after{
+    content:"";
+    position:absolute;
+    top:4px; bottom:4px;
+    width:2px;
+    background: var(--tm-accent);
+  }
+  .tab.drag-over-before::before{ left:0; }
+  .tab.drag-over-after::after{ right:0; background:var(--tm-accent); }
+  .tab.dragging{ opacity:.4; }
+
+  .tab-title{
+    flex:1 1 auto;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  /*.tab-dot{
+    flex:0 0 auto;
+    width:7px; height:7px;
+    border-radius:50%;
+    background: var(--tm-text-dim);
+  }
+  .tab.active .tab-dot{ background: var(--tm-accent); }
+*/
+  .tab-close{
+    flex:0 0 auto;
+    width:18px; height:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    background:#27942c;
+    color: #ffffff;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:13px;
+    line-height:1;
+  }
+  .tab-close:hover{ background: #834013; color:#ffffff; }
+
+  /* show dot by default, swap to × on hover of the tab (classic editor behaviour) */
+  .tab:not(:hover):not(.dirty) .tab-close{ display:none; }
+  .tab:not(:hover):not(.dirty) .tab-dot{ display:block; }
+  .tab:hover .tab-dot, .tab.dirty:not(:hover) .tab-close{ display:none; }
+  .tab.dirty .tab-dot{ display:block; }
+  .tab:hover .tab-close{ display:flex; }
+
+  /* closed-tabs dropdown */
+  .tabmgr-closed{
+    flex:0 0 auto;
+    position:relative;
+    border-left:1px solid var(--tm-border);
+  }
+  .tabmgr-closed-btn{
+    height:100%;
+    padding:0 10px;
+    background:transparent;
+    border:none;
+    color: var(--tm-text-dim);
+    cursor:pointer;
+    font: 12px var(--tm-font-ui);
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .tabmgr-closed-btn:hover{ color: var(--tm-text-active); background: var(--tm-tab-bg-hover); }
+  .tabmgr-closed-badge{
+    background: var(--tm-border);
+    color: var(--tm-text-active);
+    border-radius:8px;
+    padding:0 5px;
+    font-size:10.5px;
+  }
+  .tabmgr-closed-menu, .tab-ctxmenu{
+    position:absolute;
+    top:100%;
+    right:0;
+    min-width:190px;
+    background: var(--tm-tab-bg);
+    border:1px solid var(--tm-border);
+    border-radius: var(--tm-radius);
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    padding:4px;
+    z-index:50;
+    display:none;
+  }
+  .tabmgr-closed-menu.open, .tab-ctxmenu.open{ display:block; }
+  .menu-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:6px 8px;
+    border-radius:4px;
+    font: 12px var(--tm-font-ui);
+    color: var(--tm-text);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .menu-item:hover{ background: var(--tm-tab-bg-hover); }
+  .menu-item.danger{ color: var(--tm-danger); }
+  .menu-item .menu-title{ overflow:hidden; text-overflow:ellipsis; font-family:var(--tm-font); }
+  .menu-item .menu-action{ color: var(--tm-text-dim); font-size:11px; }
+  .menu-sep{ height:1px; background:var(--tm-border); margin:4px 2px; }
+  .menu-empty{ padding:10px 8px; color: var(--tm-text-dim); font-size:12px; }
+
+  /* ---------- content area (demo) ---------- */
+
+  .tabmgr-content{
+    flex:1 1 auto;
+    position:relative;
+    overflow:auto;
+  }
+  .pane{
+    position:absolute; inset:0;
+    padding:18px;
+    display:none;
+    font: 13px var(--tm-font);
+    color: var(--tm-text-active);
+    white-space:pre-wrap;
+  }
+  .pane.active{ display:block; }
+  .pane textarea{
+    width:100%; height:100%;
+    resize:none;
+    background: transparent;
+    border:none;
+    color: inherit;
+    font: inherit;
+    outline:none;
+  }
+  .empty-state{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    color: var(--tm-text-dim);
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="demo-toolbar">
+    <h1>tab manager — demo</h1>
+    <button id="btnOpen">+ Öppna fil</button>
+    <button id="btnOpenMany">+ Öppna 8 filer</button>
+  </div>
+
+  <div id="tabmgr-root"></div>
+  <div class="tabmgr-content" id="content-root">
+    <div class="empty-state">Ingen fil öppen</div>
+  </div>
+<script src="ace/ace.js"></script>
+<script>
+/**
+ * TabManager
+ * -----------
+ * Dependency-free tab strip for managing "open files" (or any keyed items).
+ *
+ * Design:
+ *  - close (X) is a SOFT close: the tab disappears from the strip but its
+ *    data/content is kept and listed under the "Closed" dropdown.
+ *  - permanent deletion only happens via a menu action ("Ta bort permanent"),
+ *    reachable from the tab's right-click context menu or the Closed dropdown.
+ *  - drag-and-drop reordering of open tabs.
+ *  - auto horizontal scrolling with edge buttons that appear on overflow.
+ *
+ * Everything is driven by plain data + an EventTarget, so wiring up your own
+ * UI (content panes, menus, persistence, etc.) is just listening for events -
+ * see the bottom of this file for a usage example.
+ *
+ * Events dispatched on the TabManager instance (all CustomEvent, detail={id, tab}):
+ *   'open'  'activate'  'close'  'reopen'  'remove'  'reorder'
+ */
+class TabManager extends EventTarget {
+  /**
+   * @param {HTMLElement} root - empty container to render into
+   * @param {Object} [opts]
+   * @param {(tab:Object)=>string} [opts.getIcon] - optional icon/prefix per tab
+   */
+  constructor(root, opts = {}) {
+    super();
+    this.root = root;
+    this.opts = opts;
+
+    /** @type {Map<string,Object>} all known tabs, open or closed, keyed by id */
+    this.tabs = new Map();
+    /** @type {string[]} order of OPEN tabs (closed tabs are not in here) */
+    this.order = [];
+    this.activeId = null;
+
+    this._dragId = null;
+    this._buildDom();
+    this._bindGlobal();
+  }
+
+  // ---------- public API ----------
+
+  /** Open (or focus, if already open) a tab. data is your own payload. */
+  open(id, { title = id, data = null, activate = true, dirty = false } = {}) {
+    let tab = this.tabs.get(id);
+    if (tab) {
+      tab.closed = false;
+      if (!this.order.includes(id)) this.order.push(id);
+    } else {
+      tab = { id, title, data, dirty, closed: false };
+      this.tabs.set(id, tab);
+      this.order.push(id);
+    }
+    this._render();
+    this._emit('open', tab);
+    if (activate) this.activate(id);
+    return tab;
+  }
+
+  activate(id) {
+    if (!this.tabs.has(id) || this.tabs.get(id).closed) return;
+    this.activeId = id;
+    this._render();
+    this._emit('activate', this.tabs.get(id));
+    this._scrollIntoView(id);
+  }
+
+  /** Soft close: hide from strip, keep data for later reopen. */
+  close(id) {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.closed) return;
+    const idx = this.order.indexOf(id);
+    tab.closed = true;
+    this.order = this.order.filter(x => x !== id);
+
+    if (this.activeId === id) {
+      const next = this.order[idx] ?? this.order[idx - 1] ?? null;
+      this.activeId = next;
+      if (next) this._emit('activate', this.tabs.get(next));
+    }
+    this._render();
+    this._emit('close', tab);
+  }
+
+  /** Reopen a previously soft-closed tab, restoring its position at the end. */
+  reopen(id) {
+    const tab = this.tabs.get(id);
+    if (!tab || !tab.closed) return;
+    tab.closed = false;
+    this.order.push(id);
+    this._render();
+    this._emit('reopen', tab);
+    this.activate(id);
+  }
+
+  /** Permanently delete a tab and its data, open or closed. */
+  remove(id) {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    this.order = this.order.filter(x => x !== id);
+    this.tabs.delete(id);
+    if (this.activeId === id) {
+      this.activeId = this.order[0] ?? null;
+      if (this.activeId) this._emit('activate', this.tabs.get(this.activeId));
+    }
+    this._render();
+    this._emit('remove', tab);
+  }
+
+  closeOthers(id) {
+    [...this.order].filter(x => x !== id).forEach(x => this.close(x));
+  }
+
+  closeAll() {
+    [...this.order].forEach(x => this.close(x));
+  }
+
+  setDirty(id, dirty = true) {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    tab.dirty = dirty;
+    this._render();
+  }
+
+  reorder(id, beforeId /* null = move to end */) {
+    if (id === beforeId) return;
+    this.order = this.order.filter(x => x !== id);
+    if (beforeId == null) this.order.push(id);
+    else {
+      const i = this.order.indexOf(beforeId);
+      this.order.splice(i < 0 ? this.order.length : i, 0, id);
+    }
+    this._render();
+    this._emit('reorder', this.tabs.get(id));
+  }
+
+  get openTabs() { return this.order.map(id => this.tabs.get(id)); }
+  get closedTabs() { return [...this.tabs.values()].filter(t => t.closed); }
+
+  // ---------- internals ----------
+
+  _emit(type, tab) {
+    this.dispatchEvent(new CustomEvent(type, { detail: { id: tab.id, tab } }));
+  }
+
+  _buildDom() {
+    this.root.innerHTML = '';
+    this.root.className = 'tabmgr';
+
+    this.elLeftBtn = document.createElement('button');
+    this.elLeftBtn.className = 'tabmgr-scrollbtn';
+    this.elLeftBtn.textContent = '‹';
+    this.elLeftBtn.hidden = true;
+
+    this.elStrip = document.createElement('div');
+    this.elStrip.className = 'tabmgr-strip';
+
+    this.elRightBtn = document.createElement('button');
+    this.elRightBtn.className = 'tabmgr-scrollbtn';
+    this.elRightBtn.textContent = '›';
+    this.elRightBtn.hidden = true;
+
+    this.elClosedWrap = document.createElement('div');
+    this.elClosedWrap.className = 'tabmgr-closed';
+    this.elClosedBtn = document.createElement('button');
+    this.elClosedBtn.className = 'tabmgr-closed-btn';
+    this.elClosedMenu = document.createElement('div');
+    this.elClosedMenu.className = 'tabmgr-closed-menu';
+    this.elClosedWrap.append(this.elClosedBtn, this.elClosedMenu);
+
+    this.elCtxMenu = document.createElement('div');
+    this.elCtxMenu.className = 'tab-ctxmenu';
+    document.body.appendChild(this.elCtxMenu); // fixed-position, own layer
+
+    this.root.append(this.elLeftBtn, this.elStrip, this.elRightBtn, this.elClosedWrap);
+
+    this.elLeftBtn.addEventListener('click', () => this.elStrip.scrollBy({ left: -160, behavior: 'smooth' }));
+    this.elRightBtn.addEventListener('click', () => this.elStrip.scrollBy({ left: 160, behavior: 'smooth' }));
+    this.elStrip.addEventListener('wheel', e => {
+      if (e.deltaY === 0) return;
+      this.elStrip.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
+    this.elStrip.addEventListener('scroll', () => this._updateScrollButtons());
+    new ResizeObserver(() => this._updateScrollButtons()).observe(this.elStrip);
+
+    this.elClosedBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      this._toggleMenu(this.elClosedMenu);
+    });
+  }
+
+  _bindGlobal() {
+    document.addEventListener('click', () => this._closeAllMenus());
+    document.addEventListener('scroll', () => this._closeAllMenus(), true);
+  }
+
+  _toggleMenu(menu) {
+    const willOpen = !menu.classList.contains('open');
+    this._closeAllMenus();
+    if (willOpen) menu.classList.add('open');
+  }
+  _closeAllMenus() {
+    this.elClosedMenu.classList.remove('open');
+    this.elCtxMenu.classList.remove('open');
+  }
+
+  _updateScrollButtons() {
+    const s = this.elStrip;
+    const overflow = s.scrollWidth > s.clientWidth + 1;
+    this.elLeftBtn.hidden = !overflow || s.scrollLeft <= 0;
+    this.elRightBtn.hidden = !overflow || s.scrollLeft + s.clientWidth >= s.scrollWidth - 1;
+  }
+
+  _scrollIntoView(id) {
+    const el = this.elStrip.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (el) el.scrollIntoView({ inline: 'nearest', behavior: 'smooth' });
+  }
+
+  _render() {
+    this.elStrip.innerHTML = '';
+    for (const id of this.order) {
+      this.elStrip.appendChild(this._renderTab(this.tabs.get(id)));
+    }
+    this._renderClosedMenu();
+    requestAnimationFrame(() => this._updateScrollButtons());
+  }
+
+  _renderTab(tab) {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === this.activeId ? ' active' : '') + (tab.dirty ? ' dirty' : '');
+    el.dataset.id = tab.id;
+    el.draggable = true;
+    el.title = tab.title;
+
+    const icon = this.opts.getIcon ? this.opts.getIcon(tab) : null;
+    if (icon) {
+      const iconEl = document.createElement('span');
+      iconEl.textContent = icon;
+      el.appendChild(iconEl);
+    }
+
+    const title = document.createElement('span');
+    title.className = 'tab-title';
+    title.textContent = tab.title;
+
+    const dot = document.createElement('span');
+    dot.className = 'tab-dot';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tab-close';
+    closeBtn.textContent = '×';
+    closeBtn.title = 'Stäng (behåller data)';
+    closeBtn.addEventListener('click', e => { e.stopPropagation(); this.close(tab.id); });
+
+    el.append(title, dot, closeBtn);
+
+    el.addEventListener('click', () => this.activate(tab.id));
+    el.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      this._openTabContextMenu(tab, e.clientX, e.clientY);
+    });
+
+    // drag reorder
+    el.addEventListener('dragstart', e => {
+      this._dragId = tab.id;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tab.id);
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      this.elStrip.querySelectorAll('.tab').forEach(t => t.classList.remove('drag-over-before', 'drag-over-after'));
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!this._dragId || this._dragId === tab.id) return;
+      const before = e.clientX < el.getBoundingClientRect().left + el.offsetWidth / 2;
+      el.classList.toggle('drag-over-before', before);
+      el.classList.toggle('drag-over-after', !before);
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over-before', 'drag-over-after'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over-before', 'drag-over-after');
+      if (!this._dragId || this._dragId === tab.id) return;
+      const before = e.clientX < el.getBoundingClientRect().left + el.offsetWidth / 2;
+      this.reorder(this._dragId, before ? tab.id : (this.order[this.order.indexOf(tab.id) + 1] ?? null));
+      this._dragId = null;
+    });
+
+    return el;
+  }
+
+  _openTabContextMenu(tab, x, y) {
+    const menu = this.elCtxMenu;
+    menu.innerHTML = '';
+    const item = (label, fn, danger = false) => {
+      const it = document.createElement('div');
+      it.className = 'menu-item' + (danger ? ' danger' : '');
+      it.textContent = label;
+      it.addEventListener('click', ev => { ev.stopPropagation(); fn(); this._closeAllMenus(); });
+      menu.appendChild(it);
+    };
+    item('Stäng', () => this.close(tab.id));
+    item('Stäng övriga', () => this.closeOthers(tab.id));
+    item('Stäng alla', () => this.closeAll());
+    const sep = document.createElement('div'); sep.className = 'menu-sep';
+    menu.appendChild(sep);
+    item('Ta bort permanent', () => this.remove(tab.id), true);
+
+    menu.style.left = 'auto';
+    menu.style.right = 'auto';
+    menu.style.top = y + 'px';
+    menu.style.left = x + 'px';
+    this._toggleMenu(menu);
+  }
+
+  _renderClosedMenu() {
+    const closed = this.closedTabs;
+    this.elClosedBtn.innerHTML = `Stängda <span class="tabmgr-closed-badge">${closed.length}</span>`;
+    this.elClosedMenu.innerHTML = '';
+
+    if (closed.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'menu-empty';
+      empty.textContent = 'Inga stängda flikar';
+      this.elClosedMenu.appendChild(empty);
+      return;
+    }
+
+    for (const tab of closed) {
+      const row = document.createElement('div');
+      row.className = 'menu-item';
+
+      const title = document.createElement('span');
+      title.className = 'menu-title';
+      title.textContent = tab.title;
+      title.addEventListener('click', () => this.reopen(tab.id));
+
+      const actions = document.createElement('span');
+      actions.className = 'menu-action';
+      actions.textContent = 'Ta bort';
+      actions.style.cursor = 'pointer';
+      actions.addEventListener('click', e => { e.stopPropagation(); this.remove(tab.id); });
+
+      row.append(title, actions);
+      row.addEventListener('click', () => this.reopen(tab.id));
+      this.elClosedMenu.appendChild(row);
+    }
+  }
+}
+
+/* =====================================================================
+ * Usage example — wires TabManager up to a simple content-pane area.
+ * Swap this block out; the class above has no dependency on it.
+ * ===================================================================*/
+(() => {
+  const files = {
+    'main.cpp':   'void setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n}\n',
+    'hal.h':      '#pragma once\n\nclass Hal {\npublic:\n  virtual void init() = 0;\n};\n',
+    'platformio.ini': '[env:esp32dev]\nplatform = espressif32\nboard = esp32dev\n',
+  };
+  let fileCounter = 0;
+
+  const tm = new TabManager(document.getElementById('tabmgr-root'), {
+    getIcon: () => '' // e.g. return an icon per file type here
+  });
+/*
+  const contentRoot = document.getElementById('content-root');
+  const panes = new Map();
+
+  function ensurePane(tab) {
+    let pane = panes.get(tab.id);
+    if (!pane) {
+      pane = document.createElement('div');
+      pane.className = 'pane';
+      const ta = document.createElement('textarea');
+      ta.value = tab.data ?? '';
+      ta.spellcheck = false;
+      ta.addEventListener('input', () => tm.setDirty(tab.id, true));
+      pane.appendChild(ta);
+      panes.set(tab.id, pane);
+      contentRoot.appendChild(pane);
+    }
+    return pane;
+  }
+
+  function showActive() {
+    const empty = contentRoot.querySelector('.empty-state');
+    contentRoot.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    const activeId = tm.activeId;
+    if (!activeId) { if (empty) empty.style.display = 'flex'; return; }
+    if (empty) empty.style.display = 'none';
+    ensurePane(tm.tabs.get(activeId)).classList.add('active');
+  }
+
+  tm.addEventListener('activate', showActive);
+  tm.addEventListener('open', e => ensurePane(e.detail.tab));
+  tm.addEventListener('remove', e => {
+    const pane = panes.get(e.detail.id);
+    if (pane) { pane.remove(); panes.delete(e.detail.id); }
+    showActive();
+  });*/
+  const editor = ace.edit('content-root');
+editor.setTheme('ace/theme/tomorrow_night');
+editor.setOptions({ fontSize: '13px', showPrintMargin: false });
+
+const sessions = new Map(); // tab.id -> ace.EditSession
+
+function modeFor(filename) {
+  if (/\.(cpp|h|hpp)$/.test(filename)) return 'ace/mode/c_cpp';
+  if (filename.endsWith('.ini')) return 'ace/mode/ini';
+  if (filename.endsWith('.js'))  return 'ace/mode/javascript';
+  return 'ace/mode/text';
+}
+
+function ensureSession(tab) {
+  let session = sessions.get(tab.id);
+  if (!session) {
+    session = new ace.EditSession(tab.data ?? '', modeFor(tab.title));
+    session.on('change', () => {
+      tm.setDirty(tab.id, !session.getUndoManager().isClean());
+    });
+    sessions.set(tab.id, session);
+  }
+  return session;
+}
+
+tm.addEventListener('open',     e => ensureSession(e.detail.tab));
+tm.addEventListener('activate', e => {
+  editor.setSession(ensureSession(e.detail.tab));
+  editor.focus();
+});
+
+// 'close' (mjuk stängning) — gör INGET med sessionen.
+// Den ligger kvar i Map:en, vilket automatiskt bevarar undo-historik,
+// markörposition och scroll-läge tills flik-öppnas igen.
+
+tm.addEventListener('remove', e => {
+  const session = sessions.get(e.detail.id);
+  if (session) { session.destroy(); sessions.delete(e.detail.id); }
+});
+
+  document.getElementById('btnOpen').addEventListener('click', () => {
+    const names = Object.keys(files);
+    const name = names[fileCounter % names.length];
+    fileCounter++;
+    tm.open(name, { title: name, data: files[name] });
+  });
+
+  document.getElementById('btnOpenMany').addEventListener('click', () => {
+    for (let i = 0; i < 8; i++) {
+      const name = `module_${i}.cpp`;
+      tm.open(name, { title: name, data: `// ${name}\n`, activate: false });
+    }
+    const first = tm.order[0];
+    if (first) tm.activate(first);
+  });
+
+  // seed a couple of open tabs on load
+  tm.open('main.cpp', { title: 'main.cpp', data: files['main.cpp'] });
+  tm.open('hal.h', { title: 'hal.h', data: files['hal.h'], activate: false });
+})();
+</script>
+</body>
+</html>

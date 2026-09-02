@@ -123,3 +123,58 @@ UART_ISR_VECTOR:
  0023  [ 10 98 F7 ] JBC S0CON.RI,UART_ISR_RX_TRAMPOLINE
  0026  [ 10 99 F7 ] JBC S0CON.TI,UART_ISR_TX_TRAMPOLINE
  0029  [ 32       ] RETI (failsafe)
+
+
+
+
+
+
+UART_IRQ_HANDLER:
+PUSH A
+PUSH PSW
+
+uart_rx_check_if_uart_done_is_set:
+MOV A,R2
+NOP
+JNZ uart_rx_irq_skip
+MOV PSW,#0x18
+
+uart_rx_one_byte:
+MOV A,S0BUF
+MOV R7,A
+
+uart_rx_check_start_byte:
+RLC A
+JNC uart_rx_bytes_start_byte_rx_check
+XRL A,#0x02
+JNZ uart_rx_reset
+
+uart_rx_start_received:
+MOV R0,#0x80
+MOV R6,#0x01
+SJMP uart_rx_irq_end
+
+uart_rx_bytes_start_byte_rx_check:
+MOV A,R6
+JNZ uart_rx_irq_end
+
+uart_rx_bytes:
+MOV A,R7
+MOV @R0,A
+INC R0
+CJNE R0,#0x88,uart_rx_irq_end
+
+uart_rx_done:
+MOV R2,#0x01
+
+uart_rx_reset:
+MOV R0,#0x00
+SJMP uart_rx_irq_end
+
+uart_rx_irq_skip:
+MOV A,S0BUF
+
+uart_rx_irq_end:
+POP PSW
+POP A
+RETI
