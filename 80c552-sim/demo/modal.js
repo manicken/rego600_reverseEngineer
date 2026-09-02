@@ -28,10 +28,12 @@ class Modal {
 		height,
 		x,
 		y,
+		z,
 		closable = true,
 		draggable = true,
 		backdrop = false,
 		resizable = false,
+		automount = true,
 		closeOnBackdropClick = true,
 		closeOnEscape = backdrop,
 		onClose,
@@ -88,9 +90,17 @@ class Modal {
 		this.el.appendChild(this.bodyEl);
 		this.el.appendChild(this.footerEl);
 
+		if (z != undefined) {
+			this.el.style.zIndex = z;
+		}
+
 		if (backdrop) {
 			this.backdropEl = document.createElement("div");
 			this.backdropEl.className = "modal-backdrop";
+			if (z != undefined) {
+				this.backdropEl.style.zIndex = z-1;
+			}
+			
 			this.backdropEl.appendChild(this.el);
 			if (closeOnBackdropClick) {
 				this.backdropEl.addEventListener("click", (e) => {
@@ -112,6 +122,10 @@ class Modal {
 			this._makeResizable();
 		}
 		this._setInitialPosition(x, y);
+
+		if (automount) {
+			this.mount();
+		}
 	}
 
 	_setInitialPosition(x, y) {
@@ -284,4 +298,87 @@ class Modal {
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		(this.hasBackdrop ? this.backdropEl : this.el).remove();
 	}
+}
+
+
+function confirmModal({
+		title = "Confirm",
+		message = "",
+		confirmText = "OK",
+		confirmClass = "",
+		onConfirm
+	} = {}) {
+
+    const modal = new Modal({
+        title,
+        height: 200,
+        width: 350,
+        backdrop: true,
+		z:2000
+    });
+
+    modal.setBody(createNewElement("div", {
+        innerHTML: message,
+        styles: {
+            padding: "8px"
+        }
+    }));
+
+    modal.setFooter(createButtonBar([
+        {
+            text: confirmText,
+            className: confirmClass,
+            onClick: () => {
+                modal.destroy();
+                onConfirm?.();
+            }
+        },
+        {
+            text: "Cancel",
+            onClick: () => {
+                modal.destroy();
+            }
+        }
+    ]));
+
+    modal.open();
+
+    return modal;
+}
+
+function infoModal({
+		title = "Info",
+		message = "",
+		buttonText = "OK",
+		onConfirm = () => {}
+	} = {}) {
+
+    const modal = new Modal({
+        title,
+        height: 200,
+        width: 350,
+        backdrop: true,
+		z:2000
+    });
+
+    modal.setBody(createNewElement("div", {
+        innerHTML: message,
+        styles: {
+            padding: "8px"
+        }
+    }));
+
+    modal.setFooter(createButtonBar([
+        {
+            text: buttonText,
+            onClick: () => {
+                modal.destroy();
+                onConfirm();
+            }
+        }
+    ]));
+
+    modal.open();
+
+    return modal;
 }

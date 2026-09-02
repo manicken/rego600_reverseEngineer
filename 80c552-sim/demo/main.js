@@ -494,6 +494,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     render();
     init_SignalInputs();
 
+    
     window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
     window.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
     window.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
@@ -503,9 +504,56 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.assemblyEditor_modal = new Modal({title:"Assembly Editor", height:600, width:500, resizable: true});
     initAssemblyEditor(window.assemblyEditor_modal);
-    appendButton(window.assemblyEditor_modal.toolbar_el, "Compile").onclick = compileAsm;
+    window.assemblyEditor_modal.toolbar_el.style.height = '64px';
+    window.assemblyEditor_modal.toolbar_el.style.flexDirection = 'column';
+    window.assemblyEditor_modal.toolbar_el.appendChild(createButtonBar([
+        {
+            text: "Save",
+            onClick: () => {infoModal({message:"This function is not yes implemented"});}
+        },
+        {
+            text: "Compile",
+            onClick: compileAsm
+        },
+    ]));
+    //appendButton(window.assemblyEditor_modal.toolbar_el, "Compile").onclick = compileAsm;
     
     initHexEditorForm();
+
+    let tab_msgr_el = appendNewElement(window.assemblyEditor_modal.toolbar_el, 'div');
+
+    const tm = new TabManager(tab_msgr_el, {
+        getIcon: (file) => {console.log(file); return '';} // e.g. return an icon per file type here
+    });
+    const files = {
+        'main.cpp':   'void setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n}\n',
+        'hal.h':      '#pragma once\n\nclass Hal {\npublic:\n  virtual void init() = 0;\n};\n',
+        'platformio.ini': '[env:esp32dev]\nplatform = espressif32\nboard = esp32dev\n',
+    };
+    const sessions = new Map(); // tab.id -> ace.EditSession
+    function ensureSession(tab) {
+        let session = sessions.get(tab.id);
+        if (!session) {
+        session = new ace.EditSession(tab.data ?? '');
+        session.on('change', () => {
+            tm.setDirty(tab.id, !session.getUndoManager().isClean());
+        });
+        sessions.set(tab.id, session);
+        }
+        return session;
+    }
+    tm.addEventListener('open',     e => ensureSession(e.detail.tab));
+    tm.addEventListener('activate', e => {
+        let editor = window.assemblyEditor_modal.assemblyEditor_ace;
+        editor.setSession(ensureSession(e.detail.tab));
+        editor.focus();
+    });
+    tm.addEventListener('remove', e => {
+        const session = sessions.get(e.detail.id);
+        if (session) { session.destroy(); sessions.delete(e.detail.id); }
+    });
+    tm.open('main.cpp', { title: 'main.cpp', data: files['main.cpp'] });
+    tm.open('hal.h', { title: 'hal.h', data: files['hal.h'], activate: false });
 
     fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -518,8 +566,6 @@ function initHexEditorForm() {
     const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
 
     window.hex_edit_modal.setBody(hex_editor_root_el);
-    window.hex_edit_modal.mount();
-   // window.hex_edit_modal.open();
 
     const editor = new ModalHexEditor(hex_editor_root_el, {
       size: 0x10000,
@@ -764,7 +810,6 @@ function initAssemblyEditor(modal_el) {
     content_el.appendChild(ace_editor_el);
 
     modal_el.setBody(content_el);
-    modal_el.mount();
     modal_el.ace_editor_el = ace_editor_el;
     modal_el.toolbar_el = toolbar_el;
 }

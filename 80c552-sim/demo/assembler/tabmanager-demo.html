@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="tabmanager.css">
+<link rel="stylesheet" href="../button-bar.css">
+<link rel="stylesheet" href="../modal.css">
+<title>TabManager</title>
+<style>
+  :root{
+    --tm-bg:            #1b1e24;
+    --tm-strip-bg:      #14161b;
+    --tm-tab-bg:        #1f232b;
+    --tm-tab-bg-hover:  #262b34;
+    --tm-tab-bg-active: #2b4888;
+    --tm-border:        #2c313b;
+    --tm-accent:        #5fb0ff;
+    --tm-text:          #c7cdd6;
+    --tm-text-dim:      #767e8c;
+    --tm-text-active:   #eef1f5;
+    --tm-danger:        #e5636b;
+    --tm-radius:        6px;
+    --tm-tab-h:         34px;
+    --tm-font:          ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    --tm-font-ui:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--tm-bg);
+    color: var(--tm-text);
+    font-family: var(--tm-font-ui);
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .demo-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--tm-border);
+    background: var(--tm-strip-bg);
+  }
+  .demo-toolbar h1{
+    font-size:13px;
+    font-weight:600;
+    color:var(--tm-text-dim);
+    margin:0 auto 0 0;
+    letter-spacing:.02em;
+  }
+  .demo-toolbar button{
+    font: 12px var(--tm-font-ui);
+    background: var(--tm-tab-bg);
+    color: var(--tm-text);
+    border:1px solid var(--tm-border);
+    border-radius: var(--tm-radius);
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .demo-toolbar button:hover{ background: var(--tm-tab-bg-hover); }
+
+  /* ---------- content area (demo) ---------- */
+
+  .tabmgr-content{
+    flex:1 1 auto;
+    position:relative;
+    overflow:auto;
+  }
+  .pane{
+    position:absolute; inset:0;
+    padding:18px;
+    display:none;
+    font: 13px var(--tm-font);
+    color: var(--tm-text-active);
+    white-space:pre-wrap;
+  }
+  .pane.active{ display:block; }
+  .pane textarea{
+    width:100%; height:100%;
+    resize:none;
+    background: transparent;
+    border:none;
+    color: inherit;
+    font: inherit;
+    outline:none;
+  }
+  .empty-state{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    color: var(--tm-text-dim);
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="demo-toolbar">
+    <h1>tab manager — demo</h1>
+    <button id="btnOpen">+ Öppna fil</button>
+    <button id="btnOpenMany">+ Öppna 8 filer</button>
+  </div>
+
+  <div id="tabmgr-root"></div>
+  <div class="tabmgr-content" id="content-root">
+    <div class="empty-state">Ingen fil öppen</div>
+  </div>
+<script src="../ace/ace.js"></script>
+<script src="../button-bar.js"></script>
+<script src="tabmanager.js"></script>
+<script src="../modal.js"></script>
+<script src="../dom_helpers.js"></script>
+<script>
+
+
+/* =====================================================================
+ * Usage example — wires TabManager up to a simple content-pane area.
+ * Swap this block out; the class above has no dependency on it.
+ * ===================================================================*/
+(() => {
+  const files = {
+    'main.cpp':   'void setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n}\n',
+    'hal.h':      '#pragma once\n\nclass Hal {\npublic:\n  virtual void init() = 0;\n};\n',
+    'platformio.ini': '[env:esp32dev]\nplatform = espressif32\nboard = esp32dev\n',
+  };
+  let fileCounter = 0;
+
+  const tm = new TabManager(document.getElementById('tabmgr-root'), {
+    getIcon: () => '' // e.g. return an icon per file type here
+  });
+
+  const editor = ace.edit('content-root');
+  editor.setTheme('ace/theme/tomorrow_night');
+  editor.setOptions({ fontSize: '13px', showPrintMargin: false });
+
+  const sessions = new Map(); // tab.id -> ace.EditSession
+
+  function modeFor(filename) {
+    if (/\.(cpp|h|hpp)$/.test(filename)) return 'ace/mode/c_cpp';
+    if (filename.endsWith('.ini')) return 'ace/mode/ini';
+    if (filename.endsWith('.js'))  return 'ace/mode/javascript';
+    return 'ace/mode/text';
+  }
+
+  function ensureSession(tab) {
+    let session = sessions.get(tab.id);
+    if (!session) {
+      session = new ace.EditSession(tab.data ?? '', modeFor(tab.title));
+      session.on('change', () => {
+        tm.setDirty(tab.id, !session.getUndoManager().isClean());
+      });
+      sessions.set(tab.id, session);
+    }
+    return session;
+  }
+
+  tm.addEventListener('open',     e => ensureSession(e.detail.tab));
+  tm.addEventListener('activate', e => {
+    editor.setSession(ensureSession(e.detail.tab));
+    editor.focus();
+  });
+
+  // 'close' (mjuk stängning) — gör INGET med sessionen.
+  // Den ligger kvar i Map:en, vilket automatiskt bevarar undo-historik,
+  // markörposition och scroll-läge tills flik-öppnas igen.
+
+  tm.addEventListener('remove', e => {
+    const session = sessions.get(e.detail.id);
+    if (session) { session.destroy(); sessions.delete(e.detail.id); }
+  });
+
+  document.getElementById('btnOpen').addEventListener('click', () => {
+    const names = Object.keys(files);
+    const name = names[fileCounter % names.length];
+    fileCounter++;
+    tm.open(name, { title: name, data: files[name] });
+  });
+
+  document.getElementById('btnOpenMany').addEventListener('click', () => {
+    for (let i = 0; i < 8; i++) {
+      const name = `module_${i}.cpp`;
+      tm.open(name, { title: name, data: `// ${name}\n`, activate: false });
+    }
+    const first = tm.order[0];
+    if (first) tm.activate(first);
+  });
+
+  // seed a couple of open tabs on load
+  tm.open('main.cpp', { title: 'main.cpp', data: files['main.cpp'] });
+  tm.open('hal.h', { title: 'hal.h', data: files['hal.h'], activate: false });
+  
+  
+
+})();
+</script>
+</body>
+</html>

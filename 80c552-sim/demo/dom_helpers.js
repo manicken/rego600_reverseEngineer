@@ -149,3 +149,4 @@ function renderKeyValueTable(container, regs) {
   }
   container.innerHTML = html;
 }
+
