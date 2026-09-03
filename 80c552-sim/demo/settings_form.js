@@ -35,6 +35,19 @@ function openSettings() {
     rtc_use_system_clock_container_el.appendChild(rtc_use_system_clock_chk.label_el);
     content.appendChild(rtc_use_system_clock_container_el);
 
+    // Live tracking checkbox
+    let liveTracking_ToolTip = "Enable live tracing while the simulator runs, stepping however always use Tracking";
+    appendCheckBoxWithLabel(content,
+        { label: "Disassembly Live Tracking", tooltip: liveTracking_ToolTip, state: disasm_live_update, style: { marginLeft: "10px", marginBottom: "10px" } },
+        (value) => { disasm_live_update = value; }
+    );
+
+    let autoscroll_ToolTip = "Enable live tracing scrolling while the simulator runs, stepping however always use Tracking";
+    appendCheckBoxWithLabel(content,
+        { label: "Disassembly Live Scroll", tooltip: autoscroll_ToolTip, state: disasm_auto_scroll, style: { marginLeft: "20px", marginBottom: "10px" } },
+        (value) => { disasm_auto_scroll = value; }
+    );
+
     window.settings_modal.setBody(content);
     window.settings_modal.mount();
     window.settings_modal.open();

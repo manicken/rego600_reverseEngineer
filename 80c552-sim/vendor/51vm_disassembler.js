@@ -672,6 +672,10 @@
         );
 
         while (queue.length) {
+
+            //if (visited.size >= 200) // development limit
+            //    break;
+
             let addr = queue.pop()
             if (visited.has(addr)) continue
             if (addr < 0 || addr >= rom.length) continue
@@ -713,6 +717,7 @@
         for (let [addr, insn] of visited) {
             if (insn.iscall && insn.target !== null) {
                 let target_insn = visited.get(insn.target);
+                if(target_insn == undefined) continue;  // Target may not have been disassembled because of development limit
                 if (!target_insn.isFuncStart && target_insn.labelType !== LabelType.User) {
                     target_insn.isFuncStart = true;
                     target_insn.labelType = LabelType.Func;
@@ -720,6 +725,7 @@
                 }
             } else if (insn.target !== null) {
                 let target_insn = visited.get(insn.target);
+                if(target_insn == undefined) continue;  // Target may not have been disassembled because of development limit
                 if (target_insn.label == undefined) {
                     target_insn.labelType = LabelType.Jump;
                     target_insn.label = "JMP_CODE_" + insn.target.toString(16).toUpperCase().padStart(4, '0');
@@ -731,6 +737,7 @@
 
             if (insn.target !== null) {
                 let target_insn = visited.get(insn.target);
+                if(target_insn == undefined) continue;  // Target may not have been disassembled because of development limit
                 insn.operands[insn.operands.length-1] = target_insn.label;
             }
         }

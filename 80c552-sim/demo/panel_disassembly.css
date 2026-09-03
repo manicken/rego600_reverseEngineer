@@ -1,8 +1,19 @@
+.disassembly-panel {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+}
 
 .disassembly-container {
-    max-height: 800px;
-    min-width: 380px;
+   /* min-width: 390px;*/
+    min-height: 0;
+    flex: 1;
     overflow-y: auto;
+    background-color: rgb(27, 27, 27);
 }
 
 .disassembly-grid {
@@ -21,6 +32,13 @@
         80px    /* bytes */
         45px    /* mnemonic */
         1fr;    /* operands */
+}
+.disassembly-grid-header {
+    border-bottom: 2px solid #555;
+    font-size: 16px;
+    margin-bottom: 2px;
+    padding-bottom: 4px;
+    height: 28px;
 }
 
 .disassembly-grid-row > div {

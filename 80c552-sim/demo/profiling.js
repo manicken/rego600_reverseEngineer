@@ -19,8 +19,8 @@ let profilingItems = [
     //{startAddr:0xe84e, endAddr:0xe902},
     //{startAddr:0xe564, endAddr:0xe657}
     //{startAddr:0x665F, endAddr:0x6798}, // main loop
-    //{startAddr:0x6A6A, endAddr:0x6B2B} // UART RX IRQ handler original
-    {startAddr:0x6A6A, endAddr:0x6A9A} // UART RX IRQ handler patched
+    {startAddr:0x6A6A, endAddr:0x6B2B} // UART RX IRQ handler original
+    //{startAddr:0x6A6A, endAddr:0x6A9A} // UART RX IRQ handler patched
 ];
 
 
@@ -53,7 +53,7 @@ function initProfiling() {
             
             if(item.active && item.endAddr == opcode_start_PC) {
                 item.active = false;
-                console.log(`profiling of range ${hex(item.startAddr,4)} - ${hex(item.endAddr,4)} = ${item.cycles} cycles => ${getCyclesTime(item.cycles)}`);
+                log(`profiling of range ${hex(item.startAddr,4)} - ${hex(item.endAddr,4)} = ${item.cycles} cycles => ${getCyclesTime(item.cycles)}`);
             }
         }
     });

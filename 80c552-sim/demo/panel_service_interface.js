@@ -57,7 +57,7 @@ let service_IF_predefined_buttons = [
 function init_service_interface_panel(container_id) {
     let container = document.getElementById(container_id);
     container.style.flex = '1';
-    container.style.maxWidth = '300px';
+    container.style.maxWidth = '230px';
     appendH2_from_data_title(container);
 
     for (let i=0;i<service_IF_predefined_buttons.length;i++) {

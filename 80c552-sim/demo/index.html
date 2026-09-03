@@ -86,47 +86,55 @@
 
   <!-- BODY CONTENTS -->
 
-  <div class="row main-layout">
-    <div>
-      <div class="panel">
-      <div class="main-menu" id="main-menu"></div>  
-      </div>
-      <div class="panel disassembly-panel" data-title="Disassembly" id="disassemblyView"></div>
+  <div class="row" style="height: 100%; width: 100%;">
+    <div class="col" style="height: 100%; width: 100%; max-width: 500px; min-width: 300px;">
+      <div class="panel main-menu" id="main-menu"></div>  
+      <div class="panel disassembly-panel"  data-title="Disassembly" id="disassemblyView"></div>
     </div>
     
-    <div class="simulator-content">
-      <div class="panel">
-      <div class="row">
-          <button id="btn_reset">Reset</button>
-          <button id="btn_step">Step 1</button>
-          <button id="btn_step100">Step 100</button>
-          <button id="btn_step1000">Step 1000</button>
-          <button id="btn_run">Run</button>
-          <button id="btn_stop">Stop</button>
-          <button id="btn_print_callstack">Print Callstack</button>
-          <span id="run_status" style="margin-left:10px;color:#888;"></span>
-        </div>
-        </div>
-      <div class="row">
-        <div class="panel" style="max-width:95px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
-        <div class="panel" style="min-width:440px;"><h2>INTERNAL RAM</h2><div class="memdump" id="iram_dump" style="max-height: 400px;"></div></div>
-        <div class="panel" style="min-width:130px;"><h2>Sensor Inputs</h2><div id="input_signals"></div></div>
-        <div class="panel" style="max-width:120px;"><h2>Power Control Outputs</h2><table id="pwr_output_signals"></table></div>
-        <div class="panel" id="front-panel" data-title="Front Panel" data-title2="(simulated like a real one)"></div>
-        <div class="panel" id="service_interface" data-title="Service Interface (simulated like a real one)"></div>
+    <div class="col" style="height: 100%;">
+      <div class="panel row">
+        <button id="btn_reset">Reset</button>
+        <button id="btn_step">Step 1</button>
+        <button id="btn_step100">Step 100</button>
+        <button id="btn_step1000">Step 1000</button>
+        <button id="btn_run">Run</button>
+        <button id="btn_stop">Stop</button>
+        <button id="btn_print_callstack">Print Callstack</button>
+        <span id="run_status" style="margin-left:10px;color:#888;"></span>
       </div>
       <div class="row">
-        <div class="panel" style="max-width:95px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
-        <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window A" data-start_index="10"></div>
-        <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window B" data-start_index="22"></div>
-        <!--<div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window C" data-start_index="27"></div>-->
-        <div class="panel" id="directWriteXRAM" data-title="SRAM (62256) — Direct Write"></div>
+        <div class="col">
+          <div class="panel" style="max-width:95px;"><h2>Core Registers</h2><table id="coreRegs"></table></div>
+          <div class="panel" style="max-width:95px;"><h2>Peripheral Regs</h2><table id="peripheralRegs"></table></div>
+        </div>
+        <div class="col">
+          <div class="panel" style="min-width:440px;"><h2>INTERNAL RAM</h2><div class="memdump" id="iram_dump" style="max-height: 400px;"></div></div>
+          <div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window A" data-start_index="10"></div>
+          
+        </div>
+        <div class="col">
+          <!--<div class="panel xram_view" data-title="SRAM (62256) — 256 bytes window B" data-start_index="22"></div>-->
+          <div class="row"> 
+            <div class="col">
+              <div class="panel" style="min-width:130px;"><h2>Sensor Inputs</h2><div id="input_signals"></div></div>
+              <div class="panel" style="min-width:120px;"><h2>Power Control Outputs</h2><table id="pwr_output_signals"></table></div>
+            </div>
+            <div class="col">
+              <div class="panel" id="front-panel" data-title="Front Panel" data-title2="(simulated like a real one)"></div>
+              <div class="panel" id="service_interface" data-title="Service Interface (simulated like a real one)"></div>
+              <!--<div class="panel" id="directWriteXRAM" data-title="SRAM (62256) — Direct Write"></div>-->
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div class="panel col" style="height: 100%;">
+          <h2>Log</h2>
+          <div id="log"></div>
+      </div>
+    </div>
   </div>
-  </div>
-  <div class="panel">
-    <h2>Log</h2>
-    <div id="log"></div>
-  </div>
+  
 </body>
 </html>

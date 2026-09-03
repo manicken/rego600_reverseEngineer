@@ -20,7 +20,7 @@ let code_map_3021 = [
 
 let code_map_3060 = [
     ...default_code_map,
-    {start:0x002E, type:MAP_TYPE.FUNC, label:"START_AFTER_RESET_VECTOR"}, 
+    {start:0x002E, type:MAP_TYPE.FUNC, label:"RESET_HANDLER"}, 
     {start:0x00BA, type:MAP_TYPE.FUNC, label:"copy_from_code_to_iram_using_struct_at_dptr"}, 
     {start:0x00D8, type:MAP_TYPE.FUNC, label:"copy_from_code_to_xram_using_struct_at_dptr"}, 
     {start:0x010F, end:0x0112, type:MAP_TYPE.DATA, label:"some data copy range type A"},
@@ -83,16 +83,6 @@ let code_map_3060 = [
 
     {start:0x6A42, type:MAP_TYPE.FUNC, label:"UART_RX_START_BYTE_CHECK"},
     {start:0x6A6A, type:MAP_TYPE.FUNC, label:"UART_IRQ_HANDLER"},
-    /*{start:0x6A6E, type:MAP_TYPE.FUNC, label:"uart_rx_check_if_uart_done_is_set"},
-    {start:0x6A75, type:MAP_TYPE.FUNC, label:"uart_rx_one_byte"},
-    {start:0x6A78, type:MAP_TYPE.FUNC, label:"uart_rx_check_start_byte"},
-    {start:0x6A7F, type:MAP_TYPE.FUNC, label:"uart_rx_start_received"},
-    {start:0x6A85, type:MAP_TYPE.FUNC, label:"uart_rx_bytes_start_byte_rx_check"},
-    {start:0x6A88, type:MAP_TYPE.FUNC, label:"uart_rx_bytes"},
-    {start:0x6A8E, type:MAP_TYPE.FUNC, label:"uart_rx_done"},
-    {start:0x6A90, type:MAP_TYPE.FUNC, label:"uart_rx_reset"},
-    {start:0x6A94, type:MAP_TYPE.FUNC, label:"uart_rx_irq_skip"},
-    {start:0x6A96, type:MAP_TYPE.FUNC, label:"uart_rx_irq_end"},*/
 
     {start:0x6B2C, type:MAP_TYPE.FUNC, label:"UART_SEND_ONE_BYTE"},
 
@@ -386,7 +376,7 @@ function setCurrentFirmwareProfile(hashString) {
         if (profile.hash === hashString) {
             curr_firmware = profile;
             console.log("selected firmware profile:", curr_firmware);
-            log("selected firmware profile for: " + profile.version + ", hash:" + hashString);
+            log("selected firmware profile for: " + profile.version + ", hash: " + hashString);
             return;
         }
     }

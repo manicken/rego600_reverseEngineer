@@ -301,36 +301,17 @@ class Modal {
 }
 
 
-function confirmModal({
-		title = "Confirm",
-		message = "",
-		confirmText = "OK",
-		confirmClass = "",
-		onConfirm
-	} = {}) {
-
-    const modal = new Modal({
-        title,
-        height: 200,
-        width: 350,
-        backdrop: true,
-		z:2000
-    });
-
-    modal.setBody(createNewElement("div", {
-        innerHTML: message,
-        styles: {
-            padding: "8px"
-        }
-    }));
-
+function confirmModal({ title = "Confirm", message = "", confirmText = "OK", confirmClass = "", onConfirm = () => {} } = {})
+{
+    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, z:2000 });
+    modal.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
     modal.setFooter(createButtonBar([
         {
             text: confirmText,
             className: confirmClass,
             onClick: () => {
                 modal.destroy();
-                onConfirm?.();
+                onConfirm();
             }
         },
         {
@@ -340,34 +321,14 @@ function confirmModal({
             }
         }
     ]));
-
     modal.open();
-
     return modal;
 }
 
-function infoModal({
-		title = "Info",
-		message = "",
-		buttonText = "OK",
-		onConfirm = () => {}
-	} = {}) {
-
-    const modal = new Modal({
-        title,
-        height: 200,
-        width: 350,
-        backdrop: true,
-		z:2000
-    });
-
-    modal.setBody(createNewElement("div", {
-        innerHTML: message,
-        styles: {
-            padding: "8px"
-        }
-    }));
-
+function infoModal({ title = "Info", message = "", buttonText = "OK", onConfirm = () => {} } = {})
+{
+    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, z:2000 });
+    modal.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
     modal.setFooter(createButtonBar([
         {
             text: buttonText,
@@ -377,8 +338,6 @@ function infoModal({
             }
         }
     ]));
-
     modal.open();
-
     return modal;
 }

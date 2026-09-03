@@ -300,7 +300,7 @@ function rebuildDisasmDisplayList() {
 
 let insn_map = null;
 // {addr:0x, label:""},
-function resetDisassembly()
+function completeRebuildDisassembly()
 {
     //console.log(curr_firmware.code_map);
     insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
@@ -337,24 +337,13 @@ function disassembly_init() {
             disasmNeedsRebuild = true;
         }
     });
-    resetDisassembly();
+    completeRebuildDisassembly();
     
     initDisasmContextMenu();
     const disassemblyView_el = document.getElementById("disassemblyView");
-    const disasmToolBar_el = appendNewElement(disassemblyView_el, 'div', {className:"panel"});
-
-    // Live tracking checkbox
-    let liveTracking_ToolTip = "Enable live tracing while the simulator runs, stepping however always use Tracking";
-    appendCheckBoxWithLabel(disasmToolBar_el,
-        { label: "Live Tracking", tooltip: liveTracking_ToolTip, state: disasm_live_update, style: { marginLeft: "10px", marginBottom: "10px" } },
-        (value) => { disasm_live_update = value; }
-    );
-
-    let autoscroll_ToolTip = "Enable live tracing scrolling while the simulator runs, stepping however always use Tracking";
-    appendCheckBoxWithLabel(disasmToolBar_el,
-        { label: "Live Scroll", tooltip: autoscroll_ToolTip, state: disasm_auto_scroll, style: { marginLeft: "20px", marginBottom: "10px" } },
-        (value) => { disasm_auto_scroll = value; }
-    );
+    //const disasmToolBar_el = appendNewElement(disassemblyView_el, 'div', {className:"panel"});
+    appendH2_from_data_title(disassemblyView_el);
+    
 
     // Scrollande viewport (samma roll som gamla container_el)
     let viewport_el = createNewElement("div", { className: "disassembly-container" });
@@ -368,7 +357,7 @@ function disassembly_init() {
     viewport_el.appendChild(disasmSizer_el);
 
     // Header (statisk, virtualiseras inte)
-    let header_el = createNewElement("div", { className: "disassembly-grid-row disassembly-grid-header" });
+    /*let header_el = createNewElement("div", { className: "disassembly-grid-row disassembly-grid-header" });
     appendNewElement(header_el, "div", { className: "disassembly-breakpoint", textContent: "" });
     appendNewElement(header_el, "div", { className: "disassembly-curr-exec", textContent: "" });
     appendNewElement(header_el, "div", { className: "disassembly-address", textContent: "Addr." });
@@ -376,6 +365,7 @@ function disassembly_init() {
     appendNewElement(header_el, "div", { className: "disassembly-mnemonic", textContent: "OP" });
     appendNewElement(header_el, "div", { className: "disassembly-operands", textContent: "Operands" });
     disassemblyView_el.appendChild(header_el);
+    */
 
     disassemblyView_el.appendChild(viewport_el);
 
@@ -452,7 +442,7 @@ function initSelectFunctionality(disassemblyView_el) {
         updateSelectionHighlight();
         renderVisibleDisasmRows();
         e.preventDefault(); // undvik textmarkering i browsern
-        console.log("start drag");
+        //console.log("start drag");
     });
 
     disassemblyView_el.addEventListener('mousemove', (e) => {
@@ -464,12 +454,12 @@ function initSelectFunctionality(disassemblyView_el) {
         selEndIndex = row.dataSource.index;
         updateSelectionHighlight();
         renderVisibleDisasmRows();
-        console.log("dragging");
+        //console.log("dragging");
     });
 
     window.addEventListener('mouseup', () => {
         isDragging = false;
-        console.log("stop dragging");
+        //console.log("stop dragging");
     });
 
     function updateSelectionHighlight() {
@@ -524,6 +514,14 @@ function buildPoolRow() {
 }
 
 function initDisasmPool() {
+    console.log({
+        clientHeight: disasmViewport_el.clientHeight,
+        scrollHeight: disasmViewport_el.scrollHeight,
+        offsetHeight: disasmViewport_el.offsetHeight,
+        entries: disasmDisplayList.length,
+        rowHeight
+    });
+    
     const visibleRows = Math.ceil(disasmViewport_el.clientHeight / rowHeight);
     const poolSize = Math.min(disasmDisplayList.length, visibleRows + DISASM_BUFFER_ROWS * 2);
 

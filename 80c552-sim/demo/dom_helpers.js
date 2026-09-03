@@ -32,8 +32,10 @@ function appendButton(container, label, id) {
     return btn;
 }
 
-function appendWriteValueToAddressControl(container_id, id_base, initial_addr, initial_value, setHandler) {
-    let container = document.getElementById(container_id);
+function appendWriteValueToAddressControl(container, id_base, initial_addr, initial_value, setHandler) {
+    if (typeof container == "string") { 
+        container = document.getElementById(container);
+    }
     let control = document.createElement("div");
     control.className = "row";
     let addrInputId = `write-to-${id_base}-addr`;

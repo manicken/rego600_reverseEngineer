@@ -178,7 +178,7 @@ async function setCODE_LoadProfile_ResetCpu(codeData) {
     //console.log("loaded firmware hash:" + hashString);
     setCurrentFirmwareProfile(hashString);
     cpu.reset();
-    resetDisassembly();
+    completeRebuildDisassembly();
 }
 
 async function initCpu() {
@@ -440,8 +440,8 @@ let fileInput;
 async function printHashAsync(bytes) {
   const hash = await sha256(bytes);
   const hashString = hex(hash, 32, false);
-  console.log("file save hash:" + hashString);
-  log("file save hash:" + hashString);
+  console.log("file save hash: " + hashString);
+  log("file save hash: " + hashString);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

@@ -3,8 +3,15 @@
 let xram_views = [];
 
 function init_memory_panels() {
-    init_xram_write("directWriteXRAM", 6, set_XRAM_value);
+   //init_XRAM_write();
+    
+    
     init_XRAM_views();
+}
+function init_XRAM_write() {
+  let el = document.getElementById("directWriteXRAM");
+  appendH2_from_data_title(el);
+  el.appendChild(get_xram_write_contents(6, set_XRAM_value));
 }
 
 function init_XRAM_views() {
@@ -38,19 +45,16 @@ function init_xram_view(view_el) {
     return component;
 }
 
-function init_xram_write(container_id, count, setHandler) {
-    let container = document.getElementById(container_id);
-    if (container == undefined) {
-      console.error("cannot find element: " + container_id);
-      return;
-    }
+function get_xram_write_contents(count, setHandler) {
+    let container = createNewElement('div');
     container.style.flex = 1;
-    container.style.maxWidth = '460px';
-    appendH2_from_data_title(container);
+    container.style.maxWidth = '330px';
+    
 
     for (let i=0;i<count;i++) {
-        appendWriteValueToAddressControl(container_id, "XRAM_" + i, "0x0000", "0x00", setHandler);
+        appendWriteValueToAddressControl(container, "XRAM_" + i, "0x0000", "0x00", setHandler);
     }
+    return container;
 }
 
 function render_XRAM_window(component) {

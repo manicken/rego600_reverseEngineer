@@ -1,7 +1,29 @@
-body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e; color:#ddd; margin:0; padding:16px; }
+/*
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+    */
+html {
+    height: 100%;
+    width: 100%;
+}
+
+body { 
+    height: 100%; 
+    width: 100%; 
+    font-family: ui-monospace, Menlo, Consolas, monospace; 
+    background:#1e1e1e; 
+    color:#ddd; 
+    margin:0px; 
+    padding:8px 8px; 
+    box-sizing: border-box;
+}
   h1 { font-size:16px; color:#fff; }
   h2 { font-size:13px; color:#9cdcfe; margin-bottom:6px; margin-top:0px;}
-  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .fill_size { width: 100%; height: 100%; }
+  .row { display:flex; flex-direction: row; gap:8px; }
+  .col { display:flex; flex-direction: column; gap:0px; }
+
   .panel { background:#252526; border:1px solid #3c3c3c; border-radius:6px; padding:8px 8px; margin-bottom:8px; }
   button { background:#0e639c; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:12px; margin-right:4px;}
   button:hover { background:#1177bb; }
@@ -11,34 +33,18 @@ body { font-family: ui-monospace, Menlo, Consolas, monospace; background:#1e1e1e
   td, th { padding:2px 8px; text-align:left; }
   .reg { color:#4ec9b0; }
   .val { color:#ce9178; }
-  #log { height:120px; overflow-y:auto; background:#111; padding:6px; font-size:11px; white-space:pre-wrap; }
+  #log { height:100%; width: 100%; overflow-y:auto; background:#111; padding:6px; font-size:12px; white-space:pre-wrap; box-sizing: border-box;}
   .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
   .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:400px; overflow-y:auto; background:#111; padding:6px; }
   .lcd { margin-top:8px; margin-bottom:8px; font-size:20px; white-space:pre; overflow-x:auto; max-height:220px; max-width: 220px; overflow-y:auto; background:#396197; padding:6px; }
   .lcd.backlight-on {background:#63a3ff}
   small { color:#888; }
 
-.main-layout {
-    padding-top: 8px;
-    display: flex;
-    align-items: flex-start;
-}
-
-.simulator-content {
-    flex: 1;
-    min-width: 0;
-    overflow: auto;
-}
-
 
 .xram_view {
     flex: 1 1 0%;
     max-width: 480px;
 }
-
-/*.disassembly-grid-row.current-exec {
-    background: #333;
-}*/
 
 .current-exec::before {
     content: "▶";
