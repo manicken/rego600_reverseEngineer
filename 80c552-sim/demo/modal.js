@@ -177,6 +177,137 @@ class Modal {
 		handle.addEventListener("pointercancel", onPointerUp);
 	}
 
+	_addResizeHandle(className, resizeFn) {
+		const handle = document.createElement("div");
+		handle.className = `modal-resize-handle ${className}`;
+		this.el.appendChild(handle);
+
+		let resizing = false;
+		
+		let startWidth, startHeight;
+		let startPointerX , startPointerY;
+		let startLeft, startTop;
+
+		const onPointerDown = (e) => {
+			resizing = true;
+
+			const rect = this.el.getBoundingClientRect();
+
+			startPointerX = e.clientX;
+			startPointerY = e.clientY;
+
+			startLeft = rect.left;
+			startTop = rect.top;
+
+			startWidth = rect.width;
+			startHeight = rect.height;
+
+			this.el.classList.add("modal--resizing");
+
+			handle.setPointerCapture(e.pointerId);
+
+			e.preventDefault();
+			e.stopPropagation();
+		};
+
+		const onPointerMove = (e) => {
+			if (!resizing) return;
+
+			const dx = e.clientX - startPointerX;
+			const dy = e.clientY - startPointerY;
+
+			const minWidth = 250;
+			const minHeight = 150;
+
+			const size = resizeFn(
+				startLeft,
+				startTop,
+				startWidth,
+				startHeight,
+				dx,
+				dy,
+				minWidth,
+				minHeight
+			);
+
+			this.el.style.left = `${size.x}px`;
+			this.el.style.top = `${size.y}px`;
+			this.el.style.width = `${size.width}px`;
+			this.el.style.height = `${size.height}px`;
+
+			if (this.onResize) {
+				this.onResize(this, size.width, size.height);
+			}
+		};
+
+		const onPointerUp = (e) => {
+			resizing = false;
+
+			this.el.classList.remove("modal--resizing");
+
+			try {
+				handle.releasePointerCapture(e.pointerId);
+
+				if (this.onResized) {
+					const rect = this.bodyEl.getBoundingClientRect();
+					this.onResized(this, rect.width, rect.height);
+				}
+			} catch (ex) {
+				console.log("modal resize error:", ex);
+			}
+		};
+
+		handle.addEventListener("pointerdown", onPointerDown);
+		handle.addEventListener("pointermove", onPointerMove);
+		handle.addEventListener("pointerup", onPointerUp);
+		handle.addEventListener("pointercancel", onPointerUp);
+
+		return handle;
+	}
+
+	_makeResizable() {
+
+		this._addResizeHandle("top-left", (x, y, w, h, dx, dy, minW, minH) => 
+			{
+				const width = Math.max(minW, w - dx);
+				const height = Math.max(minH, h - dy);
+
+				return {
+					x: x + (w - width),
+					y: y + (h - height),
+					width,
+					height
+				};
+			}
+		);
+
+		this._addResizeHandle("top-right", (x, y, w, h, dx, dy, minW, minH) => {
+			const width = Math.max(minW, w + dx);
+			const height = Math.max(minH, h - dy);
+
+			return {
+				x,
+				y: y + (h - height),
+				width,
+				height
+			};
+		});
+
+		this._addResizeHandle("bottom-left", (x, y, w, h, dx, dy, minW, minH) => ({
+			x:      x + dx,
+			y:      y,
+			width:  Math.max(minW, w - dx),
+			height: Math.max(minH, h + dy)
+		}));
+
+		this._addResizeHandle("bottom-right", (x, y, w, h, dx, dy, minW, minH) => ({
+			x:      x,
+			y:      y,
+			width:  Math.max(minW, w + dx),
+			height:  Math.max(minH, h + dy)
+		}));
+	}
+/*
 	_makeResizable() {
 		const handle = document.createElement("div");
 		handle.className = "modal-resize-handle";
@@ -243,7 +374,7 @@ class Modal {
 		handle.addEventListener("pointerup", onPointerUp);
 		handle.addEventListener("pointercancel", onPointerUp);
 	}
-
+*/
 	/** Replace the modal body with the given node. */
 	setBody(node) {
 		this.bodyEl.innerHTML = "";
@@ -299,6 +430,7 @@ class Modal {
 		(this.hasBackdrop ? this.backdropEl : this.el).remove();
 	}
 }
+
 
 
 function confirmModal({ title = "Confirm", message = "", confirmText = "OK", confirmClass = "", onConfirm = () => {} } = {})
