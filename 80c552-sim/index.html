@@ -17,48 +17,59 @@
 </head>
 <body>
 
+  <script src="main.js"></script>
+  <script src="project_and_file_manager.js"></script>
+  <script src="main_menu.js"></script>
+
+  
+
   <!-- hex function -->
   <script src="helpers.js"></script>
   <script src="dom_helpers.js"></script>
   <script src="modal.js"></script>
   <script src="hex-editor.js"></script>
 
-  <!-- vendor js51 core (unmodified) -->
-  <script src="../vendor/51vm_core.js"></script>
-  <script src="../vendor/51vm_operand.js"></script>
-  <script src="../vendor/51vm_operation.js"></script>
-  <script src="../vendor/51vm_opcode_decoder.js"></script>
-  <script src="../vendor/51vm_disassembler.js"></script>
-  <script src="../vendor/51vm_ctl.js"></script>
-  <script src="../vendor/hex_decoder.js"></script>
+  <!-- aimini_js51vm js51 core (modified) -->
+  <script src="aimini_js51vm/51vm_core.js"></script>
+  <script src="aimini_js51vm/51vm_operand.js"></script>
+  <script src="aimini_js51vm/51vm_operation.js"></script>
+  <script src="aimini_js51vm/51vm_opcode_decoder.js"></script>
+  <script src="aimini_js51vm/51vm_disassembler.js"></script>
+  <script src="aimini_js51vm/51vm_ctl.js"></script>
+  <script src="aimini_js51vm/hex_decoder.js"></script>
 
   <!-- 80C552 extension -->
-  <script src="../80c552/80c552_sfr.js"></script>
-  <script src="../80c552/80c552_adc_valueBased.js"></script>
-  <script src="../80c552/device_62256.js"></script>
-  <script src="../80c552/device_am29f040.js"></script>
-  <script src="../80c552/membus.js"></script>
-  <script src="../80c552/i2c_bus.js"></script>
+  <script src="80c552/80c552_sfr.js"></script>
+  <script src="80c552/80c552_adc_valueBased.js"></script>
+  <script src="ext_devices/device_62256.js"></script>
+  <script src="ext_devices/device_am29f040.js"></script>
+  <script src="80c552/membus.js"></script>
+  <script src="80c552/i2c_bus.js"></script>
 
 
-  <script src="../80c552/80c552.js"></script>
-  <script src="../80c552/logging.js"></script>
-  <script src="../80c552/uart.js"></script>
+  <script src="80c552/80c552.js"></script>
+  <script src="80c552/logging.js"></script>
+  <script src="80c552/uart.js"></script>
 
   <!-- built in code mem -->
   <script src="builtin_code.js"></script>
   <script src="builtin_data.js"></script>
 
   <!-- 80C552 bitbang devices -->
-  <script src="../80c552/gpio_bitbang.js"></script>
-  <script src="../80c552/device_DS1302.js"></script>
-  <script src="../80c552/device_TC1232.js"></script>
-  <script src="../80c552/device_CD4021.js"></script>
-  <script src="../80c552/device_CD4094.js"></script>
-  <script src="../80c552/device_CD4051.js"></script>
-  <script src="../80c552/device_Inverter.js"></script>
+  <script src="80c552/gpio_bitbang.js"></script>
+  <script src="ext_devices/device_DS1302.js"></script>
+  <script src="ext_devices/device_TC1232.js"></script>
+  <script src="ext_devices/device_CD4021.js"></script>
+  <script src="ext_devices/device_CD4094.js"></script>
+  <script src="ext_devices/device_CD4051.js"></script>
+  <script src="ext_devices/device_Inverter.js"></script>
 
+  <script src="lcd_sim.js"></script> <!-- need to be before the chargen as it declare in global namespace window.app.lcd_sim, that then chargen uses -->
+  <script src="lcd_sim_chargen.js"></script>
+  <script src="lcd_sim_chargen_edit.js"></script>
+  
   <script src="panel_front_panel.js"></script> 
+
   <script src="panel_registers.js"></script> 
   <script src="panel_sensor_inputs.js"></script> 
   <script src="panel_service_interface.js"></script> 
@@ -78,11 +89,19 @@
 
   <script src="assembler/asm51-browser.js"></script>
   <script src="assembler/tabmanager.js"></script>
+  <script src="assembler/assembler.js"></script>
+  <script src="assemblyEditor.js"></script>
+  <script src="assemblyViewer.js"></script>
+
   <script src="button-bar.js"></script>
 
   <script src="firmware_profiles.js"></script>
 
-  <script src="main.js"></script>
+  <script src="rego600/adc_sensors.js"></script>
+
+  <script src="simulator.js"></script>
+  
+  
 
   <!-- BODY CONTENTS -->
 

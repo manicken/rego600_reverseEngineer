@@ -1,0 +1,124 @@
+class CharLCDSim {
+    constructor({container, chargen, rows=2, columns=16, charWidth=5, charHeight=8, pixelSize = 2, pixelOnColor="#FFF", pixelOffAlpha=0x0A, imageRendering=undefined}) {
+        if (container == undefined) {
+            throw Error("CharLCDSim container cannot be undefined");
+        }
+        if (chargen == undefined) {
+            throw Error("CharLCDSim chargen cannot be undefined");
+        }
+        this.pixelSize = Math.round(pixelSize);
+        this.chargen = chargen;
+        this.charWidth = charWidth;
+        this.charHeight = charHeight;
+        this.rows = rows;
+        this.columns = columns;
+        this.renderedCharWidth = (charWidth+1) * this.pixelSize;
+        this.renderedCharHeight = (charHeight+1) * this.pixelSize;
+        this.setPixelOffAlpha(pixelOffAlpha);
+        this.pixelOnColor = pixelOnColor;
+
+        
+        this.lcd_el_width = columns*this.renderedCharWidth;
+        this.lce_el_height = rows*this.renderedCharHeight;
+        this.lcd_el = appendNewElement(container, 'canvas', {className:"lcd", styles:{width:this.lcd_el_width + 'px', height:this.lce_el_height + 'px'}});
+
+        this.lcd_el.width = this.lcd_el_width;
+        this.lcd_el.height = this.lce_el_height;
+        if (imageRendering) {
+            this.lcd_el.style.imageRendering = imageRendering;
+        }
+    }
+
+    setPixelOffAlpha(alpha) {
+        this.pixelOffAlpha = "#ffffff" + alpha.toString(16).padStart(2,'0');
+        console.log(this.pixelOffAlpha);
+    }
+
+    setBacklight(on) {
+        this.lcd_el.classList.toggle("backlight-on", on);
+    }
+
+    renderChar(char, row, col) {
+        const ctx = this.lcd_el.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+
+        const glyph = this.chargen[char];
+        const x = col * this.renderedCharWidth;
+        const y = row * this.renderedCharHeight;
+
+        for (let byi = 0; byi < this.charHeight; byi++) {
+            let bits = glyph[byi];
+
+            if (bits == undefined) bits = 0x00; // allways render empty if charrom character dont use the extra data
+
+            for (let bii = 0; bii < this.charWidth; bii++) {
+                const active = (bits & (1 << (this.charWidth-1 - bii)));
+                if (active) {
+                    ctx.fillStyle = this.pixelOnColor;
+                    ctx.fillRect(
+                        x + bii * this.pixelSize,
+                        y + byi * this.pixelSize,
+                        this.pixelSize,
+                        this.pixelSize
+                    );
+                } else {
+                    ctx.clearRect(
+                        x + bii * this.pixelSize,
+                        y + byi * this.pixelSize,
+                        this.pixelSize,
+                        this.pixelSize
+                    );
+                    ctx.fillStyle = this.pixelOffAlpha;
+                    ctx.fillRect(
+                        x + bii * this.pixelSize,
+                        y + byi * this.pixelSize,
+                        this.pixelSize,
+                        this.pixelSize
+                    );
+                }
+            }
+        }
+    }
+}
+
+
+function print_cgrom_as_binary() {
+    let dump = "window.app.lcd_sim.chargen_edit = {\n";
+
+    for (let ci = 0; ci < 255; ci++) {
+        if (ci > 0) { dump += ',\n'; }
+        dump += hex(ci,2) + ':[\n';
+        let charData = window.app.lcd_sim.chargen[ci];
+        if (charData == undefined) charData = [];
+        for (let di = 0; di < charData.length; di++) {
+            if (di > 0) dump += ',\n';
+            let data = charData[di];
+            dump += '  "' + data.toString(2).padStart(5, '0').replaceAll('0', ' ').replaceAll('1', '█') + '"'; // █
+        }
+        dump += '\n]';
+    }
+    dump += '\n};\n';
+    console.log(dump);
+}
+
+/* only used once to convert a bad generated cggen table
+print_cgrom_as_hex() {
+    let dump = "{\n";
+
+    for (let ci = 0; ci < lcd_sim_cgfont.length; ci++) {
+        if (ci > 0) dump += ',\n';
+        dump += "  " + hex(ci,2) + ':[';
+        let charData = lcd_sim_cgfont[ci];
+        let dataCount = Math.max(7,charData.length);
+        for (let di = 0; di < dataCount; di++) {
+            if (di > 0) dump += ',';
+            let data = charData[di];
+            if (data == undefined) data = 0x00;
+            dump += '0x' + data.toString(16).padStart(2, '0');
+        }
+        dump += ']';
+    }
+    dump += '\n}\n';
+    console.log(dump);
+}
+*/

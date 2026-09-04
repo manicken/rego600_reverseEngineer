@@ -863,3 +863,53 @@
 
   global.ModalHexEditor = ModalHexEditor;
 })(window);
+
+
+function initHexEditorForm() {
+    window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
+    
+    const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
+
+    window.hex_edit_modal.setBody(hex_editor_root_el);
+
+    const editor = new ModalHexEditor(hex_editor_root_el, {
+      size: 0x10000,
+      height: '100%',
+      width: '100%',
+      bytesPerRow: 16,
+      mode:ModalHexEditor.Modes.Insert,
+      onChange: (addr, value) => { 
+        console.log(`@ ${hex(addr,4)} changed to ${hex(value,2)}`); 
+        cpu.CODE[addr] = value;
+
+        for (let i = 0; i < cpu.CODE.length; i++) {
+          if (cpu.CODE[i] != cpu.CODE_ORIGINAL[i]) {
+              console.log(
+                  `0x${i.toString(16).padStart(4, "0").toUpperCase()}: ` +
+                  `${cpu.CODE_ORIGINAL[i].toString(16).padStart(2, "0").toUpperCase()} -> ` +
+                  `${cpu.CODE[i].toString(16).padStart(2, "0").toUpperCase()}`
+              );
+
+          }
+        }
+      },
+      onSave: (bytes) => { 
+        console.log('onSave fired,', bytes.length, 'bytes');
+        printHashAsync(bytes);
+      },
+      onLoad: (bytes, info) => { 
+        setCODE_LoadProfile_ResetCpu(Array.from(bytes))
+        let logText = `hex editor loaded binary - fileName: ${info.fileName}, size: ${bytes.length} bytes`;
+        console.log(logText);
+        log(logText);
+      }
+    });
+
+    // Example annotations from the REGO600 reverse-engineering notes —
+    // remove or replace these once wired to real analysis data.
+    editor.addBookmark(0x1EFC, 'standby / root menu record');
+    editor.highlightRange(0x1EFC, 0x1EFC + 31, 'menu record (32B struct)');
+
+    window.hexEditor = editor;
+    editor.viewport.focus();
+}

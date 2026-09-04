@@ -67,3 +67,10 @@ async function sha256(data) {
         .map(b => b.toString(16).padStart(2, "0"))
         .join("");
 }
+
+async function printHashAsync(bytes) {
+  const hash = await sha256(bytes);
+  const hashString = hex(hash, 32, false);
+  console.log("file save hash: " + hashString);
+  log("file save hash: " + hashString);
+}

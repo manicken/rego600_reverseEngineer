@@ -48,7 +48,7 @@ function openSettings() {
         (value) => { disasm_auto_scroll = value; }
     );
 
-    window.settings_modal.setBody(content);
-    window.settings_modal.mount();
-    window.settings_modal.open();
+    window.app.settings_modal.setBody(content);
+    window.app.settings_modal.mount();
+    window.app.settings_modal.open();
 }

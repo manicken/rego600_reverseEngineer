@@ -1,8 +1,11 @@
 
+window.app.sim = window.app.sim?window.app.sim:{};
+window.app.sim.frontPanel = {};
+
 function init_front_panel(container_id) {
     let container = document.getElementById(container_id);
     container.style.flex = '1';
-    container.style.maxWidth = '232px';
+    container.style.maxWidth = '260px';
     appendH2_from_data_title(container);
     if (container.dataset.title2) { appendH2(container, container.dataset.title2); }
     let led_row_el = appendDiv(container, "row rego-led-row");
@@ -13,7 +16,9 @@ function init_front_panel(container_id) {
     appendOneLedControl(led_row_el, "warmwater", "WARM WATER");
     appendOneLedControl(led_row_el, "alarm", "ALARM");
     appendRealFrontPanelButton(container, "Power", 5);
-    appendDiv(container, "lcd", "lcd_data");
+    
+    window.app.sim.frontPanel.lcd = new CharLCDSim({container, chargen:lcd_sim_chargen, rows:4, columns:20, pixelsize:1, /*, imageRendering: 'pixelated'*/});
+
     let button_row = appendDiv(container, "row rego-button-row");
     appendRealFrontPanelButton(button_row, "Left", 4);
     appendRealFrontPanelButton(button_row, "Middle", 3);
@@ -25,7 +30,6 @@ function init_front_panel(container_id) {
     
     init_and_attach_front_panel_to_i2c_bus();
 
-    init_LCD();
 }
 
 function init_and_attach_front_panel_to_i2c_bus() {
@@ -48,7 +52,8 @@ function init_and_attach_front_panel_to_i2c_bus() {
       //
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
 		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
-		  else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
+		  //else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
+      else if (currentWriteIndex == 2) { window.app.sim.frontPanel.lcd.renderChar(databyte, lcd_row-1, lcd_col-1); }
       else if (currentWriteIndex == 3) {
         led_raw_state_A = databyte;
         updateLeds();
@@ -100,28 +105,19 @@ function init_and_attach_front_panel_to_i2c_bus() {
 	});
 }
 
-function init_LCD() {
-  lcd_data = {rows:[]};
-  for (let r=0;r<4;r++) {
-    lcd_data.rows[r] = {cols:[]};
-    for (let c=0;c<20;c++) {
-	    lcd_data.rows[r].cols[c] = 0x30+c;
-	  }
-  }
-  render_LCD();
-}
-
-function render_LCD() {
-	
-  let lcd_text = "";
-  for (let r=0;r<4;r++) {
-    for (let c=0;c<20;c++) {
-	    lcd_text += String.fromCharCode(lcd_data.rows[r].cols[c]);
-	  }
-	  lcd_text += "\n";
-  }
-  document.getElementById('lcd_data').textContent = lcd_text;
-}
+let ascii_translate_table = {
+  
+  0xE1:'ä'.charCodeAt(0),
+  0xE2:'å'.charCodeAt(0),
+  0xF3:'ö'.charCodeAt(0),
+  0xDF:'°'.charCodeAt(0),
+  
+  0x08:'▏'.charCodeAt(0),
+  0x01:'▎'.charCodeAt(0),
+  0x02:'▍'.charCodeAt(0),
+  0x03:'▋'.charCodeAt(0),
+  0xFF:'█'.charCodeAt(0),
+};
 
 function appendRealFrontPanelButton(container, label, index) {
     let btn_el = appendButton(container, label);
@@ -136,8 +132,6 @@ function appendRealFrontPanelButton(container, label, index) {
         buttonReleased(index);
     };
 }
-
-
 
 function appendOneLedControl(container, id, label) {
     let led_el = appendDiv(container, "rego-led", `led-${id}`);
@@ -169,11 +163,7 @@ const LED_BITS = {
 
 const BACKLIGHT_OFF = 0x40;
 
-function setBacklight(on) {
-    document
-        .querySelector(".lcd")
-        ?.classList.toggle("backlight-on", on);
-}
+
 
 function updateLeds() {
 
@@ -202,8 +192,8 @@ function updateLeds() {
         (led_raw_state_B & LED_BITS.alarm) !== 0
     );
 
-    // 0x40 betyder BACKLIGHT OFF
-    setBacklight((led_raw_state_A & BACKLIGHT_OFF) === 0);
+    // 0x40 mean BACKLIGHT OFF
+    window.app.sim.frontPanel.lcd.setBacklight((led_raw_state_A & BACKLIGHT_OFF) === 0);
 }
 
 let current_i2c_write = [];
