@@ -28,6 +28,12 @@ class TabManager extends EventTarget {
     super();
     this.root = root;
     this.opts = opts;
+    this.nextId = 0;
+    if (typeof opts.addUntitledFormat === "function") {
+      this.addUntitledFormat = opts.addUntitledFormat;
+    } else {
+      this.addUntitledFormat = generateDefaultTitle;
+    }
 
     /** @type {Map<string,Object>} all known tabs, open or closed, keyed by id */
     this.tabs = new Map();
@@ -40,10 +46,14 @@ class TabManager extends EventTarget {
     this._bindGlobal();
   }
 
+  generateDefaultTitle(id) {
+    title = "untitled" + id;
+  }
+
   // ---------- public API ----------
 
   /** Open (or focus, if already open) a tab. data is your own payload. */
-  open(id, { title = id, data = null, activate = true, dirty = false } = {}) {
+  open(id, { title = id, data = null, activate = true, dirty = false }) {
     let tab = this.tabs.get(id);
     if (tab) {
       tab.closed = false;
@@ -57,6 +67,36 @@ class TabManager extends EventTarget {
     this._emit('open', tab);
     if (activate) this.activate(id);
     return tab;
+  }
+  add({ title = undefined, data = null, activate = true, dirty = false } = {}) {
+    const id = this.nextId++;
+    if (title === undefined) {
+      title = this.addUntitledFormat(id);
+    }
+    
+    const tab = {
+        id,
+        title,
+        data,
+        dirty,
+        closed: false
+    };
+
+    this.tabs.set(id, tab);
+    this.order.push(id);
+
+    this._render();
+
+    if (activate) this.activate(id);
+
+    return tab;
+  }
+  rename(id, newName) {
+    if (!this.tabs.has(id)) return;
+    const tab = this.tabs.get(id);
+    tab.title = newName;
+    this._render();
+    this._emit("renamed", tab)
   }
 
   activate(id) {
@@ -78,7 +118,12 @@ class TabManager extends EventTarget {
     if (this.activeId === id) {
       const next = this.order[idx] ?? this.order[idx - 1] ?? null;
       this.activeId = next;
-      if (next) this._emit('activate', this.tabs.get(next));
+      if (next) { 
+        this._emit('activate', this.tabs.get(next));
+      }
+      else {
+        this._emit('lastclosed', tab);
+      }
     }
     this._render();
     this._emit('close', tab);

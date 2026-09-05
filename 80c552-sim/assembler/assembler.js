@@ -81,18 +81,20 @@ function initAssembly_Form(modal_el) {
     modal_el.setBody(content_el);
     modal_el.ace_editor_el = ace_editor_el;
     modal_el.toolbar_el = toolbar_el;
-}
-
-
-function openAssembly_Form(modal_el, asmCode) {
-    modal_el.open();
-
+    
     if (!modal_el.assemblyEditor_ace) {
         modal_el.assemblyEditor_ace = ace.edit(modal_el.ace_editor_el);
         modal_el.assemblyEditor_ace.setTheme("ace/theme/" + asmEditTheme);
         modal_el.assemblyEditor_ace.session.setMode("ace/mode/assembly_8051");
         
     }
+}
+
+
+function openAssembly_Form(modal_el, asmCode) {
+    modal_el.open();
+
+    
 
     // this allows to close and reopen the editor
     // without destroying the content

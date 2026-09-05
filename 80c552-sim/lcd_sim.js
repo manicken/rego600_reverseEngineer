@@ -1,5 +1,5 @@
 class CharLCDSim {
-    constructor({container, chargen, rows=2, columns=16, charWidth=5, charHeight=8, pixelSize = 2, pixelOnColor="#FFF", pixelOffAlpha=0x0A, imageRendering=undefined}) {
+    constructor({container, chargen, rows=2, columns=16, charWidth=5, charHeight=8, pixelSize = 1, width=240, height=72, pixelOnColor="#FFF", pixelOffAlpha=0x0A, imageRendering='pixelated'}) {
         if (container == undefined) {
             throw Error("CharLCDSim container cannot be undefined");
         }
@@ -12,15 +12,15 @@ class CharLCDSim {
         this.charHeight = charHeight;
         this.rows = rows;
         this.columns = columns;
-        this.renderedCharWidth = (charWidth+1) * this.pixelSize;
-        this.renderedCharHeight = (charHeight+1) * this.pixelSize;
+        this.char_Xdistance = (charWidth+1) * this.pixelSize;
+        this.char_Ydistance = (charHeight+1) * this.pixelSize;
         this.setPixelOffAlpha(pixelOffAlpha);
         this.pixelOnColor = pixelOnColor;
 
         
-        this.lcd_el_width = columns*this.renderedCharWidth;
-        this.lce_el_height = rows*this.renderedCharHeight;
-        this.lcd_el = appendNewElement(container, 'canvas', {className:"lcd", styles:{width:this.lcd_el_width + 'px', height:this.lce_el_height + 'px'}});
+        this.lcd_el_width = columns*this.char_Xdistance;
+        this.lce_el_height = rows*this.char_Ydistance;
+        this.lcd_el = appendNewElement(container, 'canvas', {className:"lcd", styles:{width:width + 'px', height:height + 'px'}});
 
         this.lcd_el.width = this.lcd_el_width;
         this.lcd_el.height = this.lce_el_height;
@@ -43,8 +43,8 @@ class CharLCDSim {
         ctx.imageSmoothingEnabled = true;
 
         const glyph = this.chargen[char];
-        const x = col * this.renderedCharWidth;
-        const y = row * this.renderedCharHeight;
+        const x = col * this.char_Xdistance;
+        const y = row * this.char_Ydistance;
 
         for (let byi = 0; byi < this.charHeight; byi++) {
             let bits = glyph[byi];

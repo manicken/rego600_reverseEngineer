@@ -18,36 +18,59 @@ function init_assemblyEditor() {
     let tab_msgr_el = appendNewElement(window.assemblyEditor_modal.toolbar_el, 'div');
 
     const tm = new TabManager(tab_msgr_el, {
-        getIcon: (file) => {console.log(file); return '';} // e.g. return an icon per file type here
+        addUntitledFormat: (id) => {
+            return `untitled_${id}.asm`;
+        }
     });
-    const files = {
-        'main.cpp':   'void setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n}\n',
-        'hal.h':      '#pragma once\n\nclass Hal {\npublic:\n  virtual void init() = 0;\n};\n',
-        'platformio.ini': '[env:esp32dev]\nplatform = espressif32\nboard = esp32dev\n',
-    };
-    const sessions = new Map(); // tab.id -> ace.EditSession
-    function ensureSession(tab) {
+    
+    const sessions = new Map();
+    function getOrCreateSession(tab) {
         let session = sessions.get(tab.id);
         if (!session) {
-        session = new ace.EditSession(tab.data ?? '');
-        session.on('change', () => {
-            tm.setDirty(tab.id, !session.getUndoManager().isClean());
-        });
-        sessions.set(tab.id, session);
+            session = new ace.EditSession(tab.data ?? '');
+            session.on('change', () => {
+                //tm.setDirty(tab.id, !session.getUndoManager().isClean());
+            });
+            sessions.set(tab.id, session);
         }
         return session;
     }
-    tm.addEventListener('open',     e => ensureSession(e.detail.tab));
+    /*tm.addEventListener('open',     e => {
+        window.assemblyEditor_modal.ace_editor_el.style.display = '';
+        log("file opened: " + e.detail.tab.title);
+        getOrCreateSession(e.detail.tab);
+    });*/
+    tm.addEventListener('close',     e => {
+        log("file closed: " + e.detail.tab.title);
+        //console.log(e.detail.tab);
+        getOrCreateSession(e.detail.tab)
+    });
     tm.addEventListener('activate', e => {
+        window.assemblyEditor_modal.ace_editor_el.style.display = '';
+        log("tm - activated: " + e.detail.tab.title);
         let editor = window.assemblyEditor_modal.assemblyEditor_ace;
-        if (editor == undefined) return;
-        editor.setSession(ensureSession(e.detail.tab));
+        if (editor == undefined) { 
+            log("WARNING - ACE editor was not init");
+            return;
+        }
+        editor.setSession(getOrCreateSession(e.detail.tab));
         editor.focus();
     });
+    tm.addEventListener('lastclosed', e => {
+        log("last closed: " + e.detail.tab.title);
+        window.assemblyEditor_modal.ace_editor_el.style.display = 'none';
+    });
+    tm.addEventListener('renamed', e => {
+        log("renamed: " + e.detail.tab.title);
+        
+    });
+
     tm.addEventListener('remove', e => {
+        log("tm - deleted: " + e.detail.tab.title);
         const session = sessions.get(e.detail.id);
         if (session) { session.destroy(); sessions.delete(e.detail.id); }
     });
-    tm.open('main.cpp', { title: 'main.cpp', data: files['main.cpp'] });
-    tm.open('hal.h', { title: 'hal.h', data: files['hal.h'], activate: false });
+    tm.add( { data: "", activate: true });
+    tm.add( { data: "", activate: false });
+
 }
