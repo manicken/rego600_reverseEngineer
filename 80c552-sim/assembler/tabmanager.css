@@ -8,7 +8,7 @@
     --tm-accent:        #5fb0ff;
     --tm-text:          #c7cdd6;
     --tm-text-dim:      #767e8c;
-    --tm-text-active:   #eef1f5;
+    --tm-text-active:   #ffffff;
     --tm-danger:        #e5636b;
     --tm-radius:        6px;
     --tm-tab-h:         34px;
@@ -98,12 +98,21 @@
     background: var(--tm-tab-bg-active);
     color: var(--tm-text-active);
   }
-  .tab.active::after{
+  /*.tab.active::after{
     content:"";
     position:absolute;
     left:0; right:0; bottom:-1px;
     height:2px;
     background: var(--tm-accent);
+  }*/
+  .tab.active::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    height:2px;
+    background:var(--tm-accent);
   }
   .tab.drag-over-before::before,
   .tab.drag-over-after::after{

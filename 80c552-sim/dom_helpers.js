@@ -129,7 +129,7 @@ function appendCheckBoxWithLabel(container, options={label, tooltip, state, styl
     label_el.textContent = options.label;
     label_el.appendChild(input_el);
 
-    input_el.checked = disasm_auto_scroll;
+    input_el.checked = options.state;
     input_el.onchange = () => {
         onchange(input_el.checked);
     };

@@ -64,9 +64,10 @@
   <script src="ext_devices/device_CD4051.js"></script>
   <script src="ext_devices/device_Inverter.js"></script>
 
-  <script src="lcd_sim.js"></script> <!-- need to be before the chargen as it declare in global namespace window.app.lcd_sim, that then chargen uses -->
-  <script src="lcd_sim_chargen.js"></script>
+    <script src="lcd_sim_chargen.js"></script>
   <script src="lcd_sim_chargen_edit.js"></script>
+  <script src="lcd_sim.js"></script> 
+
   
   <script src="panel_front_panel.js"></script> 
 
@@ -148,7 +149,7 @@
         </div>
       </div>
 
-      <div class="panel col" style="height: 100%;">
+      <div class="panel col log-panel">
           <h2>Log</h2>
           <div id="log"></div>
       </div>

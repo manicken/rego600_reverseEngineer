@@ -48,6 +48,19 @@ function openSettings() {
         (value) => { disasm_auto_scroll = value; }
     );
 
+    let lcdSim_enable_log_ToolTip = "Enable debugPrintRenderChar of lcd_sim";
+    appendCheckBoxWithLabel(content,
+        { label: "debugPrint LCD_sim RenderChar", tooltip: lcdSim_enable_log_ToolTip, state: window.app.sim.frontPanel.lcd.debugPrintRenderChar, style: { marginLeft: "20px", marginBottom: "10px" } },
+        (value) => { window.app.sim.frontPanel.lcd.debugPrintRenderChar = value; }
+    );
+
+    let front_panel_sim_rx_packet_enable_log_ToolTip = "Enable front_panel_sim_rx_packet_logging";
+    console.log(window.app.sim.frontPanel.debugPrintI2C_write);
+    appendCheckBoxWithLabel(content,
+        { label: "front_panel_sim_rx_packet_logging", tooltip: front_panel_sim_rx_packet_enable_log_ToolTip, state: window.app.sim.frontPanel.debugPrintI2C_write, style: { marginLeft: "20px", marginBottom: "10px" } },
+        (value) => { window.app.sim.frontPanel.debugPrintI2C_write = value; }
+    );
+
     window.app.settings_modal.setBody(content);
     window.app.settings_modal.mount();
     window.app.settings_modal.open();

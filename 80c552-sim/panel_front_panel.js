@@ -1,6 +1,6 @@
 
 window.app.sim = window.app.sim?window.app.sim:{};
-window.app.sim.frontPanel = {};
+window.app.sim.frontPanel = { debugPrintI2C_write: false};
 
 function init_front_panel(container_id) {
     let container = document.getElementById(container_id);
@@ -53,14 +53,15 @@ function init_and_attach_front_panel_to_i2c_bus() {
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
 		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
 		  //else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
-      else if (currentWriteIndex == 2) { window.app.sim.frontPanel.lcd.renderChar(databyte, lcd_row-1, lcd_col-1); }
+      else if (currentWriteIndex == 2) { lcd_char_data = databyte;  }
       else if (currentWriteIndex == 3) {
-        led_raw_state_A = databyte;
+        fp_i2c_byte_4 = databyte;
         updateLeds();
       }
       else if (currentWriteIndex == 4) {
-        led_raw_state_B = databyte;
+        fp_i2c_byte_5 = databyte;
         updateLeds();
+        window.app.sim.frontPanel.lcd.renderChar(lcd_char_data, lcd_row-1, lcd_col-1);
       }
 		  current_i2c_write[currentWriteIndex] = databyte;
       currentWriteIndex++;
@@ -99,8 +100,8 @@ function init_and_attach_front_panel_to_i2c_bus() {
 
     },
 	  stop()        { 
-		logI2C_write();
-    return true;
+      logI2C_write();
+      return true;
 	  }
 	});
 }
@@ -145,61 +146,69 @@ function appendOneLedControl(container, id, label) {
     return led_el;
 }
 
-let led_raw_state_A = 0;
-let led_raw_state_B = 0;
+let fp_i2c_byte_4 = 0;
+let fp_i2c_byte_5 = 0;
 function setLed(name, enabled, blink) {
     const element = document.getElementById(`led-${name}`);
 
     element.classList.toggle("on", enabled);
     element.classList.toggle("blink", enabled && blink);
 }
-const LED_BITS = {
-    pump:      0x02,
-    power:     0x04,
-    warmwater: 0x08,
-    alarm:     0x10,
-    addheat:   0x20
-};
 
-const BACKLIGHT_OFF = 0x40;
+const BYTE4_BITS = {
+    led_pump:           0x02,
+    led_power:          0x04,
+    led_warmwater:      0x08,
+    led_alarm:          0x10,
+    led_addheat:        0x20,   
+    lcd_backlight:      0x40,
+    lcd_char_table_alt: 0x80,
+}
 
-
+const BYTE5_BITS = {
+    led_blink_pump:         0x02, // dont know if this works, need to be verified by sending data to a real front panel
+    led_blink_power:        0x04, // this can blink
+    led_blink_warmwater:    0x08, // this can blink
+    led_blink_alarm:        0x10, // this can blink
+    led_blink_addheat:      0x20, // dont know if this works, need to be verified by sending data to a real front panel   
+    lcd_blink_backlight:    0x40, // dont know if this works, need to be verified by sending data to a real front panel
+}
 
 function updateLeds() {
 
     setLed("power",
-        (led_raw_state_A & LED_BITS.power) !== 0,
-        (led_raw_state_B & LED_BITS.power) !== 0
+        (fp_i2c_byte_4 & BYTE4_BITS.led_power) !== 0,
+        (fp_i2c_byte_5 & BYTE5_BITS.led_blink_power) !== 0
     );
 
     setLed("pump",
-        (led_raw_state_A & LED_BITS.pump) !== 0,
-        false
+        (fp_i2c_byte_4 & BYTE4_BITS.led_pump) !== 0,
+        (fp_i2c_byte_5 & BYTE5_BITS.led_blink_pump) !== 0,
     );
 
     setLed("addheat",
-        (led_raw_state_A & LED_BITS.addheat) !== 0,
-        false
+        (fp_i2c_byte_4 & BYTE4_BITS.led_addheat) !== 0,
+        (fp_i2c_byte_5 & BYTE5_BITS.led_blink_addheat) !== 0,
     );
 
     setLed("warmwater",
-        (led_raw_state_A & LED_BITS.warmwater) !== 0,
-        (led_raw_state_B & LED_BITS.warmwater) !== 0
+        (fp_i2c_byte_4 & BYTE4_BITS.led_warmwater) !== 0,
+        (fp_i2c_byte_5 & BYTE5_BITS.led_blink_warmwater) !== 0
     );
 
     setLed("alarm",
-        (led_raw_state_A & LED_BITS.alarm) !== 0,
-        (led_raw_state_B & LED_BITS.alarm) !== 0
+        (fp_i2c_byte_4 & BYTE4_BITS.led_alarm) !== 0,
+        (fp_i2c_byte_5 & BYTE5_BITS.led_blink_alarm) !== 0
     );
 
-    // 0x40 mean BACKLIGHT OFF
-    window.app.sim.frontPanel.lcd.setBacklight((led_raw_state_A & BACKLIGHT_OFF) === 0);
+    window.app.sim.frontPanel.lcd.setBacklight((fp_i2c_byte_4 & BYTE4_BITS.lcd_backlight) === 0);
 }
 
 let current_i2c_write = [];
 let currentWriteIndex = 0;
 
-let lcd_data = [];
+let lcd_data_bytes = [];
+let lcd_char_data = 0x20;
 let lcd_row = 0;
 let lcd_col = 0;
 
@@ -238,8 +247,8 @@ function logI2C_write() {
 			if (i>0) { databytes += " "; }
 			databytes += hex(current_i2c_write[i]);
 		}
-    if (databytes.length > 0) {
-		//console.log("i2c stop: " + databytes); 
+    if (databytes.length > 0 && window.app.sim.frontPanel.debugPrintI2C_write) {
+		   console.log("i2c stop: " + databytes); 
     }
 }
 

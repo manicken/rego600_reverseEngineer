@@ -50,6 +50,19 @@ class TabManager extends EventTarget {
     title = "untitled" + id;
   }
 
+  getNextId() {
+    return this.nextId;
+  }
+
+  haveTabWithTitle(name) {
+    for (let [id, item] of this.tabs) {
+      if (item.title === name) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // ---------- public API ----------
 
   /** Open (or focus, if already open) a tab. data is your own payload. */

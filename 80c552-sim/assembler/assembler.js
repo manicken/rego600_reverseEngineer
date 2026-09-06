@@ -68,19 +68,19 @@ let asmEditTheme = "textmate";
 
 
 function initAssembly_Form(modal_el) {
-    let content_el = createNewElement('div', { styles: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' } });
+    let body_el = createNewElement('div', { styles: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' } });
 
-    let toolbar_el = createNewElement('div', { styles: { width: '100%', height: '32px', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'4px' }})
+    let header_el = createNewElement('div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
     
-    content_el.appendChild(toolbar_el);
+    body_el.appendChild(header_el);
     
     let ace_editor_el = createNewElement('div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
     
-    content_el.appendChild(ace_editor_el);
+    body_el.appendChild(ace_editor_el);
 
-    modal_el.setBody(content_el);
+    modal_el.setBody(body_el);
     modal_el.ace_editor_el = ace_editor_el;
-    modal_el.toolbar_el = toolbar_el;
+    modal_el.header_el = header_el;
     
     if (!modal_el.assemblyEditor_ace) {
         modal_el.assemblyEditor_ace = ace.edit(modal_el.ace_editor_el);

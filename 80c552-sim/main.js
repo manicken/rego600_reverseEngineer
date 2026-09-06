@@ -4,6 +4,10 @@ window.app = {}; // global object to store all instances
 document.addEventListener("DOMContentLoaded", async () => {
     window.app.log = document.getElementById('log');
 
+    /*for (let i=0; i< 20; i++) {
+      log(i);
+    }*/
+
     init_main_menu();
     await simulator_init();
     

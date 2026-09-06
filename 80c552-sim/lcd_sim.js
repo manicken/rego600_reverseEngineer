@@ -12,6 +12,7 @@ class CharLCDSim {
         this.charHeight = charHeight;
         this.rows = rows;
         this.columns = columns;
+        this.debugPrintRenderChar = false;
         this.char_Xdistance = (charWidth+1) * this.pixelSize;
         this.char_Ydistance = (charHeight+1) * this.pixelSize;
         this.setPixelOffAlpha(pixelOffAlpha);
@@ -27,6 +28,7 @@ class CharLCDSim {
         if (imageRendering) {
             this.lcd_el.style.imageRendering = imageRendering;
         }
+        
     }
 
     setPixelOffAlpha(alpha) {
@@ -37,8 +39,12 @@ class CharLCDSim {
     setBacklight(on) {
         this.lcd_el.classList.toggle("backlight-on", on);
     }
-
+    /** row and col is zero based, and row=0, col=0 is the first position on top-left */
     renderChar(char, row, col) {
+        if (this.debugPrintRenderChar === true && row == 2) {
+            console.log(`renderChar(${hex(char)}, row:${row}, col:${col})`);
+        }
+        
         const ctx = this.lcd_el.getContext("2d");
         ctx.imageSmoothingEnabled = true;
 
@@ -83,7 +89,7 @@ class CharLCDSim {
 
 
 function print_cgrom_as_binary() {
-    let dump = "window.app.lcd_sim.chargen_edit = {\n";
+    let dump = "let lcd_sim_chargen_edit = {\n";
 
     for (let ci = 0; ci < 255; ci++) {
         if (ci > 0) { dump += ',\n'; }
@@ -100,6 +106,41 @@ function print_cgrom_as_binary() {
     dump += '\n};\n';
     console.log(dump);
 }
+
+function binary_from_glyph(str) {
+    return parseInt(
+        str.replaceAll('█', '1').replaceAll(' ', '0'),
+        2
+    );
+}
+
+function print_chargen_edit_as_hex() {
+    let dump = "let lcd_sim_chargen = {\n";
+
+    for (let ci = 0; ci < 255; ci++) {
+        if (ci > 0) { dump += ',\n'; }
+        dump += hex(ci,2) + ':[';
+        let charEditDataBytes = lcd_sim_chargen_edit[ci];
+        if (charEditDataBytes == undefined) {
+            charEditDataBytes = [];
+        }
+        for (let di=0; di < charEditDataBytes.length; di++) {
+            if (di > 0) dump += ',';
+            let charEditData = charEditDataBytes[di];
+            let charData = 0;
+            if (charEditData != undefined) {
+                charData = binary_from_glyph(charEditData);
+            }
+            dump += '0x' + charData.toString(16).padStart(2, '0');
+        }
+        dump += ']';
+        
+    }
+    dump += '\n}\n';
+    console.log(dump);
+}
+
+//print_chargen_edit_as_hex();
 
 /* only used once to convert a bad generated cggen table
 print_cgrom_as_hex() {

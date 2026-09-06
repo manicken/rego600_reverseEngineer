@@ -33,13 +33,29 @@ body {
   td, th { padding:2px 8px; text-align:left; }
   .reg { color:#4ec9b0; }
   .val { color:#ce9178; }
-  #log { height:100%; width: 100%; overflow-y:auto; background:#111; padding:6px; font-size:12px; white-space:pre-wrap; box-sizing: border-box;}
+  
   .pinbit { display:inline-flex; flex-direction:column; align-items:center; margin-right:6px; font-size:10px; }
   .memdump { font-size:11px; white-space:pre; overflow-x:auto; max-height:400px; overflow-y:auto; background:#111; padding:6px; }
   .lcd { margin-top:8px; margin-bottom:8px; background-color:#396197; padding:4px; }
   .lcd.backlight-on {background-color:#63a4ff}
   small { color:#888; }
 
+.log-panel {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+#log {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    background: #111;
+    padding: 6px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    box-sizing: border-box;
+}
 
 .xram_view {
     flex: 1 1 0%;

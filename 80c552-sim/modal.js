@@ -307,74 +307,7 @@ class Modal {
 			height:  Math.max(minH, h + dy)
 		}));
 	}
-/*
-	_makeResizable() {
-		const handle = document.createElement("div");
-		handle.className = "modal-resize-handle";
-		this.el.appendChild(handle);
 
-		let resizing = false;
-		let startX, startY;
-		let startWidth, startHeight;
-
-		const onPointerDown = (e) => {
-			resizing = true;
-
-			const rect = this.el.getBoundingClientRect();
-
-			startX = e.clientX;
-			startY = e.clientY;
-			startWidth = rect.width;
-			startHeight = rect.height;
-
-			this.el.classList.add("modal--resizing");
-
-			handle.setPointerCapture(e.pointerId);
-
-			e.preventDefault();
-			e.stopPropagation();
-		};
-
-		const onPointerMove = (e) => {
-			if (!resizing) return;
-
-			const dx = e.clientX - startX;
-			const dy = e.clientY - startY;
-
-			const minWidth = 250;
-			const minHeight = 150;
-
-			const width = Math.max(minWidth, startWidth + dx);
-			const height = Math.max(minHeight, startHeight + dy);
-
-			this.el.style.width = `${width}px`;
-			this.el.style.height = `${height}px`;
-			if (this.onResize) {
-				this.onResize(this, width, height);
-			}
-		};
-
-		const onPointerUp = (e) => {
-			resizing = false;
-
-			this.el.classList.remove("modal--resizing");
-
-			try {
-				handle.releasePointerCapture(e.pointerId);
-				if (this.onResized) {
-					const rect = this.bodyEl.getBoundingClientRect();
-					//this.onResized(this, this.el.style.width, this.el.style.height);
-					this.onResized(this, rect.width, rect.height);
-				}
-			} catch (ex) { console.log("modal resize error:", ex); }
-		};
-
-		handle.addEventListener("pointerdown", onPointerDown);
-		handle.addEventListener("pointermove", onPointerMove);
-		handle.addEventListener("pointerup", onPointerUp);
-		handle.addEventListener("pointercancel", onPointerUp);
-	}
-*/
 	/** Replace the modal body with the given node. */
 	setBody(node) {
 		this.bodyEl.innerHTML = "";
@@ -431,11 +364,62 @@ class Modal {
 	}
 }
 
+function inputModal({ title = "Input", message = "Enter Value: ", confirmText = "OK", value = "", enterConfirm=true, confirmClass = "", onValidate = (value) => { return true; }, onConfirm = (value) => {} } = {})
+{
+    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false, z:2000 });
+	let body_el = createNewElement('div', {styles:{width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'8px'}})
+	let message_el = createNewElement("div", { innerHTML: message, styles: { padding: "8px" } });
+	let input_el = createNewElement('input', { type:"text" });
+	let error_el = createNewElement('div', {styles:{display:'none', color:'#b40000'}});
+	function validateAndConfirm() {
+		let validationRes = onValidate(input_el.value); 
+		if (validationRes !== true) {
+			error_el.textContent = validationRes;
+			error_el.style.display = '';
+			//infoModal({message:validationRes, z:3000});
+			input_el.focus();
+			return;
+		}
+		error_el.style.display = 'none';
+		onConfirm(input_el.value);
+		modal.destroy();
+	}
+	if (enterConfirm == true) {
+		input_el.addEventListener('keydown', (event) => {
+			if (event.key === 'Enter') {
+				validateAndConfirm();
+			}
+		});
+	}
+	input_el.value = value;
+	body_el.appendChild(message_el);
+	body_el.appendChild(input_el);
+	body_el.appendChild(error_el);
 
+    modal.setBody(body_el);
+    modal.setFooter(createButtonBar([
+        {
+            text: confirmText,
+            className: confirmClass,
+            onClick: () => {
+				validateAndConfirm();
+            }
+        },
+        {
+            text: "Cancel",
+            onClick: () => {
+                modal.destroy();
+            }
+        }
+    ]));
+    modal.open();
+	input_el.focus();
+    return modal;
+}
 
 function confirmModal({ title = "Confirm", message = "", confirmText = "OK", confirmClass = "", onConfirm = () => {} } = {})
 {
-    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, z:2000 });
+    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false, z:2000 });
     modal.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
     modal.setFooter(createButtonBar([
         {
@@ -457,9 +441,9 @@ function confirmModal({ title = "Confirm", message = "", confirmText = "OK", con
     return modal;
 }
 
-function infoModal({ title = "Info", message = "", buttonText = "OK", onConfirm = () => {} } = {})
+function infoModal({ title = "Info", message = "", buttonText = "OK", z=3000, onConfirm = () => {} } = {})
 {
-    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, z:2000 });
+    const modal = new Modal({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false, z });
     modal.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
     modal.setFooter(createButtonBar([
         {
@@ -472,4 +456,8 @@ function infoModal({ title = "Info", message = "", buttonText = "OK", onConfirm 
     ]));
     modal.open();
     return modal;
+}
+
+function notImplementedMessageDialog() {
+	infoModal({message:"This function is not yes implemented"});
 }
