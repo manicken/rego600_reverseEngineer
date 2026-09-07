@@ -5,27 +5,11 @@ window.app.assembly_editor_menu = [
             {
                 label: "Save",
                 comment: "not implemented yet",
-                action: () => { notImplementedMessageDialog(); }
+                action: save
             },
             {
                 label: "New file",
-                action: () => { 
-                    let fileName = `untitled_${ window.assemblyEditor_modal.tm.getNextId()}`;
-                    inputModal({title:"New Asm File",message:"Enter filename:", value:fileName, 
-                        onValidate: (name) => {
-                            if (name.endsWith('.asm') == false) { name += '.asm'; }
-                            if (window.assemblyEditor_modal.tm.haveTabWithTitle(name)) {
-                                return "A file allready exists with the name: " + name;
-                            }
-                            return true;
-                        },
-                        onConfirm: (name) => {
-                            if (name.endsWith('.asm') == false) { name += '.asm'; }
-                            window.assemblyEditor_modal.tm.add( { title:name, data: "", activate: true });
-                        }
-                    });
-                    
-                }
+                action: createNewFile
             },
             {
                 label: "Open",
@@ -33,11 +17,34 @@ window.app.assembly_editor_menu = [
                 action: () => { notImplementedMessageDialog(); } 
 
             },
-            
-            
         ]
     }, 
 ];
+
+function save() {
+    let tm = window.assemblyEditor_modal.tm;
+    for (let item of tm.tabs) {
+        console.log(item);
+    }
+    notImplementedMessageDialog();
+}
+
+function createNewFile() {
+    let fileName = `untitled_${ window.assemblyEditor_modal.tm.getNextId()}`;
+    inputModal({title:"New Asm File",message:"Enter filename:", value:fileName, 
+        onValidate: (name) => {
+            if (name.endsWith('.asm') == false) { name += '.asm'; }
+            if (window.assemblyEditor_modal.tm.haveTabWithTitle(name)) {
+                return "A file allready exists with the name: " + name;
+            }
+            return true;
+        },
+        onConfirm: (name) => {
+            if (name.endsWith('.asm') == false) { name += '.asm'; }
+            window.assemblyEditor_modal.tm.add( { title:name, data: "", activate: true });
+        }
+    });
+}
 
 function init_assemblyEditor() {
     
@@ -105,9 +112,9 @@ function init_assemblyEditor() {
         let session = sessions.get(tab.id);
         if (!session) {
             session = new ace.EditSession(tab.data ?? '');
-            
             session.on('change', () => {
-                //tm.setDirty(tab.id, !session.getUndoManager().isClean());
+                
+                window.assemblyEditor_modal.tm.setDirty(tab.id, session.getValue() !== tab.data);
             });
             sessions.set(tab.id, session);
         }

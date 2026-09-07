@@ -17,7 +17,7 @@ function init_front_panel(container_id) {
     appendOneLedControl(led_row_el, "alarm", "ALARM");
     appendRealFrontPanelButton(container, "Power", 5);
     
-    window.app.sim.frontPanel.lcd = new CharLCDSim({container, chargen:lcd_sim_chargen, rows:4, columns:20/*, pixelsize:1,*/ /*, imageRendering: 'pixelated'*/});
+    window.app.sim.frontPanel.lcd = new CharLCDSim({container, cgrom:lcd_sim_chargen, rows:4, columns:20/*, pixelsize:1,*/ /*, imageRendering: 'pixelated'*/});
 
     let button_row = appendDiv(container, "row rego-button-row");
     appendRealFrontPanelButton(button_row, "Left", 4);
@@ -41,8 +41,6 @@ function init_and_attach_front_panel_to_i2c_bus() {
       
 		} 
 		else {
-      //front_panel_state_byte_A = 0x00;
-      //front_panel_state_byte_B = 0x00;
 			currentWriteIndex = 0;
 			current_i2c_write = [];
 		}
@@ -52,15 +50,18 @@ function init_and_attach_front_panel_to_i2c_bus() {
       //
 	    if (currentWriteIndex == 0) { lcd_row = databyte; }
 		  else if (currentWriteIndex == 1) { lcd_col = databyte; }
-		  //else if (currentWriteIndex == 2) { lcd_data.rows[lcd_row-1].cols[lcd_col-1] = databyte; }
       else if (currentWriteIndex == 2) { lcd_char_data = databyte;  }
       else if (currentWriteIndex == 3) {
         fp_i2c_byte_4 = databyte;
-        updateLeds();
       }
       else if (currentWriteIndex == 4) {
         fp_i2c_byte_5 = databyte;
         updateLeds();
+        if (fp_i2c_byte_4 & BYTE4_BITS.lcd_char_table_alt) {
+            window.app.sim.frontPanel.lcd.setCGRAM(front_panel_cgram_bars);
+        } else {
+            window.app.sim.frontPanel.lcd.setCGRAM(front_panel_cgram_normal);
+        }
         window.app.sim.frontPanel.lcd.renderChar(lcd_char_data, lcd_row-1, lcd_col-1);
       }
 		  current_i2c_write[currentWriteIndex] = databyte;
@@ -78,24 +79,14 @@ function init_and_attach_front_panel_to_i2c_bus() {
         } else if ((front_panel_state_byte_A & 0x7C) !== (front_panel_state_byte_B & 0x7C)) {
           front_panel_state_byte_A = 0x00;
         } 
-        
-        
-        //console.log("i2c read A:" + hex(retVal));
-        //console.log("i2c read A:\n"+cpu.getCallStackString());
       } else if (currentReadIndex==1) {
         currentReadIndex = -1;
         retVal = front_panel_state_byte_B;
         if ((front_panel_state_byte_B & 0x83) !== 0) {
           front_panel_state_byte_B = 0x00;
         }
-        //console.log("i2c read B:" + hex(front_panel_state_byte_B));
-        //console.log("i2c read B:\n"+cpu.getCallStackString());
-
       }
-      else {
-        //console.log("i2c read ?:\n"+cpu.getCallStackString());
-
-      }
+      
       return retVal;
 
     },
@@ -105,20 +96,6 @@ function init_and_attach_front_panel_to_i2c_bus() {
 	  }
 	});
 }
-
-let ascii_translate_table = {
-  
-  0xE1:'ä'.charCodeAt(0),
-  0xE2:'å'.charCodeAt(0),
-  0xF3:'ö'.charCodeAt(0),
-  0xDF:'°'.charCodeAt(0),
-  
-  0x08:'▏'.charCodeAt(0),
-  0x01:'▎'.charCodeAt(0),
-  0x02:'▍'.charCodeAt(0),
-  0x03:'▋'.charCodeAt(0),
-  0xFF:'█'.charCodeAt(0),
-};
 
 function appendRealFrontPanelButton(container, label, index) {
     let btn_el = appendButton(container, label);
@@ -217,15 +194,12 @@ let front_panel_state_byte_A = 0x00;
 let front_panel_state_byte_B = 0x00;
 
 function buttonPressed(bit) {
-
     front_panel_state_byte_A |= (1 << bit);
     front_panel_state_byte_B |= (1 << bit);
-
     //console.log("buttonPressed: " + bit + ", new state byte A:" + hex(front_panel_state_byte_A) + ", new state byte B:" + hex(front_panel_state_byte_B));
 }
 
 function buttonReleased(bit) {
-  
     //front_panel_state_byte_A &= ~(1 << bit); // resets when reading i2c
     front_panel_state_byte_B &= ~(1 << bit);
     //console.log("buttonReleased: " + bit + ", new state byte A:" + hex(front_panel_state_byte_A) + ", new state byte B:" + hex(front_panel_state_byte_B));
@@ -252,24 +226,3 @@ function logI2C_write() {
     }
 }
 
-/*
-      <div class="row" style="margin-top: 5px; margin-bottom: 5px; font-family: Arial, sans-serif;">
-        <div class="rego-led" id="led-power">     <span class="led"></span> <span class="label">POWER</span> </div>
-        <div class="rego-led" id="led-pump">      <span class="led"></span> <span class="label">PUMP</span> </div>
-        <div class="rego-led" id="led-addheat">   <span class="led"></span> <span class="label">ADD HEAT</span> </div>
-        <div class="rego-led" id="led-warmwater"> <span class="led"></span> <span class="label">WARM WATER</span> </div>
-        <div class="rego-led" id="led-alarm">     <span class="led"></span> <span class="label">ALARM</span> </div>
-      </div>
-    
-      <button id="front_panel_button_pwr" data-button-index="5">Power</button>
-      <div class="lcd" id="lcd_data"></div>
-      <div class="row" style="display:flex; justify-content: space-between;">
-      <button id="front_panel_button_left" data-button-index="4">Left </button>
-      <button id="front_panel_button_middle" data-button-index="3">Middle </button>
-      <button id="front_panel_button_right" data-button-index="2">Right </button>
-      </div>
-      <br>
-      <br>
-      <button id="front_panel_wheel_left">Rotate Left</button>
-      <button id="front_panel_wheel_right">Rotate Right</button>
-*/

@@ -1,17 +1,22 @@
+
+
 class CharLCDSim {
-    constructor({container, chargen, rows=2, columns=16, charWidth=5, charHeight=8, pixelSize = 1, width=240, height=72, pixelOnColor="#FFF", pixelOffAlpha=0x0A, imageRendering='pixelated'}) {
+    constructor({container, cgrom, cgram = {}, rows=2, columns=16, charWidth=5, charHeight=8, pixelSize = 1, width=240, height=72, pixelOnColor="#FFF", pixelOffAlpha=0x0A, imageRendering='pixelated'}) {
         if (container == undefined) {
             throw Error("CharLCDSim container cannot be undefined");
         }
-        if (chargen == undefined) {
-            throw Error("CharLCDSim chargen cannot be undefined");
+        if (cgrom == undefined) {
+            throw Error("CharLCDSim cgrom cannot be undefined");
         }
         this.pixelSize = Math.round(pixelSize);
-        this.chargen = chargen;
+        this.cgrom = cgrom;
+        this.cgram = cgram;
+        this.ddram = new Uint8Array(rows * columns); // Display Data RAM
         this.charWidth = charWidth;
         this.charHeight = charHeight;
         this.rows = rows;
         this.columns = columns;
+        
         this.debugPrintRenderChar = false;
         this.char_Xdistance = (charWidth+1) * this.pixelSize;
         this.char_Ydistance = (charHeight+1) * this.pixelSize;
@@ -31,6 +36,14 @@ class CharLCDSim {
         
     }
 
+    setCGRAM(data) {
+        this.cgram = data;
+    }
+
+    readDDRAM(row, col) {
+        return this.ddram[row * this.cols + col];
+    }
+
     setPixelOffAlpha(alpha) {
         this.pixelOffAlpha = "#ffffff" + alpha.toString(16).padStart(2,'0');
         console.log(this.pixelOffAlpha);
@@ -41,48 +54,76 @@ class CharLCDSim {
     }
     /** row and col is zero based, and row=0, col=0 is the first position on top-left */
     renderChar(char, row, col) {
+        const index = row * this.columns + col;
+
+        if (this.ddram[index] == char) {
+            return;
+        }
+        this.ddram[index] = char;
+
         if (this.debugPrintRenderChar === true && row == 2) {
             console.log(`renderChar(${hex(char)}, row:${row}, col:${col})`);
         }
         
-        const ctx = this.lcd_el.getContext("2d");
-        ctx.imageSmoothingEnabled = true;
+        this.ctx = this.lcd_el.getContext("2d");
+        this.ctx.imageSmoothingEnabled = false;
 
-        const glyph = this.chargen[char];
+        let glyph = this.cgram[char] || this.cgrom[char];
+        if (glyph == undefined) {
+            console.log("glyph == undefined @ " + hex(char));
+            glyph = [];
+        }
         const x = col * this.char_Xdistance;
         const y = row * this.char_Ydistance;
 
         for (let byi = 0; byi < this.charHeight; byi++) {
-            let bits = glyph[byi];
-
-            if (bits == undefined) bits = 0x00; // allways render empty if charrom character dont use the extra data
-
-            for (let bii = 0; bii < this.charWidth; bii++) {
-                const active = (bits & (1 << (this.charWidth-1 - bii)));
-                if (active) {
-                    ctx.fillStyle = this.pixelOnColor;
-                    ctx.fillRect(
-                        x + bii * this.pixelSize,
-                        y + byi * this.pixelSize,
-                        this.pixelSize,
-                        this.pixelSize
-                    );
-                } else {
-                    ctx.clearRect(
-                        x + bii * this.pixelSize,
-                        y + byi * this.pixelSize,
-                        this.pixelSize,
-                        this.pixelSize
-                    );
-                    ctx.fillStyle = this.pixelOffAlpha;
-                    ctx.fillRect(
-                        x + bii * this.pixelSize,
-                        y + byi * this.pixelSize,
-                        this.pixelSize,
-                        this.pixelSize
-                    );
-                }
+            let charDataRow = glyph[byi];
+            if (typeof charDataRow != "string") {
+                this.renderRawValue(charDataRow, x, y, byi);
+            } else {
+                //console.log("is string: " + charDataRow);
+                this.renderStringValue(charDataRow, x, y, byi)
             }
+        }
+    }
+    renderRawValue(bits, x, y, byi) {
+        if (bits == undefined) bits = 0x00; // allways render empty if charrom character dont use the extra data
+        for (let bii = 0; bii < this.charWidth; bii++) {
+            const active = (bits & (1 << (this.charWidth-1 - bii)));
+            this.renderOnePixel(x, y, bii, byi, active);
+        }
+    }
+    renderStringValue(charDataRow, x, y, byi) {
+        if (charDataRow == undefined) charDataRow = "        "; // allways render empty if charrom character dont use the extra data
+        for (let bii = 0; bii < this.charWidth; bii++) {
+            let active = charDataRow[bii];
+            active = (active != undefined && active != ' ');
+            this.renderOnePixel(x, y, bii, byi, active);
+        }
+    }
+    renderOnePixel(x, y, bii, byi, state) {
+        if (state) {
+            this.ctx.fillStyle = this.pixelOnColor;
+            this.ctx.fillRect(
+                x + bii * this.pixelSize,
+                y + byi * this.pixelSize,
+                this.pixelSize,
+                this.pixelSize
+            );
+        } else {
+            this.ctx.clearRect(
+                x + bii * this.pixelSize,
+                y + byi * this.pixelSize,
+                this.pixelSize,
+                this.pixelSize
+            );
+            this.ctx.fillStyle = this.pixelOffAlpha;
+            this.ctx.fillRect(
+                x + bii * this.pixelSize,
+                y + byi * this.pixelSize,
+                this.pixelSize,
+                this.pixelSize
+            );
         }
     }
 }

@@ -308,7 +308,7 @@ class TabManager extends EventTarget {
     const icon = this.opts.getIcon ? this.opts.getIcon(tab) : null;
     if (icon) {
       const iconEl = document.createElement('span');
-      iconEl.textContent = icon;
+      iconEl.textContent = icon;asd
       el.appendChild(iconEl);
     }
 
@@ -316,16 +316,28 @@ class TabManager extends EventTarget {
     title.className = 'tab-title';
     title.textContent = tab.title;
 
-    const dot = document.createElement('span');
-    dot.className = 'tab-dot';
+    const actions = document.createElement('span');
+actions.className = 'tab-actions';
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'tab-close';
-    closeBtn.textContent = '×';
-    closeBtn.title = 'Stäng (behåller data)';
-    closeBtn.addEventListener('click', e => { e.stopPropagation(); this.close(tab.id); });
+const dot = document.createElement('span');
+dot.className = 'tab-dot';
 
-    el.append(title, dot, closeBtn);
+if (tab.dirty) {
+    el.classList.add('file_changed');
+}
+
+const closeBtn = document.createElement('button');
+closeBtn.className = 'tab-close';
+closeBtn.textContent = '✖';
+closeBtn.title = 'Close (keeps data)';
+closeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    this.close(tab.id);
+});
+
+actions.append(dot, closeBtn);
+
+el.append(title, actions);
 
     el.addEventListener('click', () => this.activate(tab.id));
     el.addEventListener('contextmenu', e => {
