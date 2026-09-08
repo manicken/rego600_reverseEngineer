@@ -57,7 +57,7 @@ function editCode() {
 
 function viewAsmCode() {
     let asmCode = getAssemblyInstructions({insn_incr:4});
-    openAssemblyEditor(window.assemblyViewer_modal, asmCode);
+    window.app.asmView.open(asmCode);
 }
 
 function gotoAddress() {

@@ -34,9 +34,6 @@ class CharLCDSim {
             this.lcd_el.style.imageRendering = imageRendering;
         }
         this.clearScreen();
-        this.writeString("REGO600", 1, 6);
-        this.writeString("simulator", 2, 5);
-        this.writeString("using js51", 3, 5);
     }
 
     clearScreen() {

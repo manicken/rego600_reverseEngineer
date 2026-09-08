@@ -1,5 +1,12 @@
 
-function init_assemblyViewer() {
-    window.assemblyViewer_modal = new Modal({title:"Assembly Viewer", height:600, width:400, resizable: true});
-    initAssembly_Form(window.assemblyViewer_modal);
+class AssemblyViewer {
+
+    constructor() {
+        this.modal = new AceEditorForm({title:"Assembly Viewer", height:600, width:400, aceTheme:"textmate", aceMode:"assembly_8051"});
+    }
+
+    open(code) {
+        this.modal.open();
+        this.modal.ace_editor.setValue(code);
+    }
 }

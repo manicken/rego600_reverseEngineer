@@ -364,6 +364,20 @@ class Modal {
 	}
 }
 
+function AceEditorForm({ title = "Ace Editor", height=600, width=500, aceTheme="textmate", aceMode="text"}) {
+	let modal_el = new Modal({title, height, width, resizable: true});
+	let body_el = createNewElement('div', { styles: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' } });
+	let header_el = appendNewElement(body_el, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
+	let ace_editor_el = appendNewElement(body_el, 'div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
+	modal_el.setBody(body_el);
+	
+	let ace_editor = ace.edit(ace_editor_el);
+	ace_editor.setTheme("ace/theme/" + aceTheme);
+	ace_editor.session.setMode("ace/mode/" + aceMode);
+	
+	return {modal_el, header_el, ace_editor_el, ace_editor, open() {this.modal_el.open()}};
+}
+
 function inputModal({ title = "Input", message = "Enter Value: ", confirmText = "OK", value = "", enterConfirm=true, confirmClass = "", onValidate = (value) => { return true; }, onConfirm = (value) => {} } = {})
 {
     const modal = new Modal({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false, z:2000 });
@@ -387,6 +401,8 @@ function inputModal({ title = "Input", message = "Enter Value: ", confirmText = 
 	if (enterConfirm == true) {
 		input_el.addEventListener('keydown', (event) => {
 			if (event.key === 'Enter') {
+				event.preventDefault();
+				event.stopPropagation();
 				validateAndConfirm();
 			}
 		});

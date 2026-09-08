@@ -74,24 +74,30 @@ class AppStorage {
         return true;
     }
 
-    static list(postfix = '') {
+    static list(postfix = '', filter = () => true) {
         const prefix = AppStorage.#key(postfix);
-        let exp = Object.create(null);
+        let list = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             
             if (key && key.startsWith(prefix)) {
-                //const appKey = key.substring(this.PREFIX.length);
-                //console.log(appKey);
-                exp[key.substring(prefix.length)] = AppStorage.get(key);
+                const subkey = key.substring(prefix.length);
+                if (filter(subkey)) {
+                    list.push(subkey);
+                }
             }
         }
-        //console.log(exp);
-        return exp;
+        //console.trace(list);
+        return list;
     }
 
     static export() {
-        return AppStorage.list();
+        let items = AppStorage.list();
+        let dump = {};
+        for (let item of items) {
+            dump[item] = AppStorage.get(item);
+        }
+        return dump;
     }
 
     static import(data) {
@@ -147,8 +153,8 @@ class AppStorageFileSystem {
     static remove(name) {
         AppStorage.remove(AppStorageFileSystem.key(name));
     }
-    static list(prefix = '') {
-        return AppStorage.list(AppStorageFileSystem.key(prefix));
+    static list(prefix = '', filter = () => true) {
+        return AppStorage.list(AppStorageFileSystem.key(prefix), filter);
     }
 }
 
@@ -179,17 +185,24 @@ class AppStorageFile {
     static load(name) {
         const content = AppStorage.get(AppStorageFileSystem.key(name), null);
 
-        if (content === null)
+        if (content === null) {
+           // console.log("content is null");
             return null;
+        }
+        //console.log(content);
 
         return new AppStorageFile(name, content);
     }
 }
 
 class AssemblyEdit {
+    static #METADATA_FILE_END = '.json';
+    #removed = false;
+
     constructor(name, metafile, asmfile, asmFileContents = '') {
+        
         this.name = name;
-        this.metafile = metafile ?? AppStorageFile.createNew(name + '.json');
+        this.metafile = metafile ?? AppStorageFile.createNew(name + AssemblyEdit.#METADATA_FILE_END);
         this.asmfile = asmfile ?? AppStorageFile.createNew(name, asmFileContents);
     }
     static createNew(name, asmFileContents = '') {
@@ -197,23 +210,50 @@ class AssemblyEdit {
     }
     static load(name) {
         return new AssemblyEdit(name, 
-            AppStorageFile.load(name + '.json'), 
+            AppStorageFile.load(name + AssemblyEdit.#METADATA_FILE_END), 
             AppStorageFile.load(name), 
         );
     }
+    getAsmFileContents() {
+        if (this.#removed) throw Error("cannot getAsmFileContents on removed file");
+        return this.asmfile.content;
+    }
+    setAsmFileContents(data) {
+        if (this.#removed) throw Error("cannot setAsmFileContents on removed file");
+        this.asmfile.content = data;
+    }
+    setMetaFileContents(data) {
+        if (this.#removed) throw Error("cannot setMetaFileContents on removed file");
+        this.metafile.content = data;
+    }
+    getMetaFileContents() {
+        if (this.#removed) throw Error("cannot getMetaFileContents on removed file");
+        return this.metafile.content;
+    }
     save() {
+        if (this.#removed) throw Error("cannot save on removed file");
         this.metafile.save();
         this.asmfile.save();
     }
     renameTo(name) {
+        if (this.#removed) throw Error("cannot renameTo on removed file");
+
         if (!this.asmfile.renameTo(name)) {
             return false;
         }
-        if (!this.metafile.renameTo(name + '.json')) {
+        if (!this.metafile.renameTo(name + AssemblyEdit.#METADATA_FILE_END)) {
             // this should allways pass if the first file renambe was a success
             return false;
         }
         this.name = name;
         return true;
+    }
+    removePermanent() {
+        AppStorageFileSystem.remove(this.name);
+        AppStorageFileSystem.remove(this.name + AssemblyEdit.#METADATA_FILE_END);
+        this.#removed = true;
+    }
+    #removePermanent() {
+        
     }
 }

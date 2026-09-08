@@ -54,63 +54,56 @@ class TabManager extends EventTarget {
     return this.nextId;
   }
 
-  haveTabWithTitle(name) {
-    for (let [id, item] of this.tabs) {
-      if (item.title === name) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   // ---------- public API ----------
 
-  /** Open (or focus, if already open) a tab. data is your own payload. */
-  open(id, { title = id, data = null, activate = true, dirty = false }) {
-    let tab = this.tabs.get(id);
-    if (tab) {
-      tab.closed = false;
-      if (!this.order.includes(id)) this.order.push(id);
-    } else {
-      tab = { id, title, data, dirty, closed: false };
-      this.tabs.set(id, tab);
-      this.order.push(id);
-    }
-    this._render();
-    this._emit('open', tab);
-    if (activate) this.activate(id);
-    return tab;
-  }
-  add({ title = undefined, data = null, activate = true, dirty = false } = {}) {
+  add(options = { title = undefined, data = undefined} = {}) {
     const id = this.nextId++;
-    if (title === undefined) {
+    if (options.title === undefined) {
       title = this.addUntitledFormat(id);
     }
     
     const tab = {
         id,
-        title,
-        data,
-        dirty,
+        data:options.data,
+        dirty:false,
         compile: true,
         closed: false
     };
+    Object.defineProperty(tab, "title",
+        Object.getOwnPropertyDescriptor(options, "title")
+    );
 
     this.tabs.set(id, tab);
     this.order.push(id);
 
     this._render();
 
-    if (activate) this.activate(id);
+    this.activate(id);
 
     return tab;
   }
-  rename(id, newName) {
+  currentTab() {
+    return this.tabs.get(this.activeId);
+  }
+
+  rename(id) {
     if (!this.tabs.has(id)) return;
     const tab = this.tabs.get(id);
-    tab.title = newName;
-    this._render();
-    this._emit("renamed", tab)
+
+    inputModal({title:"Rename file", message:"Renaming file " + tab.title, value: tab.title,
+      onValidate:(value)=>{
+        return AppStorageFileSystem.exists(value)?"A File allready exist with that name!":true;
+      }, 
+      onConfirm:(value)=>{
+        
+        tab.title = value;
+        this._render();
+        this._emit("renamed", tab);
+        //console.log("rename");
+      }
+    });
+
+    
   }
 
   activate(id) {
@@ -305,6 +298,7 @@ class TabManager extends EventTarget {
     el.dataset.id = tab.id;
     el.draggable = true;
     el.title = tab.title;
+    
 
     const icon = this.opts.getIcon ? this.opts.getIcon(tab) : null;
     if (icon) {
@@ -354,7 +348,7 @@ class TabManager extends EventTarget {
     el.addEventListener('click', () => this.activate(tab.id));
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
-      console.log("open context");
+      //console.log("open context");
       this._openTabContextMenu(tab, e.clientX, e.clientY);
     });
 
@@ -399,11 +393,14 @@ class TabManager extends EventTarget {
       it.addEventListener('click', ev => { ev.stopPropagation(); fn(); this._closeAllMenus(); });
       menu.appendChild(it);
     };
+    item('Rename', () => this.rename(tab.id));
+    const sep1 = document.createElement('div'); sep1.className = 'tabmgr-menu-sep';
+    menu.appendChild(sep1);
     item('Close', () => this.close(tab.id));
     item('Close others', () => this.closeOthers(tab.id));
     item('Close all', () => this.closeAll());
-    const sep = document.createElement('div'); sep.className = 'tabmgr-menu-sep';
-    menu.appendChild(sep);
+    const sep2 = document.createElement('div'); sep2.className = 'tabmgr-menu-sep';
+    menu.appendChild(sep2);
     item('Remove permanently', () => this.remove(tab.id), true);
 
     menu.style.left = 'auto';

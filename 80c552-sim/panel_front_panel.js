@@ -21,6 +21,9 @@ function init_front_panel(container_id) {
     appendRealFrontPanelButton(container, "Power", 5);
     
     window.app.sim.frontPanel.lcd = new CharLCDSim({container, cgrom:lcd_sim_chargen, rows:4, columns:20/*, pixelsize:1,*/ /*, imageRendering: 'pixelated'*/});
+    window.app.sim.frontPanel.lcd.writeString("REGO600", 0, 6);
+    window.app.sim.frontPanel.lcd.writeString("simulator", 1, 5);
+    window.app.sim.frontPanel.lcd.writeString("using js51", 3, 5);
 
     let button_row = appendDiv(container, "row rego-button-row");
     appendRealFrontPanelButton(button_row, "Left", 4);

@@ -44,8 +44,8 @@ window.app.main_menu = [
             {
                 label: "Assembly Editor",
                 action: () => { 
-                    openAssembly_Form(window.assemblyEditor_modal);
-                    hexNumberRenderer.attach(window.assemblyEditor_modal.assemblyEditor_ace);
+                    Assembler.openAssembly_Form(window.app.asmEdit.modal);
+                    
                  }
             },
         ]
