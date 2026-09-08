@@ -1,6 +1,9 @@
 
 window.app.sim = window.app.sim?window.app.sim:{};
-window.app.sim.frontPanel = { debugPrintI2C_write: false};
+ 
+window.app.sim.frontPanel = { };
+// note this is not a persistent setting as it's only used temporarily 
+window.app.sim.frontPanel.debugPrintI2C_write = false;
 
 function init_front_panel(container_id) {
     let container = document.getElementById(container_id);

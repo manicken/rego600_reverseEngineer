@@ -459,5 +459,6 @@ function infoModal({ title = "Info", message = "", buttonText = "OK", z=3000, on
 }
 
 function notImplementedMessageDialog() {
+	console.trace("This function is not yes implemented");
 	infoModal({message:"This function is not yes implemented"});
 }

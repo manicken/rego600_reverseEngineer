@@ -88,30 +88,39 @@ function init_assemblyEditor() {
 
     function saveSessionToJSON(session) {
         //const session = editor.getSession();
-        
+        console.log(session);
         const sessionData = {
-            content: session.getValue(),
-           // cursor: session.getCursorPosition(),
+            //content: session.getValue(),
+            //cursor: session.getCursorPosition(),
             selection: session.getSelection().getRange(),
             scrollLeft: session.getScrollLeft(),
             scrollTop: session.getScrollTop(),
-            mode: session.getMode().$id,
+            //mode: session.getMode().$id,
             // Optional: Save code folds if your users use them
             folds: session.getAllFolds().map(fold => ({
                 start: fold.start,
                 end: fold.end,
                 placeholder: fold.placeholder
-            }))
+            })),
+            //theme: session.$editor.getTheme()
         };
 
         return JSON.stringify(sessionData);
+    }
+
+    function modeFor(filename) {
+        if (/\.(asm)$/.test(filename)) return 'ace/mode/assembly_8051';
+        /*if (/\.(cpp|h|hpp)$/.test(filename)) return 'ace/mode/c_cpp';
+        if (filename.endsWith('.ini')) return 'ace/mode/ini';
+        if (filename.endsWith('.js'))  return 'ace/mode/javascript';*/
+        return 'ace/mode/text';
     }
     
     const sessions = new Map();
     function getOrCreateSession(tab) {
         let session = sessions.get(tab.id);
         if (!session) {
-            session = new ace.EditSession(tab.data ?? '');
+            session = new ace.EditSession(tab.data ?? '', modeFor(tab.title));
             session.on('change', () => {
                 
                 window.assemblyEditor_modal.tm.setDirty(tab.id, session.getValue() !== tab.data);
@@ -142,8 +151,8 @@ function init_assemblyEditor() {
         editor.setSession(session);
         editor.focus();
 
-        console.log(session);
-            console.log(saveSessionToJSON(session));
+        //console.log(session);
+        console.log(saveSessionToJSON(session));
     });
     window.assemblyEditor_modal.tm.addEventListener('lastclosed', e => {
         log("last closed: " + e.detail.tab.title);

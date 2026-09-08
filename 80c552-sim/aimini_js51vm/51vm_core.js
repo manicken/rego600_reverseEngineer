@@ -188,6 +188,8 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.callStack = [];
     this.external_hw_ticks = [];
     this.instruction_ticks = [];
+    this.isRealtime = new Setting('cpu.isRealtime', false);
+    this.speed_multipler = new Setting('cpu.speed_multipler', 1.0);
 }
 
 _51cpu.prototype.getCallStackString = function (instructionSize = 0) {

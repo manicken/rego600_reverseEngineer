@@ -32,7 +32,7 @@ class TabManager extends EventTarget {
     if (typeof opts.addUntitledFormat === "function") {
       this.addUntitledFormat = opts.addUntitledFormat;
     } else {
-      this.addUntitledFormat = generateDefaultTitle;
+      this.addUntitledFormat = this.generateDefaultTitle;
     }
 
     /** @type {Map<string,Object>} all known tabs, open or closed, keyed by id */
@@ -92,6 +92,7 @@ class TabManager extends EventTarget {
         title,
         data,
         dirty,
+        compile: true,
         closed: false
     };
 
@@ -317,31 +318,43 @@ class TabManager extends EventTarget {
     title.textContent = tab.title;
 
     const actions = document.createElement('span');
-actions.className = 'tab-actions';
 
-const dot = document.createElement('span');
-dot.className = 'tab-dot';
+    actions.className = 'tab-actions';
 
-if (tab.dirty) {
-    el.classList.add('file_changed');
-}
+    const dot = document.createElement('span');
+    dot.className = 'tab-dot';
 
-const closeBtn = document.createElement('button');
-closeBtn.className = 'tab-close';
-closeBtn.textContent = '✖';
-closeBtn.title = 'Close (keeps data)';
-closeBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    this.close(tab.id);
-});
+    if (tab.dirty) {
+        el.classList.add('file_changed');
+    }
 
-actions.append(dot, closeBtn);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tab-close';
+    closeBtn.textContent = '✖';
+    closeBtn.title = 'Close (keeps data)';
+    closeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        this.close(tab.id);
+    });
 
-el.append(title, actions);
+    const compileBtn = document.createElement('input');
+    compileBtn.type = "checkbox";
+    compileBtn.className = 'tab-compile';
+    compileBtn.checked = tab.compile; // = '✖';
+    compileBtn.title = 'Uncheck if not want to compile';
+    compileBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        tab.compile = compileBtn.checked;
+    });
+
+    actions.append(dot, closeBtn);
+
+    el.append(compileBtn,title, actions);
 
     el.addEventListener('click', () => this.activate(tab.id));
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
+      console.log("open context");
       this._openTabContextMenu(tab, e.clientX, e.clientY);
     });
 
@@ -386,12 +399,12 @@ el.append(title, actions);
       it.addEventListener('click', ev => { ev.stopPropagation(); fn(); this._closeAllMenus(); });
       menu.appendChild(it);
     };
-    item('Stäng', () => this.close(tab.id));
-    item('Stäng övriga', () => this.closeOthers(tab.id));
-    item('Stäng alla', () => this.closeAll());
+    item('Close', () => this.close(tab.id));
+    item('Close others', () => this.closeOthers(tab.id));
+    item('Close all', () => this.closeAll());
     const sep = document.createElement('div'); sep.className = 'tabmgr-menu-sep';
     menu.appendChild(sep);
-    item('Ta bort permanent', () => this.remove(tab.id), true);
+    item('Remove permanently', () => this.remove(tab.id), true);
 
     menu.style.left = 'auto';
     menu.style.right = 'auto';

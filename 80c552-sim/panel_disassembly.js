@@ -233,9 +233,8 @@ function toggleDisasmBreakpoint() {
 // ============================================================
 // Virtualiserad disassembly-lista
 // ============================================================
+let disasm = {};
 
-let disasm_live_update = true;
-let disasm_auto_scroll = true;
 let disasmNeedsRebuild = false;
 
 /** Extra rader ovanför/under synligt område, buffert mot vitt hack vid snabb scroll */
@@ -320,6 +319,8 @@ function completeRebuildDisassembly()
 }
 
 function disassembly_init() {
+    disasm.live_update = new Setting('disasm.live_update', true);
+    disasm.auto_scroll = new Setting('disasm.auto_scroll', true);
 
     cpu.instruction_ticks.push((cycles, pc) => {
         if (!insn_map.has(pc)) {
@@ -683,7 +684,7 @@ function setCurrentExecLine(cpu, force = false) {
     
     const address = cpu.PC.get();
 
-    if (!disasm_live_update && !force) {
+    if (!disasm.live_update.value && !force) {
         if (rebuildDisasm_ifNeeded()) {
             let index = disasmAddrToIndex.get(address);
             if (index != undefined) {
@@ -717,7 +718,7 @@ function setCurrentExecLine(cpu, force = false) {
         index = disasmAddrToIndex.get(address);
     }
 
-    if ((disasm_auto_scroll || force) && disasmViewport_el) {
+    if ((disasm.auto_scroll.value || force) && disasmViewport_el) {
         scrollToIndex(index);
     }
 

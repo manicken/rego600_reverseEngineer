@@ -16,7 +16,7 @@ class CharLCDSim {
         this.charHeight = charHeight;
         this.rows = rows;
         this.columns = columns;
-        
+        // note this is not a persistent setting as it's only used temporarily  
         this.debugPrintRenderChar = false;
         this.char_Xdistance = (charWidth+1) * this.pixelSize;
         this.char_Ydistance = (charHeight+1) * this.pixelSize;
@@ -33,7 +33,28 @@ class CharLCDSim {
         if (imageRendering) {
             this.lcd_el.style.imageRendering = imageRendering;
         }
-        
+        this.clearScreen();
+        this.writeString("REGO600", 1, 6);
+        this.writeString("simulator", 2, 5);
+        this.writeString("using js51", 3, 5);
+    }
+
+    clearScreen() {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                this.renderChar(' ', row, col);
+            }
+        }
+    }
+
+    writeString(string, row, col) {
+        let index = 0;
+        for (; (row < this.rows) && (index < string.length); row++) {
+            for (; (col < this.columns) && (index < string.length); col++) {
+                this.renderChar(string.charCodeAt(index++), row, col);
+            }
+            col = 0;
+        }
     }
 
     setCGRAM(data) {
@@ -56,7 +77,7 @@ class CharLCDSim {
     renderChar(char, row, col) {
         const index = row * this.columns + col;
 
-        if (this.ddram[index] == char) {
+        if (this.ddram[index] === char) {
             return;
         }
         this.ddram[index] = char;

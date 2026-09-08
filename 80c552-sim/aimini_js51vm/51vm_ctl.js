@@ -22,10 +22,8 @@ _51cpu.prototype.emulatorLoop = function () {
         return;
     }
      
-    // Read the checkbox value dynamically from the HTML GUI at the start of every frame
-    const isRealtime = this.isRealtime;//document.getElementById("chk-use_realTimeThrottle").checked;
     //const t0 = performance.now();
-    if (isRealtime) {
+    if (this.isRealtime.value) {
         // ====================================================================
         // LÄGE 1: REALTIME MODE (Cycle-Throttled Execution at exact ~921.6 kHz)
         // ====================================================================
@@ -34,7 +32,7 @@ _51cpu.prototype.emulatorLoop = function () {
         lastFrameTime = now;
 
         // Calculate how many CPU machine cycles should have elapsed in this time slice
-        cycleDebt += elapsedMs * CYCLES_PER_MS * (this.speed_multipler?this.speed_multipler:1.0);
+        cycleDebt += elapsedMs * CYCLES_PER_MS * this.speed_multipler.value;
 
         // Prevent the cycle queue from exploding if the browser tab is unfocused/minimized
         if (cycleDebt > 921600) { 

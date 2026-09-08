@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="tabmanager.css">
+<link rel="stylesheet" href="tabmanager-menu.css">
 <link rel="stylesheet" href="../button-bar.css">
 <link rel="stylesheet" href="../modal.css">
 <title>TabManager</title>
@@ -152,7 +153,7 @@
     if (!session) {
       session = new ace.EditSession(tab.data ?? '', modeFor(tab.title));
       session.on('change', () => {
-        tm.setDirty(tab.id, !session.getUndoManager().isClean());
+        //tm.setDirty(tab.id, !session.getUndoManager().isClean());
       });
       sessions.set(tab.id, session);
     }
@@ -178,13 +179,13 @@
     const names = Object.keys(files);
     const name = names[fileCounter % names.length];
     fileCounter++;
-    tm.open(name, { title: name, data: files[name] });
+    tm.open({ title: name, data: files[name] });
   });
 
   document.getElementById('btnOpenMany').addEventListener('click', () => {
     for (let i = 0; i < 8; i++) {
       const name = `module_${i}.cpp`;
-      tm.open(name, { title: name, data: `// ${name}\n`, activate: false });
+      tm.open({ title: name, data: `// ${name}\n`, activate: false });
     }
     const first = tm.order[0];
     if (first) tm.activate(first);
