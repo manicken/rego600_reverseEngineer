@@ -44,7 +44,7 @@ window.app.main_menu = [
             {
                 label: "Assembly Editor",
                 action: () => { 
-                    Assembler.openAssembly_Form(window.app.asmEdit.modal);
+                    window.app.asmEdit.openModal();
                     
                  }
             },
