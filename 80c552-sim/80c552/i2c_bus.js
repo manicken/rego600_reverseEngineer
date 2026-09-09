@@ -108,17 +108,10 @@ function install_i2c_master(cpu, bus) {
 	});*/
 	
 
-
+/*
     S1CON.setlistener.push((oldval, newval) => {
         if (!(newval & I2C_BIT.ENS1)) return // SIO1 disabled: ignore bus activity
 		
-		/*console.log(
-			"S1CON change",
-			oldval.toString(16),
-			"->",
-			newval.toString(16)
-		);*/
-
         const staRising = (newval & I2C_BIT.STA) && !(oldval & I2C_BIT.STA)
         const siFalling = !(newval & I2C_BIT.SI) && (oldval & I2C_BIT.SI)
         const stoRising = (newval & I2C_BIT.STO) && !(oldval & I2C_BIT.STO)
@@ -185,7 +178,230 @@ function install_i2c_master(cpu, bus) {
             }
 
         }
-    })
+    });*/
+
+    // -----------------------------------------------------------------------------
+// I2C timing
+// -----------------------------------------------------------------------------
+//
+// Number of CPU cycles required for one complete I2C byte transfer.
+//
+// One I2C byte consists of:
+//   8 data bits + 1 ACK/NACK bit = 9 SCL clocks
+//
+// Set this according to the actual 80C552 oscillator / S1CON clock settings.
+// For now this is configurable rather than assuming a particular oscillator.
+//
+// Example:
+//   100 kHz I2C -> 90 us per byte
+//
+// With an 11.0592 MHz 8051:
+//   1 machine cycle = 12 / 11.0592 MHz = 1.085 us
+//   90 us ~= 83 machine cycles
+//
+let i2cCyclesPerByte = 158;//83; 158 is taken from real HW timing as there is some delay between startbit and the transfer of data, the clock is around 100kHz
+
+let i2cTransferCycles = 0;
+let i2cTransferPending = null;
+
+
+// -----------------------------------------------------------------------------
+// Complete a pending I2C bus transfer
+// -----------------------------------------------------------------------------
+
+function completeI2CTransfer() {
+
+    const transfer = i2cTransferPending;
+    i2cTransferPending = null;
+
+    if (!transfer)
+        return;
+
+    // -------------------------------------------------------------------------
+    // Address transfer
+    // -------------------------------------------------------------------------
+
+    if (transfer.type === "address") {
+
+        const slaByte = transfer.byte;
+        const addr7 = (slaByte >> 1) & 0x7F;
+        const isRead = (slaByte & 0x01) === 1;
+
+        const dev = bus.devices.get(addr7);
+        const ack = dev ? dev.start(isRead) : false;
+
+        if (ack) {
+
+            activeDevice = dev;
+            activeAddr = addr7;
+            fsm = isRead ? "rx" : "tx";
+
+            setStatus(isRead ? 0x40 : 0x18);
+
+        } else {
+
+            fsm = "idle";
+            activeDevice = null;
+            activeAddr = -1;
+
+            setStatus(isRead ? 0x48 : 0x20);
+        }
+
+        setSI();
+        return;
+    }
+    // -------------------------------------------------------------------------
+    // Master -> slave
+    // -------------------------------------------------------------------------
+    if (transfer.type === "tx") {
+        const byte = transfer.byte;
+        const ack = activeDevice ? activeDevice.write(byte) : false;
+        setStatus(ack ? 0x28 : 0x30);
+        setSI();
+        return;
+    }
+    // -------------------------------------------------------------------------
+    // Slave -> master
+    // -------------------------------------------------------------------------
+    if (transfer.type === "rx") {
+        const byte = activeDevice ? activeDevice.read() : 0xFF;
+        S1DAT._value = byte & 0xFF;
+        // AA was sampled when SI was cleared.
+        setStatus(transfer.aa ? 0x50 : 0x58);
+        setSI();
+        return;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Peripheral timing
+// -----------------------------------------------------------------------------
+
+_cpu.peripheral_ticks.push((cycles) => {
+
+    //console.log(_cpu.simulate_real_i2c_timing);
+    if (_cpu.simulate_real_i2c_timing.value == false) {
+        //console.log("direct i2c");
+        completeI2CTransfer();
+    }
+    if (i2cTransferCycles <= 0)
+        return;
+
+    i2cTransferCycles -= cycles;
+
+    if (i2cTransferCycles <= 0) {
+        i2cTransferCycles = 0;
+        completeI2CTransfer();
+    }
+});
+
+// -----------------------------------------------------------------------------
+// S1CON listener
+// -----------------------------------------------------------------------------
+S1CON.setlistener.push((oldval, newval) => {
+    //console.log(cpu.getCallStackString());
+    if (!(newval & I2C_BIT.ENS1))
+        return;
+
+    const staRising = (newval & I2C_BIT.STA) && !(oldval & I2C_BIT.STA);
+    const siFalling = !(newval & I2C_BIT.SI) && (oldval & I2C_BIT.SI);
+    const stoRising = (newval & I2C_BIT.STO) && !(oldval & I2C_BIT.STO);
+
+    // -------------------------------------------------------------------------
+    // STOP
+    // -------------------------------------------------------------------------
+    if (stoRising) {
+        // STOP itself is currently still handled synchronously.
+        // The actual bus timing can be added later if desired.
+        if (activeDevice && activeDevice.stop)
+            activeDevice.stop();
+
+        fsm = "idle";
+        activeDevice = null;
+        activeAddr = -1;
+
+        i2cTransferPending = null;
+        i2cTransferCycles = 0;
+
+        setStatus(0xF8);
+
+        // Hardware auto-clears STO
+        S1CON._value = newval & ~I2C_BIT.STO;
+
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // START
+    // -------------------------------------------------------------------------
+
+    if (staRising) {
+
+        const repeated = fsm !== "idle";
+
+        fsm = "addr-pending";
+
+        activeDevice = null;
+        activeAddr = -1;
+
+        setStatus(repeated ? 0x10 : 0x08);
+
+        // START is currently reported immediately.
+        //
+        // If you later want cycle-accurate START timing, this can also
+        // become a pending peripheral transfer.
+        setSI();
+
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // SI cleared = start next I2C bus operation
+    // -------------------------------------------------------------------------
+    if (siFalling) {
+
+        // Don't start another transfer while one is already active.
+        if (i2cTransferPending)
+            return;
+
+        const aa = !!(newval & I2C_BIT.AA);
+        // ---------------------------------------------------------------------
+        // SLA + R/W
+        // ---------------------------------------------------------------------
+        if (fsm === "addr-pending") {
+            // Important:
+            // Capture S1DAT now. The CPU may continue executing while the
+            // actual I2C transfer takes place.
+            const slaByte = S1DAT.get();
+            i2cTransferPending = { type: "address", byte: slaByte };
+            i2cTransferCycles = i2cCyclesPerByte;
+            return;
+        }
+        // ---------------------------------------------------------------------
+        // TX: master -> slave
+        // ---------------------------------------------------------------------
+        if (fsm === "tx") {
+            // Capture the byte when the transfer starts.
+            const byte = S1DAT.get();
+            i2cTransferPending = { type: "tx", byte: byte };
+            i2cTransferCycles = i2cCyclesPerByte;
+            return;
+        }
+
+        // ---------------------------------------------------------------------
+        // RX: slave -> master
+        // ---------------------------------------------------------------------
+        if (fsm === "rx") {
+            // AA must be sampled when the master starts the transfer.
+            //
+            // The slave's read() is deliberately NOT called yet.
+            // It happens only when the 9 I2C clocks have elapsed.
+            i2cTransferPending = { type: "rx", aa: aa };
+            i2cTransferCycles = i2cCyclesPerByte;
+            return;
+        }
+    }
+});
 
     cpu.i2c = { bus, I2C_BIT }
     return bus

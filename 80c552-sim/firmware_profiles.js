@@ -76,7 +76,7 @@ let code_map_3060 = [
     {start:0x69A7, type:MAP_TYPE.FUNC, label:"i2c_status_others"},
     {start:0x69AF, type:MAP_TYPE.FUNC, label:"i2c_unknown_status_handler"},
     {start:0x69BA, type:MAP_TYPE.FUNC, label:"i2c_status_common_end"},
-
+    {start:0x69F1, type:MAP_TYPE.FUNC, label:"start_send_i2c_packet"},
     {start:0x69FF, type:MAP_TYPE.FUNC, label:"init_i2c_transfer"},
 
     {start:0x6A15, type:MAP_TYPE.FUNC, label:"init_function"},
@@ -133,6 +133,8 @@ let code_map_3060 = [
 
     {start:0x7DE4, type:MAP_TYPE.FUNC, label:"front_panel_update_prepare_data_and_send_line"},
     {start:0x7EE6, end:0x7EFB, type:MAP_TYPE.DATA, label:"front panel translate character table"},
+    {start:0x7f22, type:MAP_TYPE.FUNC, label:"A_wait for i2c ready flag"},
+    {start:0x7f53, type:MAP_TYPE.FUNC, label:"B_wait for i2c ready flag"},
     {start:0x8126, type:MAP_TYPE.FUNC, label:"write_LCD_using_IRAM_2A_2B_2C"},
     {start:0x83DF, type:MAP_TYPE.FUNC, label:"REFRESH_FRONT_PANEL_OUTPUTS"},
     {start:0x84AD, type:MAP_TYPE.FUNC, label:"decode_front_panel_input_states"},

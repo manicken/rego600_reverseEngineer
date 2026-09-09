@@ -12,6 +12,9 @@ function SRAM62256(size = 0x8000) {
 }
 
 SRAM62256.prototype.read = function (addr) {
+    if (addr >= 0x12FC && addr <= 0x132B) {
+        console.log("read GT2 curve data" + cpu.getCallStackString());
+    }
     if (addr >= 0x1368 && addr <= 0x1369) {
         console.log(
             `setting 0x3E read: addr=0x${addr.toString(16)}, ` +

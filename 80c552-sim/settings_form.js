@@ -65,12 +65,19 @@ function openSettings() {
     );
 
     let front_panel_sim_rx_packet_enable_log_ToolTip = "Enable front_panel_sim_rx_packet_logging,\nnote this is not a persistent setting";
-    console.log(window.app.sim.frontPanel.debugPrintI2C_write);
     appendCheckBoxWithLabel(content,
         { label: "front_panel_sim_rx_packet_logging", tooltip: front_panel_sim_rx_packet_enable_log_ToolTip, state: window.app.sim.frontPanel.debugPrintI2C_write, style: { marginLeft: "20px", marginBottom: "10px" } },
         (value) => {
             // note this is not a persistent setting as it's only used temporarily  
             window.app.sim.frontPanel.debugPrintI2C_write = value;
+        }
+    );
+
+    let simulate_real_i2c_timing_ToolTip = "simulate_real_i2c_timing";
+    appendCheckBoxWithLabel(content,
+        { label: "simulate_real_i2c_timing", tooltip: simulate_real_i2c_timing_ToolTip, state: window.app.cpu.simulate_real_i2c_timing, style: { marginLeft: "20px", marginBottom: "10px" } },
+        (value) => {
+            window.app.cpu.simulate_real_i2c_timing.set(value);
         }
     );
 

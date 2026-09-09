@@ -57,6 +57,7 @@ function create_80c552(opts = {}) {
     })
 
     if (opts.i2cBus) {
+        cpu.simulate_real_i2c_timing = new Setting('simulate_real_i2c_timing', true);
         install_i2c_master(cpu, opts.i2cBus);
 		console.log("i2c master initierad");
     }
