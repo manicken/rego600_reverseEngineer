@@ -169,8 +169,10 @@ function copyAssemblyInstructions() {
 
 function editDisasmLabel() {
     let line = disasmLineContext;
-    if (!line.data)
+    if (line.item.type == DisAsmLineType.Label) {
+        console.log("TODO make labels directly editable");
         return; // can only set a label on a instruction row not on a label row, TODO make it possible to right click on labels and edit them directly
+    }
 
     const addr = line.data.addr;
     const current = line.data.label || "";
@@ -517,9 +519,9 @@ function buildPoolRow() {
     };
 
     row_el.addEventListener("contextmenu", (event) => {
-        if (disasmLine.data) {
+        //if (disasmLine.data) {
             showDisasmContextMenu(event, disasmLine);
-        }
+        //}
     });
 
     return disasmLine;

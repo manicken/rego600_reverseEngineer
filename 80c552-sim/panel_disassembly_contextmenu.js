@@ -64,10 +64,26 @@ function showDisasmContextMenu(event, disasmLine) {
     event.stopPropagation();
 
     disasmLineContext = disasmLine;
-    //console.log(disasmLine.data);
-    disasmContextMenu_items.gotoTargetSeparator.element.style.display = (disasmLine.data.target !== null) || (gotoTargetList.length != 0) ? "" : "none";
-    disasmContextMenu_items.gotoTarget.element.style.display = (disasmLine.data.target !== null) ? "" : "none";
+    console.log(disasmLine);
+    let isLabel = disasmLine.item.type == DisAsmLineType.Label;
+    let oneItemSelected = getSelectedItems().length <= 1;
+    disasmContextMenu_items.gotoTargetSeparator.element.style.display = (!isLabel && disasmLine.data.target !== null) || (gotoTargetList.length != 0) ? "" : "none";
+    disasmContextMenu_items.gotoTarget.element.style.display = (!isLabel && disasmLine.data.target !== null) ? "" : "none";
     disasmContextMenu_items.gotoBack.element.style.display = (gotoTargetList.length != 0) ? "" : "none";
+    disasmContextMenu_items.copyAddress.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.copyAssemblyInstructions.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.copyRawData.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.copySelection.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.copySeparator.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.editCodeSeparator.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.editComment.element.style.display = isLabel?'none':'';
+    disasmContextMenu_items.editLabel.element.style.display = isLabel?'none':'';
+    disasmContextMenu_items.editCode.element.style.display = isLabel?'none':'';
+    disasmContextMenu_items.toggleBreakpoint.element.style.display = isLabel?'none':'';
+    disasmContextMenu_items.toggleBreakpointSeparator.element.style.display = isLabel?'none':'';
+    disasmContextMenu_items.viewAsmCode.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.showAddressReferencesSeparator.element.style.display = isLabel && oneItemSelected?'none':'';
+    disasmContextMenu_items.showAddressReferences.element.style.display = isLabel && oneItemSelected?'none':'';
 
     const menu = disasmContextMenu_el;
 
