@@ -88,9 +88,9 @@ function showReferencesToLabelModal(addr) {
     // ------------------------------------------------------------
     // Show modal
     // ------------------------------------------------------------
-    window.list_label_references_modal.setBody(content);
-    window.list_label_references_modal.mount();
-    window.list_label_references_modal.open();
+    window.app.list_label_references_modal.setBody(content);
+    window.app.list_label_references_modal.mount();
+    window.app.list_label_references_modal.open();
     /*showModal({
         title: "Goto label",
         content: content

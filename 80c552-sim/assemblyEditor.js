@@ -54,6 +54,18 @@ class AssemblyEditor {
         this.ace_editor_el = this.modal.ace_editor_el;
         this.onBuild = onBuild;
 
+        this.ace_editor.commands.addCommand({
+            name: "save",
+            bindKey: { win: "Ctrl-S", mac: "Command-S" },
+            exec: () => this.saveCurrent()
+        });
+
+        this.ace_editor.commands.addCommand({
+            name: "build",
+            bindKey: { win: "Ctrl-Shift-C", mac: "Command-Shift-C" },
+            exec: () => this.buildCurrent()
+        });
+
         this.modal.header_el.style.paddingBottom = '0px';
 
         let toolbar_el = appendNewElement(this.modal.header_el, 'div', {styles:{width: '100%', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'0px'}});

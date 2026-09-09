@@ -135,7 +135,7 @@ function copyRawData() {
     navigator.clipboard.writeText(text);
 }
 
-function getAssemblyInstructions(options) {
+function getAssemblyInstructions({insn_incr=0} = {}) {
     let text = "";
     let items = getSelectedItems();
     let firstInsn = undefined;
@@ -149,8 +149,8 @@ function getAssemblyInstructions(options) {
             }
             lastInsn = insn;
             const opText = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic;
-            if (options.insn_incr) {
-                text += ' '.repeat(options.insn_incr);
+            if (insn_incr) {
+                text += ' '.repeat(insn_incr);
             }
             text += opText + '\n';
         } else if (item.type == DisAsmLineType.Label) {

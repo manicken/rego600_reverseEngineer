@@ -15,9 +15,10 @@ R7 UART_RX_BYTE_TEMP
 @0x80 UART_RX_BUFF_START (it also now stores CMD_BYTE)
 
 
-;UART new ISR handler direct in vector area,
-;uses unused area before UART vector that normally belong to 
-;TIMER1 overflow ISR, but as timer2 is not used this is good
+; UART new ISR handler direct in vector area,
+; uses unused area before UART vector that normally belong to 
+; TIMER1 overflow ISR, but as timer2 is not used this is good
+; at it's current state handwriting this assembly have saved 185 bytes
 
 ORG 0x001D
 ORG_END 0x0022
@@ -36,15 +37,18 @@ UART_IRQ_VECTOR:
     JBC TI,UART_TX_IRQ_HANDLER_TRAMPOLINE
     RETI
 
+ORG 0x6A42
+; free space, 39 bytes, was prev used by UART_RX_START_BYTE_CHECK
+ORG_END 0x6A69
 
 ORG 0x6A6A
+ORG_END 0x6B2B
 UART_RX_IRQ_HANDLER:
 	PUSH A
 	PUSH PSW
 
 uart_rx_check_if_uart_done_is_set:
 	MOV A,R2 ; use R2 as RX_DONE_FLAG by then cheking in main loop from direct adress 0x1A
-	NOP
 	JNZ uart_rx_irq_skip
 MOV PSW,#0x18
 
@@ -87,3 +91,4 @@ uart_rx_irq_end:
 	POP PSW
 	POP A
 	RETI
+; here is now 145 bytes free for additional patches

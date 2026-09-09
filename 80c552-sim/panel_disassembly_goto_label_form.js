@@ -183,9 +183,9 @@ function showGotoLabelModal() {
     // ------------------------------------------------------------
     // Show modal
     // ------------------------------------------------------------
-    window.goto_label_modal.setBody(content);
-    window.goto_label_modal.mount();
-    window.goto_label_modal.open();
+    window.app.goto_label_modal.setBody(content);
+    window.app.goto_label_modal.mount();
+    window.app.goto_label_modal.open();
     /*showModal({
         title: "Goto label",
         content: content
