@@ -32,16 +32,28 @@ function initDisasmContextMenu() {
     for (const [key, item] of Object.entries(disasmContextMenu_items)) {
         
         let new_el = createNewElement("div", {className:item.className});
+        item.element = new_el;
+
         if (item.label != undefined) {
-            new_el.textContent = item.label;
+            item.element.textContent = item.label;
         }
         if (item.handler != undefined) {
-            new_el.onclick = item.handler;
+            item.element.onclick = (event) => {
+                if (item.disabled) {
+                    return;
+                }
+                item.handler(event);
+            }
         }
         if (item.comment != undefined) {
-            new_el.title = item.comment;
+            item.element.title = item.comment;
         }
-        item.element = new_el;
+        
+        item.setDisabled = (disabled) => {
+            item.disabled = disabled;
+            item.element.classList.toggle("disabled", disabled);
+            item.element.setAttribute("aria-disabled", disabled);
+        };
         disasmContextMenu_el.appendChild( new_el );
     }
     console.log(disasmContextMenu_items);
@@ -70,20 +82,18 @@ function showDisasmContextMenu(event, disasmLine) {
     disasmContextMenu_items.gotoTargetSeparator.element.style.display = (!isLabel && disasmLine.data.target !== null) || (gotoTargetList.length != 0) ? "" : "none";
     disasmContextMenu_items.gotoTarget.element.style.display = (!isLabel && disasmLine.data.target !== null) ? "" : "none";
     disasmContextMenu_items.gotoBack.element.style.display = (gotoTargetList.length != 0) ? "" : "none";
-    disasmContextMenu_items.copyAddress.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.copyAssemblyInstructions.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.copyRawData.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.copySelection.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.copySeparator.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.editCodeSeparator.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.editComment.element.style.display = isLabel?'none':'';
-    disasmContextMenu_items.editLabel.element.style.display = isLabel?'none':'';
-    disasmContextMenu_items.editCode.element.style.display = isLabel?'none':'';
-    disasmContextMenu_items.toggleBreakpoint.element.style.display = isLabel?'none':'';
-    disasmContextMenu_items.toggleBreakpointSeparator.element.style.display = isLabel?'none':'';
-    disasmContextMenu_items.viewAsmCode.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.showAddressReferencesSeparator.element.style.display = isLabel && oneItemSelected?'none':'';
-    disasmContextMenu_items.showAddressReferences.element.style.display = isLabel && oneItemSelected?'none':'';
+
+    disasmContextMenu_items.copyAddress.setDisabled(isLabel && oneItemSelected);
+    disasmContextMenu_items.copyAssemblyInstructions.setDisabled(isLabel && oneItemSelected);
+    disasmContextMenu_items.copyRawData.setDisabled(isLabel && oneItemSelected);
+    disasmContextMenu_items.copySelection.setDisabled(isLabel && oneItemSelected);
+
+    disasmContextMenu_items.editComment.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.editCode.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.editLabel.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.toggleBreakpoint.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.viewAsmCode.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.showAddressReferences.setDisabled(isLabel || !oneItemSelected);
 
     const menu = disasmContextMenu_el;
 
