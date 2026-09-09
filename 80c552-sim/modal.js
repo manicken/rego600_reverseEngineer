@@ -364,13 +364,13 @@ class Modal {
 	}
 }
 
-function AceEditorForm({ title = "Ace Editor", height=600, width=500, aceTheme="textmate", aceMode="text"}) {
+function AceEditorModal({ title = "Ace Editor", height=600, width=500, aceTheme="textmate", aceMode="text"}) {
 	let modal_el = new Modal({title, height, width, resizable: true});
-	let body_el = createNewElement('div', { styles: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' } });
-	let header_el = appendNewElement(body_el, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
-	let ace_editor_el = appendNewElement(body_el, 'div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
-	modal_el.setBody(body_el);
-	
+	modal_el.bodyEl.innerHTML = "";
+	setStyles(modal_el.bodyEl, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
+	let header_el = appendNewElement(modal_el.bodyEl, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
+	let ace_editor_el = appendNewElement(modal_el.bodyEl, 'div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
+
 	let ace_editor = ace.edit(ace_editor_el);
 	ace_editor.setTheme("ace/theme/" + aceTheme);
 	ace_editor.session.setMode("ace/mode/" + aceMode);

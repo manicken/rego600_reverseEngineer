@@ -94,17 +94,21 @@ function appendNewTable_Th(container, text) {
     return el;
 }
 
+function setStyles(el, styles) {
+    if (typeof styles === "object") {
+        for (const [name, value] of Object.entries(styles)) {
+            el.style[name] = value;
+        }
+    }
+}
+
 function createNewElement(tag, options = {}) {
     const el = document.createElement(tag);
 
     for (const [name, value] of Object.entries(options)) {
         el[name] = value;
     }
-    if (typeof options.styles === "object") {
-        for (const [name, value] of Object.entries(options.styles)) {
-            el.style[name] = value;
-        }
-    }
+    setStyles(el, options.styles);
     
     return el;
 }

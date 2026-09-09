@@ -72,6 +72,7 @@ class TabManager extends EventTarget {
     Object.defineProperty(tab, "title",
         Object.getOwnPropertyDescriptor(options, "title")
     );
+    console.log(Object.getOwnPropertyDescriptor(options, "title"));
 
     this.tabs.set(id, tab);
     this.order.push(id);
@@ -82,6 +83,7 @@ class TabManager extends EventTarget {
 
     return tab;
   }
+
   currentTab() {
     return this.tabs.get(this.activeId);
   }

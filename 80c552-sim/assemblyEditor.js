@@ -38,39 +38,52 @@ class AssemblyEditor {
             onClick: () => {this.saveAll();}
         },
         {
-            text: "Compile Current",
-            onClick: () => { this.compileAsm(); }
+            text: "Build Current",
+            onClick: () => { this.buildCurrent(); }
         },
         {
-            text: "Compile All",
-            onClick: () => { this.compileAsm(); }
+            text: "Build All",
+            onClick: () => { this.buildAll(); }
         },
     ];
 
-    constructor() {
-        //this.modal = new Modal({title:"Assembly Editor", height:600, width:500, resizable: true});
-        this.modal = new AceEditorForm({title:"Assembly Editor", height:600, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+    constructor({onBuild = (asmList) => {}}={}) {
+        this.modal = new AceEditorModal({title:"Assembly Editor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+        // extract commonly used objects
         this.ace_editor = this.modal.ace_editor;
         this.ace_editor_el = this.modal.ace_editor_el;
-        //initAssembly_Form(this.modal);
-        
-        let menu_el = createNewElement('div');
+        this.onBuild = onBuild;
 
+        this.modal.header_el.style.paddingBottom = '0px';
+
+        let toolbar_el = appendNewElement(this.modal.header_el, 'div', {styles:{width: '100%', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'0px'}});
+        
+        let menu_el = appendNewElement(toolbar_el, 'div');
         createMenu(menu_el, this.#editor_menu);
 
         let buttons_el = createButtonBar(this.#buttonBar);
         buttons_el.style.marginLeft = 'auto';
-
-        let toolbar_el = createNewElement('div', {styles:{width: '100%', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'0px'}});
-        toolbar_el.appendChild(menu_el);
         toolbar_el.appendChild(buttons_el);
 
-        let tab_msgr_el = createNewElement('div', {styles:{marginTop:'8px'}});
+        let tab_msgr_el = appendNewElement(this.modal.header_el, 'div', {styles:{marginTop:'8px'}});
+        this.#initTabManager(tab_msgr_el);
 
-        this.modal.header_el.style.paddingBottom = '0px';
-        this.modal.header_el.appendChild(toolbar_el);
-        this.modal.header_el.appendChild(tab_msgr_el);
+        this.#loadFiles();
 
+        // used to show assemble result
+        this.hexNumberRenderer = new HexNumberRenderer();
+        this.hexNumberRenderer.attach(this.modal.ace_editor);
+    }
+
+    #loadFiles() {
+        let fileList = AppStorageFileSystem.list('', name => name.endsWith('.asm'));
+        for (const name of fileList) {
+            const edit = AssemblyEditFile.load(name);
+            this.addFileToTabs(edit);
+        }
+    }
+
+    #initTabManager(tab_msgr_el) {
         this.tm = new TabManager(tab_msgr_el, {
             addUntitledFormat: (id) => {
                 return `untitled_${id}.asm`;
@@ -115,15 +128,6 @@ class AssemblyEditor {
             e.detail.tab.data.removePermanent();
             delete e.detail.tab.data;
         });
-
-        let fileList = AppStorageFileSystem.list('', name => name.endsWith('.asm'));
-        for (const name of fileList) {
-            const edit = AssemblyEdit.load(name);
-            this.addFileToTabs(edit);
-        }
-
-        this.hexNumberRenderer = new HexNumberRenderer();
-        this.hexNumberRenderer.attach(this.modal.ace_editor);
     }
 
     openModal() {
@@ -176,7 +180,7 @@ class AssemblyEditor {
             },
             onConfirm: (name) => {
                 if (name.endsWith('.asm') == false) { name += '.asm'; }
-                const edit = AssemblyEdit.createNew(name);
+                const edit = AssemblyEditFile.createNew(name);
                 edit.save();
                 this.addFileToTabs(edit);
                 
@@ -265,12 +269,27 @@ class AssemblyEditor {
         console.log(machineCode);
     }
     
-    compileAsm() {
-        const text = this.ace_editor.getValue();
-        const asm = ASM51.assemble(text); 
-        this.hexNumberRenderer.machineCodeListing = asm.listing;
-        //printCompileResult(asm);
-        console.log(asm);
+    buildFromSession(session) {
+        const text = session.getValue();
+        const asm = ASM51.assemble(text);
+        session.machineCodeListing = asm.listing;
+        this.onBuild(asm);
+    }
+
+    buildCurrent() {
+        this.saveCurrent();
+        let tab = this.tm.currentTab();
+        let session = this.getOrCreateSession(tab);
+        this.buildFromSession(session);
+        this.hexNumberRenderer.update(null, this.ace_editor);
+    }
+
+    buildAll() {
+        this.saveAll();
+
+        for (let session of this.sessions.values()) {
+            this.buildFromSession(session);
+        }
         this.hexNumberRenderer.update(null, this.ace_editor);
     }
 
@@ -279,14 +298,14 @@ class AssemblyEditor {
 class HexNumberRenderer
 {
     constructor() {
-        this.machineCodeListing = [];
+        
     }
     
     getText(session, row) {
         let gutterLineText = "";
         //console.log(session);
-        if (this.machineCodeListing.length != 0) {
-            let insn = machineCodeListing[row];
+        if (session.machineCodeListing && session.machineCodeListing.length != 0) {
+            let insn = session.machineCodeListing[row];
             if ( insn && insn.outBytes.length != 0) {
                 const rawBytesText = insn.outBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ').padEnd(8, ' ');
                 gutterLineText = `${hex(insn.addr,4,false)} [ ${rawBytesText} ]  `;

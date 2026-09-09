@@ -195,22 +195,22 @@ class AppStorageFile {
     }
 }
 
-class AssemblyEdit {
+class AssemblyEditFile {
     static #METADATA_FILE_END = '.json';
     #removed = false;
 
     constructor(name, metafile, asmfile, asmFileContents = '') {
         
         this.name = name;
-        this.metafile = metafile ?? AppStorageFile.createNew(name + AssemblyEdit.#METADATA_FILE_END);
+        this.metafile = metafile ?? AppStorageFile.createNew(name + AssemblyEditFile.#METADATA_FILE_END);
         this.asmfile = asmfile ?? AppStorageFile.createNew(name, asmFileContents);
     }
     static createNew(name, asmFileContents = '') {
-        return new AssemblyEdit(name, undefined, undefined , asmFileContents)
+        return new AssemblyEditFile(name, undefined, undefined , asmFileContents)
     }
     static load(name) {
-        return new AssemblyEdit(name, 
-            AppStorageFile.load(name + AssemblyEdit.#METADATA_FILE_END), 
+        return new AssemblyEditFile(name, 
+            AppStorageFile.load(name + AssemblyEditFile.#METADATA_FILE_END), 
             AppStorageFile.load(name), 
         );
     }
@@ -241,7 +241,7 @@ class AssemblyEdit {
         if (!this.asmfile.renameTo(name)) {
             return false;
         }
-        if (!this.metafile.renameTo(name + AssemblyEdit.#METADATA_FILE_END)) {
+        if (!this.metafile.renameTo(name + AssemblyEditFile.#METADATA_FILE_END)) {
             // this should allways pass if the first file renambe was a success
             return false;
         }
@@ -250,7 +250,7 @@ class AssemblyEdit {
     }
     removePermanent() {
         AppStorageFileSystem.remove(this.name);
-        AppStorageFileSystem.remove(this.name + AssemblyEdit.#METADATA_FILE_END);
+        AppStorageFileSystem.remove(this.name + AssemblyEditFile.#METADATA_FILE_END);
         this.#removed = true;
     }
     #removePermanent() {

@@ -137,9 +137,17 @@ function copyRawData() {
 
 function getAssemblyInstructions(options) {
     let text = "";
-    getSelectedItems().forEach(item => {
+    let items = getSelectedItems();
+    let firstInsn = undefined;
+    let lastInsn = undefined;
+    
+    items.forEach(item => {
         if (item.type == DisAsmLineType.Instruction) {
             const insn = item.insn;
+            if (firstInsn == undefined) {
+                firstInsn = insn;
+            }
+            lastInsn = insn;
             const opText = insn.operands ? (insn.mnemonic + ' ' + insn.operands.join(',')) : insn.mnemonic;
             if (options.insn_incr) {
                 text += ' '.repeat(options.insn_incr);
@@ -149,7 +157,10 @@ function getAssemblyInstructions(options) {
             text += '\n' + item.text + ':\n';
         }
     });
-    return text;
+    
+    let headerText = `ORG ${hex(firstInsn.addr,4)}\n`;
+    headerText += `ORG_END ${hex(lastInsn.addr + lastInsn.length - 1,4)}\n`;
+    return headerText + text;
 }
 
 function copyAssemblyInstructions() {
@@ -299,10 +310,10 @@ function rebuildDisasmDisplayList() {
 
 let insn_map = null;
 // {addr:0x, label:""},
-function completeRebuildDisassembly()
+function completeRebuildDisassembly(code_map = curr_firmware.code_map)
 {
     //console.log(curr_firmware.code_map);
-    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, curr_firmware.code_map, cpu.SFR);
+    insn_map = js51_disasm.disassemble_recursive(cpu.CODE, code_map, cpu.SFR);
     for (let item of curr_firmware.code_map) {
         if (item.comment) {
             disasmComments.set(item.start, item.comment);
