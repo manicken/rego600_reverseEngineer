@@ -34,6 +34,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       
     }});
 
+    window.app.profiler = new Profiler();
+
     initHexEditorForm();
     init_project_and_file_manager();
 

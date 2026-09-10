@@ -30,8 +30,19 @@ window.app.main_menu = [
         label: "Window",
         items: [
             {
+                label: "Assembly Editor",
+                action: () => { 
+                    window.app.asmEdit.openModal();
+                    
+                 }
+            },
+            {
+                label: "Profiler",
+                action: () => { window.app.profiler.openModal(); }
+            },
+            {
                 label: "Code HexEditor",
-                action: () => { editCode() }
+                action: () => { editCode(); }
             },
             {
                 label: "Goto Label",
@@ -41,13 +52,7 @@ window.app.main_menu = [
                 label: "Settings",
                 action: () => { openSettings(); }
             },
-            {
-                label: "Assembly Editor",
-                action: () => { 
-                    window.app.asmEdit.openModal();
-                    
-                 }
-            },
+            
         ]
     }
 ];

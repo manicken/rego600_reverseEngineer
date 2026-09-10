@@ -264,5 +264,5 @@ async function simulator_init() {
     render();
     init_SignalInputs();
 
-    initProfiling();
+    //initProfiling();
 }

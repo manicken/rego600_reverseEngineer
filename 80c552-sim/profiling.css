@@ -1,0 +1,26 @@
+.profiler-grid-row {
+    display: grid;
+    box-sizing: border-box;
+    height: 23px;
+    margin: 2px 0px;
+    gap:4px;
+
+    grid-template-columns:
+        32px    /* active */
+        64px    /* start address */
+        64px    /* end address */
+        96px    /* min result */
+        96px    /* max result */
+        1fr    /* label */
+        32px;    /* remove button */
+        
+}
+.profiler-remove-item-btn {
+    font-size: 22px;
+    width: 23px;
+    height: 23px;
+    padding: 0px;
+}
+.profiler-measured-value {
+    border: 1px solid #575757
+}
