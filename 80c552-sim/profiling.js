@@ -17,11 +17,17 @@ class ProfilerItem {
         this._active = true;
         this._cycles = 0;
     }
-    resetMesuredValues() {
+    resetMeasuredMin() {
         this.minValue = Infinity;
-        this.maxValue = 0;
         this.minValue_el.textContent = this.minValue;
+    }
+    resetMeasuredMax() {
+        this.maxValue = 0;
         this.maxValue_el.textContent = this.maxValue;
+    }
+    resetMesuredValues() {
+        this.resetMeasuredMax();
+        this.resetMeasuredMin();        
     }
 }
 
@@ -42,7 +48,18 @@ class Profiler {
     /** @type {Setting} */
     #profilingData = undefined;
 
-    
+    resetAllMinValues(onlyEnabled = true) {
+        for (let item of this.#profilingItems) {
+            if (onlyEnabled && item.enabled == false) continue;
+            item.resetMeasuredMin();
+        }
+    }
+    resetAllMaxValues(onlyEnabled = true) {
+        for (let item of this.#profilingItems) {
+            if (onlyEnabled && item.enabled == false) continue;
+            item.resetMeasuredMax();
+        }
+    }
 
     constructor() {
         
@@ -50,11 +67,24 @@ class Profiler {
 
         this.modal = new Modal({title:"Profiler", height:700, width:800, resizable: true});
         this.modal.bodyEl.innerHTML = "";
+        // override modal styles
         setStyles(this.modal.bodyEl, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
-        this.header_el = appendNewElement(this.modal.bodyEl, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
-        this.body_el = appendNewElement(this.modal.bodyEl, 'div', { styles: { display: 'flex', flexDirection: 'column', width: '100%', height: '100%', boxSizing: 'border-box' } });
+        
+        this.header_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-header' });
+        this.toolbar_el = appendNewElement(this.header_el, 'div', { className:'profiler-toolbar' });
+        let tableheader_el = appendNewElement(this.header_el, 'div', { className:'profiler-grid-row' });
+        tableheader_el.appendChild(createNewElement('div', {}));
+        tableheader_el.appendChild(createNewElement('div', {textContent:' start'}));
+        tableheader_el.appendChild(createNewElement('div', {textContent:' end'}));
+        let minColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' min '});
+        let maxColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' max '});
+        tableheader_el.appendChild(createNewElement('div', {textContent:' label'}));
+        appendNewElement(minColLabel_el, 'button', {className:'profiler-reset-item-btn', onclick:()=>{this.resetAllMinValues()}});
+        appendNewElement(maxColLabel_el, 'button', {className:'profiler-reset-item-btn', onclick:()=>{this.resetAllMaxValues()}});
+
+        this.body_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-body' });
         let buttons_el = createButtonBar(this.#buttonBar);
-        this.header_el.appendChild(buttons_el);
+        this.toolbar_el.appendChild(buttons_el);
 
         this.#profilingData = new Setting('profiling', curr_firmware.profiling);
         this.#load();
@@ -135,8 +165,8 @@ class Profiler {
         let endAddr_el = createNewElement('input', {type:'text', value:hex(item.endAddr,4)});
         let minValue_el = createNewElement('div', {className:'profiler-measured-value'});
         let maxValue_el = createNewElement('div', {className:'profiler-measured-value'});
-        let resetBtn_el = createNewElement('button', {className:'profiler-reset-item-btn', textContent:"⟳"});
-        let removeBtn_el = createNewElement('button', {className:'profiler-remove-item-btn', textContent:"\u00d7"});
+        let resetBtn_el = createNewElement('button', {className:'profiler-reset-item-btn',title:'reset both min and max measured values'});
+        let removeBtn_el = createNewElement('button', {className:'profiler-remove-item-btn',title:'remove the item'});
         let label_el = createNewElement('input', {className:'profiler-item-label', type:'text', value:item.label});
         enabled_el.onchange = (e) => {
             item.enabled = enabled_el.checked;
