@@ -154,20 +154,20 @@ class AssemblyEditor {
     }
 
     saveCurrent() {
-        this.saveTabData(this.tm.currentTab());
+        this.saveTabData({tab:this.tm.currentTab(), onlySaveDirty:false});
     }
     saveAll() {
         for (let tab of this.tm.tabs.values()) {
-            this.saveTabData(tab);
+            this.saveTabData({tab});
         }
     }
-    saveTabData(tab) {
+    saveTabData({tab, onlySaveDirty = true}) {
         if (!tab) {
             infoModal({title:"Error", message:"There is not any active tab!!"});
             return;
         }
         console.log(tab);
-        if (tab.dirty === false) {
+        if (onlySaveDirty && tab.dirty === false) {
             log("skip non dirty file: " + tab.title);
             return;
         }

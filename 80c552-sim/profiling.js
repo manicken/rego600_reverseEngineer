@@ -84,14 +84,18 @@ class Profiler {
         this.header_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-header' });
         this.toolbar_el = appendNewElement(this.header_el, 'div', { className:'profiler-toolbar' });
         let tableheader_el = appendNewElement(this.header_el, 'div', { className:'profiler-grid-row' });
+        
         appendNewElement(tableheader_el, 'input', {type:'checkbox', onchange:(e)=>{this.enable_disable_all(e.currentTarget.checked)}});
+        
         appendNewElement(tableheader_el, 'div', {textContent:' start'});
         appendNewElement(tableheader_el, 'div', {textContent:' end'});
+        
         let minColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' min '});
-        let maxColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' max '});
-        appendNewElement(tableheader_el, 'div', {textContent:' label'});
         appendNewElement(minColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMinValues()}});
+        let maxColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' max '});
         appendNewElement(maxColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMaxValues()}});
+
+        appendNewElement(tableheader_el, 'div', {textContent:' label'});
 
         this.body_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-body' });
         let buttons_el = createButtonBar(this.#buttonBar);
