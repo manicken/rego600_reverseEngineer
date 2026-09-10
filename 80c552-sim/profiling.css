@@ -49,6 +49,19 @@
 .profiler-reset-item-btn::before {
     content: '⟳';
 }
+
+.profiler-reset-col-btn {
+    font-size: 16px;
+    width: 18px;
+    height: 18px;
+    padding: 0px;
+    margin: 0px;
+    
+}
+.profiler-reset-col-btn::before {
+    content: '⟳';
+}
+
 .profiler-remove-item-btn {
     font-size: 18px;
     width: 23px;

@@ -79,8 +79,8 @@ class Profiler {
         let minColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' min '});
         let maxColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' max '});
         tableheader_el.appendChild(createNewElement('div', {textContent:' label'}));
-        appendNewElement(minColLabel_el, 'button', {className:'profiler-reset-item-btn', onclick:()=>{this.resetAllMinValues()}});
-        appendNewElement(maxColLabel_el, 'button', {className:'profiler-reset-item-btn', onclick:()=>{this.resetAllMaxValues()}});
+        appendNewElement(minColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMinValues()}});
+        appendNewElement(maxColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMaxValues()}});
 
         this.body_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-body' });
         let buttons_el = createButtonBar(this.#buttonBar);
