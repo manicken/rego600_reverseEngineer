@@ -34,7 +34,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       
     }});
 
-    window.app.profiler = new Profiler();
+    window.app.profiler = new Profiler({cpu:window.app.cpu, onGotoAddress: (addr) => {
+        gotoDisasmAddress(addr);
+    }});
 
     initHexEditorForm();
     init_project_and_file_manager();

@@ -48,6 +48,8 @@ class Profiler {
     /** @type {Setting} */
     #profilingData = undefined;
 
+    #onGotoAddress = undefined;
+
     resetAllMinValues(onlyEnabled = true) {
         for (let item of this.#profilingItems) {
             if (onlyEnabled && item.enabled == false) continue;
@@ -60,10 +62,19 @@ class Profiler {
             item.resetMeasuredMax();
         }
     }
+    enable_disable_all(state) {
+        for (let item of this.#profilingItems) {
+            item.enabled = state;
+            item.enabled_chk_el.checked = state;
+        }
+    }
 
-    constructor() {
-        
-        window.app.cpu.instruction_ticks.push((cycles, opcode_start_PC) => {this.#profilerTask(cycles, opcode_start_PC)});
+    constructor({cpu = undefined, onGotoAddress = (addr) => {console.log("onGotoAddress: " + addr);}}) {
+        this.#onGotoAddress = onGotoAddress;
+        if (cpu == undefined || cpu.instruction_ticks == undefined) {
+            throw Error("Profiler cannot run without a js51 CPU instance");
+        }
+        cpu.instruction_ticks.push((cycles, opcode_start_PC) => {this.#profilerTask(cycles, opcode_start_PC)});
 
         this.modal = new Modal({title:"Profiler", height:700, width:800, resizable: true});
         this.modal.bodyEl.innerHTML = "";
@@ -73,18 +84,20 @@ class Profiler {
         this.header_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-header' });
         this.toolbar_el = appendNewElement(this.header_el, 'div', { className:'profiler-toolbar' });
         let tableheader_el = appendNewElement(this.header_el, 'div', { className:'profiler-grid-row' });
-        tableheader_el.appendChild(createNewElement('div', {}));
-        tableheader_el.appendChild(createNewElement('div', {textContent:' start'}));
-        tableheader_el.appendChild(createNewElement('div', {textContent:' end'}));
+        appendNewElement(tableheader_el, 'input', {type:'checkbox', onchange:(e)=>{this.enable_disable_all(e.currentTarget.checked)}});
+        appendNewElement(tableheader_el, 'div', {textContent:' start'});
+        appendNewElement(tableheader_el, 'div', {textContent:' end'});
         let minColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' min '});
         let maxColLabel_el = appendNewElement(tableheader_el, 'div', {textContent:' max '});
-        tableheader_el.appendChild(createNewElement('div', {textContent:' label'}));
+        appendNewElement(tableheader_el, 'div', {textContent:' label'});
         appendNewElement(minColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMinValues()}});
         appendNewElement(maxColLabel_el, 'button', {className:'profiler-reset-col-btn', onclick:()=>{this.resetAllMaxValues()}});
 
         this.body_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-body' });
         let buttons_el = createButtonBar(this.#buttonBar);
         this.toolbar_el.appendChild(buttons_el);
+
+
 
         this.#profilingData = new Setting('profiling', curr_firmware.profiling);
         this.#load();
@@ -138,6 +151,8 @@ class Profiler {
                 item.maxValue = Math.max(item.maxValue, item._cycles);
                 item.minValue_el.textContent = item.minValue;
                 item.maxValue_el.textContent = item.maxValue;
+                //item.minValue_el.title = this.#getCyclesTime(item.minValue);
+                //item.maxValue_el.title = this.#getCyclesTime(item.maxValue);
                 //log(`profiling of range ${hex(item.startAddr,4)} - ${hex(item.endAddr,4)} = ${item.cycles} cycles => ${this.#getCyclesTime(item.cycles)}`);
             }
         }
@@ -177,11 +192,18 @@ class Profiler {
                 item.startAddr = value;
             }
         }
+        startAddr_el.ondblclick = (e) => {
+            this.#onGotoAddress(item.startAddr);
+        }
+        
         endAddr_el.onchange = (e) => {
             const value = parseInt(endAddr_el.value, 16);
             if (!Number.isNaN(value)) {
                 item.endAddr = value;
             }
+        }
+        endAddr_el.ondblclick = (e) => {
+            this.#onGotoAddress(item.endAddr);
         }
         label_el.onchange = (e) => {
             item.label = label_el.value;
@@ -194,9 +216,17 @@ class Profiler {
         resetBtn_el.onclick = (e) => {
             item.resetMesuredValues();
         }
+
+        minValue_el.onmouseenter = () => {
+            minValue_el.title = this.#getCyclesTime(item.minValue);
+        }
+        maxValue_el.onmouseenter = () => {
+            maxValue_el.title = this.#getCyclesTime(item.maxValue);
+        }
         
         item.minValue_el = minValue_el;
         item.maxValue_el = maxValue_el;
+        item.enabled_chk_el = enabled_el;
 
         row_el.append(enabled_el, startAddr_el, endAddr_el, minValue_el, maxValue_el, label_el, resetBtn_el, removeBtn_el);
         return row_el;
