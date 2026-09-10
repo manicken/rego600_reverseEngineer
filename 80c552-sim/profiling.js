@@ -17,6 +17,12 @@ class ProfilerItem {
         this._active = true;
         this._cycles = 0;
     }
+    resetMesuredValues() {
+        this.minValue = Infinity;
+        this.maxValue = 0;
+        this.minValue_el.textContent = this.minValue;
+        this.maxValue_el.textContent = this.maxValue;
+    }
 }
 
 class Profiler {
@@ -42,7 +48,7 @@ class Profiler {
         
         window.app.cpu.instruction_ticks.push((cycles, opcode_start_PC) => {this.#profilerTask(cycles, opcode_start_PC)});
 
-        this.modal = new Modal({title:"Profiler", height:600, width:600, resizable: true});
+        this.modal = new Modal({title:"Profiler", height:700, width:800, resizable: true});
         this.modal.bodyEl.innerHTML = "";
         setStyles(this.modal.bodyEl, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
         this.header_el = appendNewElement(this.modal.bodyEl, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
@@ -129,8 +135,9 @@ class Profiler {
         let endAddr_el = createNewElement('input', {type:'text', value:hex(item.endAddr,4)});
         let minValue_el = createNewElement('div', {className:'profiler-measured-value'});
         let maxValue_el = createNewElement('div', {className:'profiler-measured-value'});
+        let resetBtn_el = createNewElement('button', {className:'profiler-reset-item-btn', textContent:"⟳"});
         let removeBtn_el = createNewElement('button', {className:'profiler-remove-item-btn', textContent:"\u00d7"});
-        let label_el = createNewElement('input', {type:'text', value:item.label});
+        let label_el = createNewElement('input', {className:'profiler-item-label', type:'text', value:item.label});
         enabled_el.onchange = (e) => {
             item.enabled = enabled_el.checked;
         }
@@ -154,11 +161,14 @@ class Profiler {
             row_el.remove();
             item.onRemove();
         }
+        resetBtn_el.onclick = (e) => {
+            item.resetMesuredValues();
+        }
         
         item.minValue_el = minValue_el;
         item.maxValue_el = maxValue_el;
 
-        row_el.append(enabled_el, startAddr_el, endAddr_el, minValue_el, maxValue_el, label_el, removeBtn_el);
+        row_el.append(enabled_el, startAddr_el, endAddr_el, minValue_el, maxValue_el, label_el, resetBtn_el, removeBtn_el);
         return row_el;
     }
 }

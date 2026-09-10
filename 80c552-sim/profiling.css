@@ -12,7 +12,8 @@
         96px    /* min result */
         96px    /* max result */
         1fr    /* label */
-        32px;    /* remove button */
+        23px    /* reset button */
+        23px;    /* remove button */
         
 }
 .profiler-remove-item-btn {
@@ -20,7 +21,18 @@
     width: 23px;
     height: 23px;
     padding: 0px;
+    margin: 0px;
+}
+.profiler-reset-item-btn {
+    font-size: 22px;
+    width: 23px;
+    height: 23px;
+    padding: 0px;
+    margin: 0px;
 }
 .profiler-measured-value {
     border: 1px solid #575757
+}
+.profiler-item-label {
+    min-width: none;
 }
