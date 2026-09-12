@@ -192,13 +192,13 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.speed_multipler = new Setting('cpu.speed_multipler', 1.0);
 }
 
-_51cpu.prototype.getCallStackString = function (instructionSize = 0) {
+_51cpu.prototype.getCallStackString = function () {
     if (!this.callStack || this.callStack.length === 0) {
-        return "(empty)";
+        return "current PC:" + (this.opcode_start_PC).toString(16).padStart(4, "0") + "\n";
     }
 
     let result = "callstack lenght: " + this.callStack.length + "\n";
-    result+= "current PC:" + (this.PC.get() - instructionSize).toString(16).padStart(4, "0") + "\n";
+    result+= "current PC:" + (this.opcode_start_PC).toString(16).padStart(4, "0") + "\n";
 
     for (let i = 0; i < this.callStack.length; i++) {
         let entry = this.callStack[i];

@@ -233,6 +233,8 @@ async function simulator_init() {
     document.getElementById('btn_reset').onclick = () => { 
         cpu.reset();
         cpu.IRAM_USE_MAP = [];
+        cpu.bus.sram.mem_write_use_map = new Uint32Array(cpu.bus.sram.size);
+        cpu.bus.sram.mem_read_use_map = new Uint32Array(cpu.bus.sram.size);
         log('reset');
         render(true);
     };

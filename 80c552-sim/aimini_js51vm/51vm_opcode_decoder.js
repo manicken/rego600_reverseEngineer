@@ -1,4 +1,4 @@
-
+/*
 // 8051/80C552 machine cycles per opcode, indexed by opcode byte
 const CYCLE_TABLE = new Uint8Array(256).fill(1); // most single/double-byte ops are 1 cycle
 
@@ -6,7 +6,7 @@ const CYCLE_TABLE = new Uint8Array(256).fill(1); // most single/double-byte ops 
 [0x01,0x02,0x10,0x11,0x12,0x20,0x21,0x22,0x30,0x31,0x32,
  0x40,0x41,0x43,0x50,0x51,0x53,0x60,0x61,0x63,0x70,0x71,
  0x72,0x73,0x75,0x80,0x81,0x82,0x83,0x85,0x90,0x91,0x92,
- 0x93,0xA0,0xA1,0xA3,0xB0,0xB1,0xB2 /*note: CPL bit is 1, see below*/,
+ 0x93,0xA0,0xA1,0xA3,0xB0,0xB1,0xB2 //note: CPL bit is 1, see below,
  0xB4,0xB5,0xC0,0xC1,0xD0,0xD1,0xD5,0xE0,0xE1,0xF0,0xF1
 ].forEach(op => CYCLE_TABLE[op] = 2);
 
@@ -23,19 +23,26 @@ CYCLE_TABLE[0x84] = 4; // DIV AB
 CYCLE_TABLE[0xA4] = 4; // MUL AB
 
 // fix: CPL bit (0xB2) is actually 1 cycle, only CPL C-adjacent... (see note below)
-CYCLE_TABLE[0xB2] = 1;
+CYCLE_TABLE[0xB2] = 1;*/
 
 _51cpu.prototype.execute_one = function () {
-    let opcode_start_PC = this.PC.get();
+    this.lastInstBytes = undefined;
+    this.lastInstCycles = undefined;
+    this.opcode_start_PC = this.PC.get();
+    
     let opcode = this.fetch_opcode() 
     if (opcode.test(0x01, 0x1F)) {
         //AJMP addr11
         this.PC.set(opcode.fetch_addr11())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x11, 0x1F)) {
         //ACALL 0x11
         let addr16 = opcode.fetch_addr11();
         this.op_call_track(addr16);
         this.op_call(addr16);
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.value < 0x80) {
         //0x00 - 0x7F
         if (opcode.value < 0x40) {
@@ -51,19 +58,18 @@ _51cpu.prototype.execute_one = function () {
             this.__execute_decode_C0_FF(opcode)
         }
     }
-    const cycles = CYCLE_TABLE[opcode.value];   // fixed per opcode identity
-    if (cycles == undefined) {
-        console.log("error opcode cyclecount not defined: " + opcode.value);
-        cycles = 0;
+    const cycles = this.lastInstCycles;//CYCLE_TABLE[opcode.value];   // fixed per opcode identity
+    if (cycles == undefined || this.lastInstBytes === undefined) {
+        throw Error("js51 simulator - error opcode cyclecount and bytecount not defined: " + hex(opcode.value));
     }
     if (this.instruction_ticks) {
         for (const tick of this.instruction_ticks) {
-            tick(cycles, opcode_start_PC);
+            tick(cycles, this.opcode_start_PC);
         }
     }
     if (this.external_hw_ticks) {
         for (const tick of this.external_hw_ticks) {
-            tick(cycles, opcode_start_PC);
+            tick(cycles, this.opcode_start_PC);
         }
     }
 
@@ -76,7 +82,7 @@ _51cpu.prototype.execute_one = function () {
     }
     if (this.peripheral_ticks) {
         for (const tick of this.peripheral_ticks) {
-            tick(cycles, opcode_start_PC);
+            tick(cycles, this.opcode_start_PC);
         }
     }
     return cycles;
@@ -105,9 +111,13 @@ _51cpu.prototype.__execute_decode_00_3F = function (opcode) {
 _51cpu.prototype.__execute_decode_00_0F = function (opcode) {
     if (opcode.test(0x00)) {
         //NOP
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x02)) {
         //LJMP addr16
-        this.PC.set(this.fetch_const16())
+        this.PC.set(this.fetch_const16());
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     }
     else if (opcode.test(0x03)) {
         //RR A
@@ -116,18 +126,28 @@ _51cpu.prototype.__execute_decode_00_0F = function (opcode) {
         val = (val >> 1) & 0x7F
         val |= (low << 7)
         this.A.set(val)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x04)) {
         //INC A
         this.op_inc(this.A)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x05)) {
         //INC direct
         this.op_inc(this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x06, 0xFE)) {
         //INC @Ri
         this.op_inc(opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x08, 0xF8)) {
         //INC Rn
         this.op_inc(opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -140,11 +160,15 @@ _51cpu.prototype.__execute_decode_10_1F = function (opcode) {
             bit_cell.set(0)
             this.op_add_offset(offset_raw)
         }
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     }  else if (opcode.test(0x12)) {
         //LCALL addr16
         let addr16 = this.fetch_const16()
         this.op_call_track(addr16);
         this.op_call(addr16)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x13)) {
         // RRC A
         let psw = this.PSW.get()
@@ -158,18 +182,28 @@ _51cpu.prototype.__execute_decode_10_1F = function (opcode) {
 
         this.A.set(a)
         this.PSW.set(psw)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x14)) {
         //DEC A
         this.op_dec(this.A)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x15)) {
         //DEC direct
         this.op_dec(this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x16, 0xFE)) {
         //DEC @Ri
         this.op_dec(opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x18, 0xF8)) {
         //DEC Rn
         this.op_dec(opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -180,28 +214,42 @@ _51cpu.prototype.__execute_decode_20_2F = function (opcode) {
         let offset_raw = this.fetch_const()
         if (b.get())
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x22)) {
         //RET
         let b = this.op_ret();
         this.op_ret_track();
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x23)) {
         //RL A
         let value = this.A.get()
         let high = value & 0x80
         value = ((value << 1) + (high >> 7)) & 0xFF
         this.A.set(value)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x24)) {
         //ADD A, #immed
         this.op_add(this.A, this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x25)) {
         //ADD A, direct
         this.op_add(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x26, 0xFE)) {
         //ADD A, @Ri
         this.op_add(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x28, 0xF8)) {
         //ADD A, Rn
         this.op_add(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -212,6 +260,8 @@ _51cpu.prototype.__execute_decode_30_3F = function (opcode) {
         let offset_raw = this.fetch_const()
         if (!bit.get())
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x32)) {
         //RETI
         this.op_ret()
@@ -219,6 +269,8 @@ _51cpu.prototype.__execute_decode_30_3F = function (opcode) {
             l()
         }
 		this.currentIRQ = -1;
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x33)) {
         // RLC A
         let psw = this.PSW.get()
@@ -232,18 +284,28 @@ _51cpu.prototype.__execute_decode_30_3F = function (opcode) {
 
         this.A.set(a)
         this.PSW.set(psw)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x34)) {
         //ADDC A,#immed
         this.op_add(this.A, this.fetch_const(), true)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x35)) {
         //ADDC A,direct
         this.op_add(this.A, this.fetch_direct(), true)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x36, 0xFE)) {
         //ADDC A,@Ri
         this.op_add(this.A, opcode.get_Ri(), true)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x38, 0xF8)) {
         //ADDC A,Rn
         this.op_add(this.A, opcode.get_Rn(), true)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -276,28 +338,42 @@ _51cpu.prototype.__execute_decode_40_4F = function (opcode) {
         let offset_raw = this.fetch_const()
         if (this.PSW.get() & 0x80)
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x42)) {
         //ORL direct,A
         let direct = this.fetch_direct()
         this.orl(direct, this.A)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x43)) {
         //ORL direct,#immed
         let direct = this.fetch_direct()
         let immed = this.fetch_const()
         this.orl(direct, immed)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x44)) {
         //ORL A,#immed
         let immed = this.fetch_const()
         this.orl(this.A, immed)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x45)) {
         //ORL A,direct
         this.orl(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x46, 0xFE)) {
         //ORL A,@Ri
         this.orl(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x48, 0xF8)) {
         //ORL A,Rn
         this.orl(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -308,27 +384,41 @@ _51cpu.prototype.__execute_decode_50_5F = function (opcode) {
         let offset_raw = this.fetch_const()
         if ((~this.PSW.get()) & 0x80)
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x52)) {
         //ANL direct,A
         let direct = this.fetch_direct()
         this.op_anl(direct, this.A)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x53)) {
         //ANL direct,#immed
         let direct = this.fetch_direct()
         let immed = this.fetch_const()
         this.op_anl(direct, immed)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x54)) {
         //ANL A,#immed
         this.op_anl(this.A, this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x55)) {
         //ANL A,direct
         this.op_anl(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x56, 0xFE)) {
         //ANL A,@Ri
         this.op_anl(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x58, 0xF8)) {
         //ANL A,Rn
         this.op_anl(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -338,28 +428,42 @@ _51cpu.prototype.__execute_decode_60_6F = function (opcode) {
         let offset_raw = this.fetch_const()
         if (this.A.get() == 0)
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x62)) {
         //XRL direct,A
         let direct = this.fetch_direct()
         this.op_xrl(direct, this.A)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x63)) {
         //XRL direct,#immed
         let direct = this.fetch_direct()
         let immed = this.fetch_const()
         this.op_xrl(direct, immed)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x64)) {
         //XRL A,#immed
         let immed = this.fetch_const()
         this.op_xrl(this.A, immed)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x65)) {
         //XRL A,direct
         this.op_xrl(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x66, 0xFE)) {
         //XRL A,@Ri
         this.op_xrl(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x68, 0xF8)) {
         //XRL A,Rn
         this.op_xrl(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -370,9 +474,13 @@ _51cpu.prototype.__execute_decode_70_7F = function (opcode) {
         let offset_raw = this.fetch_const()
         if (this.A.get() != 0)
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x72)) {
         //ORL C,bit
         this.op_orl_bit(this.fetch_bit())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x73)) {
         //JMP @A+DPTR
         //console.log("0x73 jmp happend" + hex(this.PC.get()));
@@ -384,22 +492,32 @@ _51cpu.prototype.__execute_decode_70_7F = function (opcode) {
         }
         
         this.PC.set(this.A.get() + this.DPTR.get())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x74)) {
         //MOV A,#immed
         this.A.set(this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x75)) {
         //MOV direct,#immed
         let direct = this.fetch_direct()
         let immed = this.fetch_const()
         this.op_move(direct, immed)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x76, 0xFE)) {
         //  MOV   @Ri,#immed
         let Ri = opcode.get_Ri()
         this.op_move(Ri, this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x78, 0xF8)) {
         //  MOV   Rn,#immed
         let Rn = opcode.get_Rn()
         this.op_move(Rn, this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -426,27 +544,41 @@ _51cpu.prototype.__execute_decode_80_8F = function(opcode){
     if (opcode.test(0x80)) {
         //SJMP offset
         this.op_add_offset(this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x82)) {
         //ANL C,bit
         this.op_anl_bit(this.fetch_bit())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x83)) {
         //MOVC A, @A+PC
         this.op_move(this.A, this.get_ROM(this.A.get() + this.PC.get()))
         console.log("MOVC 0x83 happend:\n" + this.getCallStackString());
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x84)) {
         //DIV AB
         this.op_div()
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 4;
     } else if (opcode.test(0x85)) {
         // MOV direct_dest, direct_src2
         let src = this.fetch_direct()
         let dest = this.fetch_direct()
         this.op_move(dest, src)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x86, 0xFE)) {
         // MOV direct,@Ri
         this.op_move(this.fetch_direct(), opcode.get_Ri())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x88, 0xF8)) {
         // MOV direct,Rn
         this.op_move(this.fetch_direct(), opcode.get_Rn())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     }
 }
 
@@ -455,9 +587,13 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
     if (opcode.test(0x90)) {
         //MOV DPTR,#immed
         this.DPTR.set(this.fetch_const16())
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x92)) {
         //MOV bit,C
         this.op_move(this.fetch_bit(), this.PSW.carry)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x93)) {
         //MOVC A,@A+DPTR
         
@@ -477,18 +613,28 @@ _51cpu.prototype.__execute_decode_90_9F = function(opcode){
         }*/
 
         this.op_move(this.A, data)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0x94)) {
         //SUBB A,#immed
         this.op_subb(this.A, this.fetch_const())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x95)) {
         //SUBB A,direct
         this.op_subb(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x96, 0xFE)) {
         //SUBB A,@Ri
         this.op_subb(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0x98, 0xF8)) {
         //SUBB A,Rn
         this.op_subb(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -497,24 +643,36 @@ _51cpu.prototype.__execute_decode_A0_AF = function(opcode){
     if (opcode.test(0xA0)) {
         // ORL C,/bit
         this.op_orl_bit(this.fetch_bit(), true)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xA2)) {
         // MOV C,bit
         this.op_move(this.PSW.carry, this.fetch_bit())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xA3)) {
         // INC DPTR
         this.op_inc(this.DPTR)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xA4)) {
         // MUL AB
         this.op_mul()
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 4;
     } else if (opcode.test(0xA5)) {
         // USER DEFINED 
-        return 0
+        throw Error("js51 simulator - try to execute user-defined opcode 0xA5 at PC " + hex(this.PC.get()-1,4));
     } else if (opcode.test(0xA6, 0xFE)) {
         // MOV @Ri,direct 
         this.op_move(opcode.get_Ri(), this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xA8, 0xF8)) {
         // MOV Rn,direct 
         this.op_move(opcode.get_Rn(), this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } 
 }
 
@@ -523,32 +681,46 @@ _51cpu.prototype.__execute_decode_B0_BF = function(opcode){
     if (opcode.test(0xB0)) {
         //ANL C,/bit
         this.op_anl_bit(this.fetch_bit(), true)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xB2)) {
         //CPL bit
         this.op_cpl(this.fetch_bit())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xB3)) {
         //CPL C
         this.op_cpl(this.PSW.carry)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xB4)) {
         //CJNE A,#immed,offset
         let immed = this.fetch_const()
         let offset_raw = this.fetch_const()
         this.op_cjne(this.A, immed, offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xB5)) {
         //CJNE A,direct,offset
         let direct = this.fetch_direct()
         let offset_raw = this.fetch_const()
         this.op_cjne(this.A, direct, offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xB6, 0xFE)) {
         //CJNE @Ri,#immed,offset
         let immed = this.fetch_const()
         let offset_raw = this.fetch_const()
         this.op_cjne(opcode.get_Ri(), immed, offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xB8, 0xF8)) {
         //CJNE Rn,#immed,offset
         let immed = this.fetch_const()
         let offset_raw = this.fetch_const()
         this.op_cjne(opcode.get_Rn(), immed, offset_raw)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     }
 }
 
@@ -574,25 +746,39 @@ _51cpu.prototype.__execute_decode_C0_CF = function (opcode) {
     if (opcode.test(0xC0)) {
         //PUSH direct
         this.op_push(this.fetch_direct().get())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xC2)) {
         //CLR bit
         this.fetch_bit().set(0)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xC3)) {
         //CLR C
         this.PSW.carry.set(0)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xC4)) {
         //SWAP A
         let a = this.A.get()
         this.A.set(((a & 0xF0) >> 4) | ((a & 0x0F) << 4))
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xC5)) {
         //XCH A,direct
         this.op_xch(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xC6, 0xFE)) {
         //XCH A,@Ri
         this.op_xch(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xC8, 0xF8)) {
         //XCH A,Rn
         this.op_xch(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -602,15 +788,23 @@ _51cpu.prototype.__execute_decode_D0_DF = function (opcode) {
     if (opcode.test(0xD0)) {
         //POP direct
         this.op_pop(this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xD2)) {
         //SETB bit
         this.fetch_bit().set(1)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xD3)) {
         //SETB C
         this.PSW.set(this.PSW.get() | 0x80)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xD4)) {
         //DA A
         this.op_da()
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xD5)) {
         // DJNZ direct,offset
         let direct = this.fetch_direct()
@@ -623,9 +817,13 @@ _51cpu.prototype.__execute_decode_D0_DF = function (opcode) {
         let value = this.op_dec(direct)
         if (value != 0)
             this.op_add_offset(offset)
+        this.lastInstBytes = 3;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xD6, 0xFE)) {
         // XCHD A,@Ri
         this.op_xchd(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xD8, 0xF8)) {
         // DJNZ Rn,offset
         let Rn = opcode.get_Rn()
@@ -633,6 +831,8 @@ _51cpu.prototype.__execute_decode_D0_DF = function (opcode) {
         this.op_dec(Rn)
         if (Rn.get() != 0)
             this.op_add_offset(offset_raw)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 2;
     }
 }
 
@@ -642,22 +842,34 @@ _51cpu.prototype.__execute_decode_E0_EF = function (opcode) {
     if (opcode.test(0xE0)) {
         //MOVX A,@DPTR
         this.A.set(this.get_XRAM_cell(this.DPTR.get()).get())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xE2, 0xFE)) {
         //MOVX A,@Ri
         let Ri = opcode.get_XRi()
         this.op_move(this.A, Ri)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xE4)) {
         //CLR A
         this.A.set(0)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xE5)) {
         //MOV A,direct
         this.op_move(this.A, this.fetch_direct())
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xE6, 0xFE)) {
         //MOV A,@Ri
         this.op_move(this.A, opcode.get_Ri())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xE8, 0xF8)) {
         //MOV A,Rn
         this.op_move(this.A, opcode.get_Rn())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }
 
@@ -666,21 +878,33 @@ _51cpu.prototype.__execute_decode_F0_FF = function (opcode) {
     if (opcode.test(0xF0)) {
         //MOVX @DPTR,A
         this.get_XRAM_cell(this.DPTR.get()).set(this.A.get())
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xF2, 0xFE)) {
         //MOVX @Ri,A
         let Ri = opcode.get_XRi()
         this.op_move(Ri, this.A)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 2;
     } else if (opcode.test(0xF4)) {
         //CPL A
         this.A.set((~this.A.get()) & 0xFF)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xF5)) {
         //MOV direct,A
         this.op_move(this.fetch_direct(), this.A)
+        this.lastInstBytes = 2;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xF6, 0xFE)) {
         //MOV @Ri,A
         this.op_move(opcode.get_Ri(), this.A)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     } else if (opcode.test(0xF8, 0xF8)) {
         //MOV Rn,A
         this.op_move(opcode.get_Rn(), this.A)
+        this.lastInstBytes = 1;
+        this.lastInstCycles = 1;
     }
 }

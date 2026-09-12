@@ -66,11 +66,15 @@ function render_XRAM_window(component) {
 	  component.index_el.prev_index = xram_index;
   }
 
-  component.memdump_el.textContent = getMemoryContentsDump({
-    reader: (index) => cpu.bus.sram.read(index),
+  component.memdump_el.innerHTML = getMemoryContentsDump({
+    reader: index => cpu.bus.sram.mem[index],
+    writeusemap: cpu.bus.sram.mem_write_use_map,
+    readusemap: cpu.bus.sram.mem_read_use_map,
+    consideredwriteCount: 4,
+    consideredreadCount: 1,
     ascii: true,
     columns: 16,
-    colheader: true,
+    useColheader: true,
     size: 256,
     offset: xram_index * 256,
     addressWidth: 4
@@ -148,7 +152,7 @@ function render_IRAM() {
     usemap: cpu.IRAM_USE_MAP,
     ascii: true,
     columns: 16,
-    colheader: true,
+    useColheader: true,
     size: 256,
     offset: 0,
     addressWidth: 2
@@ -159,11 +163,11 @@ function render_DATA_FLASH_window() {
   const sel = cpu.bus.readSelect();
   const base = (sel.ext << 20) & (cpu.bus.flash.size - 1);
 
-  document.getElementById('flash_dump').textContent = getMemoryContentsDump({
+  document.getElementById('flash_dump').innerHTML = getMemoryContentsDump({
     reader: index => cpu.bus.flash.read(index, false),
     ascii: true,
     columns: 20,
-    colheader: true,
+    useColheader: true,
     size: 300,
     offset: base,
     addressWidth: 5
@@ -222,42 +226,64 @@ function set_IROM_value(addr_element_id, value_element_id)
     }
 }
 
-function getMemoryContentsDump(p={reader, usemap, ascii, columns, colheader, size, offset, addressWidth}) {
+function getMemoryContentsDump({reader, usemap, readusemap, writeusemap, consideredreadCount=1, consideredwriteCount=1, ascii, columns, useColheader, size, offset, addressWidth}={}) {
     const lines = [];
-    const totalRows = Math.ceil(p.size/p.columns);
-    const addressPrefix = hex(0, p.addressWidth) + ': ';
+    const totalRows = Math.ceil(size/columns);
+    const addressPrefix = hex(0, addressWidth) + ': ';
     const colHeaderWidth = addressPrefix.length;
 
-    if (p.colheader) {
+    if (usemap !== undefined) {
+        readusemap = usemap;
+        writeusemap = usemap;
+    }
+    if (readusemap == undefined) {
+        readusemap = [];
+    }
+    if (writeusemap == undefined) {
+        writeusemap = [];
+    }
+
+    if (useColheader) {
         let colHeader = "";
-        for (let col = 0; col < p.columns; col++) {
+        for (let col = 0; col < columns; col++) {
             colHeader += col.toString(16).padStart(2,'0') + " ";
         }
         lines.push(" ".repeat(colHeaderWidth) + colHeader);
     }
     for (let row = 0; row < totalRows; ++row) {
-        let line = hex(p.offset + row*p.columns, p.addressWidth) + ': ';
+        let line = hex(offset + row*columns, addressWidth) + ': ';
         let ascii_text = "";
-        for (let col = 0; col < p.columns; col++) {
-            let index = row*p.columns + col;
-            if (index >= p.size) { break; }
-            let addr = p.offset + index;
-            let value = p.reader(addr);
+        for (let col = 0; col < columns; col++) {
+            let index = row*columns + col;
+            if (index >= size) { break; }
+            let addr = offset + index;
+            let value = reader(addr);
             
             if (value === undefined) { break; } // handle out of bounds
-            if (p.usemap === undefined || !p.usemap[addr]) {
-              line += `${value.toString(16).padStart(2,'0')} `;
+            const readCount = readusemap[addr];
+            const writeCount = writeusemap[addr];
+
+            const readUsed = readCount >= consideredreadCount;
+            const writeUsed = writeCount >= consideredwriteCount;
+
+
+            if (readUsed && writeUsed) {
+                line += `<span class="ram_read_write_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
+            } else if (readUsed) {
+                line += `<span class="ram_read_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
+            } else if (writeUsed) {
+                line += `<span class="ram_write_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
             } else {
-              line += `<span class="used_ram_highlight">${value.toString(16).padStart(2,'0')}</span> `;
+                line += `${value.toString(16).padStart(2, '0')} `;
             }
             
 
-            if (p.ascii) {
+            if (ascii) {
                 ascii_text += printPrintable(value);
             }
         }
-        if (p.ascii) {
-          while (ascii_text.length < p.columns) {
+        if (ascii) {
+          while (ascii_text.length < columns) {
               ascii_text += ' ';
           }
           lines.push(line + " " + ascii_text);

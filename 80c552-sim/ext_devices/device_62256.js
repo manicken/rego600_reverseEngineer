@@ -9,6 +9,8 @@
 function SRAM62256(size = 0x8000) {
     this.size = size
     this.mem = new Uint8Array(size)
+    this.mem_read_use_map = new Uint32Array(size);
+    this.mem_write_use_map = new Uint32Array(size);
 }
 
 SRAM62256.prototype.read = function (addr) {
@@ -22,6 +24,7 @@ SRAM62256.prototype.read = function (addr) {
             '\n' + cpu.getCallStackString()
         );
     }*/
+   this.mem_read_use_map[addr & (this.size - 1)]++;
     return this.mem[addr & (this.size - 1)]
 }
 
@@ -38,6 +41,14 @@ SRAM62256.prototype.write = function (addr, val) {
     } else if (addr == 0x1c16 || addr == 0x1c17) {
         console.log(`0x1c16 or 0x1c17 write happend - new value (${val}):\n` + cpu.getCallStackString());
     }*/
+    if (addr == 0x100 && this.mem_write_use_map[addr & (this.size - 1)] < 4) {
+        console.log(
+            `xram write: addr=0x${addr.toString(16)}, ` +
+            `value=0x${val.toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+    }
+    this.mem_write_use_map[addr & (this.size - 1)]++;
     this.mem[addr & (this.size - 1)] = val & 0xFF
 }
 

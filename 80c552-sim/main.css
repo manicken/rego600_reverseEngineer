@@ -66,6 +66,15 @@ body {
     content: "▶";
 }
 
-.used_ram_highlight {
-    background-color: #006400;
+.ram_read_write_use_highlight {
+    background-color: #968700;
+    cursor: default;
 }
+.ram_write_use_highlight {
+    background-color: #850400;
+    cursor: default;
+}
+.ram_read_use_highlight {
+    background-color: #006400;
+    cursor: default;
+}   
