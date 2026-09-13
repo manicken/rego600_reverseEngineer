@@ -706,7 +706,7 @@ function layout(records, sizes) {
 // Returnerar { bytes: Map<addr,byte>, symbols, listing } eller kastar AsmError.
 function assemble(text) {
   const records = tokenizeLines(text);
-  //console.log(records);
+  console.log(records);
 
   // Generiska JMP/CALL börjar i "värsta läge" (3 byte = LJMP/LCALL) och
   // krymps sedan iterativt tills inget mer ändras (assembler relaxation).

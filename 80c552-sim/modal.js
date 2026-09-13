@@ -372,6 +372,10 @@ function AceEditorModal({ title = "Ace Editor", height=600, width=500, aceTheme=
 	let ace_editor_el = appendNewElement(modal_el.bodyEl, 'div', { styles: { width: '100%', height: '100%', boxSizing: 'border-box' } });
 
 	let ace_editor = ace.edit(ace_editor_el);
+	ace_editor.setOptions({
+		enableVirtualSpace: true,
+		scrollPastEnd: 1
+	});
 	ace_editor.setTheme("ace/theme/" + aceTheme);
 	ace_editor.session.setMode("ace/mode/" + aceMode);
 	
