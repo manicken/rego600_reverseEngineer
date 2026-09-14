@@ -73,6 +73,8 @@ const SFR = {
 // Namngivna bit-adresser, t.ex. för JB/JNB/SETB/CLR/CPL på enskilda flaggor.
 // Lägg till fler rader efter samma mönster (NAMN: adress) vid behov.
 const BIT_NAMES = {
+  // ACC
+  "A.0": 0xE0, "A.1": 0xE1, "A.2": 0xE2, "A.3": 0xE3, "A.4": 0xE4, "A.5": 0xE5, "A.6": 0xE6, "A.7": 0xE7, 
   // PSW
   CY: 0xD7, AC: 0xD6, F0: 0xD5, RS1: 0xD4, RS0: 0xD3, OV: 0xD2, P: 0xD0,
   // IE
