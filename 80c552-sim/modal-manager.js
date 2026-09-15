@@ -101,13 +101,22 @@ class ModalManager {
         title.className = 'modalmgr-tab-title';
         title.textContent = win.title;
 
+        const actions = document.createElement('span');
+
+        actions.className = 'modalmgr-tab-actions';
+
+        const dot = document.createElement('span');
+        dot.className = 'tab-dot';
+
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modalmgr-tab-close';
         closeBtn.textContent = '✖';
         closeBtn.title = 'Close';
         closeBtn.addEventListener('click', e => { e.stopPropagation(); win.close(); });
 
-        el.append(title, closeBtn);
+        actions.append(dot, closeBtn);
+
+        el.append(title, actions);
         el.addEventListener('click', () => Modal.activate(win));
         el.addEventListener('contextmenu', e => {
             e.preventDefault();
