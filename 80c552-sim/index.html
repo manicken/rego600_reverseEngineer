@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="button-bar.css">
   <link rel="stylesheet" href="assembler/tabmanager.css">
   <link rel="stylesheet" href="assembler/tabmanager-menu.css">
+  <link rel="stylesheet" href="modal-manager.css">
   <meta charset="UTF-8">
   <title>80C552 Simulator (js51-based)</title>
 </head>
@@ -24,6 +25,7 @@
   <script src="main_menu.js"></script>
   <script src="AppStorage.js"></script>
   
+  <script src="modal-manager.js"></script>
 
   <!-- hex function -->
   <script src="helpers.js"></script>
@@ -110,7 +112,7 @@
   
 
   <!-- BODY CONTENTS -->
-
+<div class="col" style="height: 100%; width: 100%;">
   <div class="row" style="height: 100%; width: 100%;">
     <div class="col" style="height: 100%; width: 100%; max-width: 500px; min-width: 300px;">
       <div class="panel main-menu" id="main-menu"></div>  
@@ -159,7 +161,18 @@
           <div id="log"></div>
       </div>
     </div>
+    
   </div>
-  
+  <div id="modal-manager" class="row panel">
+    <button>Settings</button>
+    <button>Assembly Editor - UART.asm</button>
+    <button>Assembly Editor - FRONT_PANEL.asm</button>
+    <button>Goto Label</button>
+    <button>Profiler</button>
+    <button>Hex Editor</button>
+    <button>Assembly Viewer</button>
+  </div>
+</div>
+
 </body>
 </html>

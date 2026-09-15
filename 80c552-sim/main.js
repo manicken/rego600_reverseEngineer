@@ -1,10 +1,17 @@
 
 window.app = {}; // global object to store all instances
 
+/*window.addEventListener("beforeunload", (e) => {
+  e.preventDefault();
+  e.returnValue = true;
+    
+});*/
+
 document.addEventListener("DOMContentLoaded", async () => {
     AppStorage.setPrefix('js51.80c552.');
 
     window.app.log = document.getElementById('log');
+    Modal.initModalManager(document.getElementById("modal-manager"));
 
     /*for (let i=0; i< 20; i++) {
       log(i);
@@ -13,9 +20,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     init_main_menu();
     await simulator_init();
     
-    window.app.goto_label_modal = new Modal({title:"Goto Label", height:768, width:420, resizable: true});
-    window.app.list_label_references_modal = new Modal({title:"Address References", height:768, width:420, resizable: true});
-    window.app.settings_modal = new Modal({title:"Settings", height:768, width:420, resizable: true});
+    window.app.goto_label_modal = new Modal({title:"Goto Label", type:"gotoLabel", height:768, width:420, resizable: true});
+    window.app.list_label_references_modal = new Modal({title:"Address References", type:"addressReferences", height:768, width:420, resizable: true});
+    window.app.settings_modal = new Modal({title:"Settings", type:"globalSettings", height:768, width:420, resizable: true});
     
     window.app.asmView = new AssemblyViewer();
     window.app.asmEdit = new AssemblyEditor({onBuild:(asmList) => {
@@ -34,6 +41,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       
     }});
 
+    
+
     window.app.profiler = new Profiler({cpu:window.app.cpu, onGotoAddress: (addr) => {
         gotoDisasmAddress(addr);
     }});
@@ -44,6 +53,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log(AppStorageFileSystem.list(/*'', name => name.endsWith('.asm')*/));
 
 });
+
+
 
 function replaceRemoveLabels(code_map, asmList) {
     // First remove entries in code_map that

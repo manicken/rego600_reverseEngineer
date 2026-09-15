@@ -48,7 +48,7 @@ class AssemblyEditor {
     ];
 
     constructor({onBuild = (asmList) => {}}={}) {
-        this.modal = new AceEditorModal({title:"Assembly Editor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+        this.modal = new AceEditorModal({title:"Assembly Editor", type:"assemblyEditor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
         // extract commonly used objects
         this.ace_editor = this.modal.ace_editor;
         this.ace_editor_el = this.modal.ace_editor_el;

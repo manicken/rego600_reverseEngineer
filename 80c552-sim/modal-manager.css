@@ -1,0 +1,206 @@
+
+:root{
+    --modalmgr-bg:            #1b1e24;
+    --modalmgr-strip-bg:      #14161b;
+    --modalmgr-tab-bg:        #1f232b;
+    --modalmgr-tab-bg-hover:  #262b34;
+    --modalmgr-tab-bg-active: #2b4888;
+    --modalmgr-border:        #2c313b;
+    --modalmgr-accent:        #5fb0ff;
+    --modalmgr-text:          #c7cdd6;
+    --modalmgr-text-dim:      #767e8c;
+    --modalmgr-text-active:   #ffffff;
+    --modalmgr-danger:        #e5636b;
+    --modalmgr-radius:        6px;
+    --modalmgr-tab-h:         34px;
+    --modalmgr-font:          ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    --modalmgr-font-ui:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ---------- TabManager core ---------- */
+
+.modalmgr{
+    display:flex;
+    align-items:stretch;
+    background:var(--modalmgr-strip-bg);
+    border-bottom:1px solid var(--modalmgr-border);
+    height:var(--modalmgr-tab-h);
+    position:relative;
+    user-select:none;
+}
+
+.modalmgr-scrollbtn{
+    flex:0 0 auto;
+    width:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--modalmgr-strip-bg);
+    color:var(--modalmgr-text-dim);
+    border:none;
+    cursor:pointer;
+    font-size:13px;
+}
+
+.modalmgr-scrollbtn:hover{
+    color:var(--modalmgr-text-active);
+}
+
+.modalmgr-scrollbtn[hidden]{
+    display:none;
+}
+
+.modalmgr-strip{
+    flex:1 1 auto;
+    display:flex;
+    overflow-x:auto;
+    scrollbar-width:none;
+    scroll-behavior:smooth;
+}
+
+.modalmgr-strip::-webkit-scrollbar{
+    display:none;
+}
+
+.modalmgr-tab{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    max-width:200px;
+    min-width:110px;
+    padding:0 6px 0 10px;
+    background:var(--modalmgr-tab-bg);
+    border-right:1px solid var(--modalmgr-border);
+    color:var(--modalmgr-text);
+    cursor:pointer;
+    position:relative;
+    font:12.5px var(--modalmgr-font);
+}
+
+.modalmgr-tab:hover{
+    background:var(--modalmgr-tab-bg-hover);
+}
+
+.modalmgr-tab.active{
+    background:var(--modalmgr-tab-bg-active);
+    color:var(--modalmgr-text-active);
+}
+
+.modalmgr-tab.active::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    height:2px;
+    background:var(--modalmgr-accent);
+}
+
+/* ---------- Tab title ---------- */
+
+.modalmgr-tab-title{
+    flex:1 1 auto;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+
+/* ---------- Tab actions ---------- */
+
+.modalmgr-tab-actions{
+    position:relative;
+    flex:0 0 auto;
+    width:18px;
+    height:18px;
+}
+
+/* Dot and close occupy exactly the same position */
+.modalmgr-tab-dot,
+.modalmgr-tab-close{
+    position:absolute;
+    left:0;
+    top:0;
+}
+
+/* ---------- Changed indicator ---------- */
+
+.modalmgr-tab-dot{
+    width:7px;
+    height:7px;
+    margin:5.5px;
+    border-radius:50%;
+    background:#ffffff;
+
+    display:none;
+}
+
+/*
+ * Changed file -> show dot
+ */
+.modalmgr-tab.file_changed .modalmgr-tab-dot{
+    display:block;
+}
+
+/*
+ * Never show close when file is changed.
+ */
+.modalmgr-tab.file_changed .modalmgr-tab-close{
+    display:none;
+}
+
+/* ---------- Close button ---------- */
+
+.modalmgr-tab-close{
+    width:19px;
+    height:19px;
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+
+    border:none;
+    background:transparent;
+
+    color:#ffffff;
+    border-radius:4px;
+    cursor:pointer;
+    line-height:1;
+}
+
+/*
+ * Active tab -> show close,
+ * unless the file is changed.
+ */
+.modalmgr-tab.active:not(.file_changed) .modalmgr-tab-close{
+    display:flex;
+}
+
+/*
+ * Hover -> close replaces dot.
+ */
+.modalmgr-tab:hover .modalmgr-tab-dot{
+    display:none;
+}
+
+.modalmgr-tab:hover .modalmgr-tab-close{
+    display:flex;
+}
+
+/*
+ * Hovering a changed modal also shows close.
+ */
+.modalmgr-tab.file_changed:hover .modalmgr-tab-dot{
+    display:none;
+}
+
+.modalmgr-tab.file_changed:hover .modalmgr-tab-close{
+    display:flex;
+}
+
+.modalmgr-tab-close:hover{
+    background:#834013;
+    color:#ffffff;
+}
+

@@ -20,15 +20,128 @@
  *   modal.mount();   // attaches to document.body
  *   modal.open();
  */
+
+
 class Modal {
+	static #WinID = 0;
+	static States = Object.freeze({ Open: 0, Minimized: 1, Closed: 3 });
+	static events = new EventTarget(); // central lifecycle-bus, ersätter mm:s EventTarget
+
+	static #ModalZoffset = 2000;
+	static #windows = [];
+	// helper structures to make reorder much easier
+	static #windowsZOrder = [];
+	static #taskbarOrder = [];
+
+	static initModalManager(modal_msgr_el) {
+        ModalManager.init(modal_msgr_el);
+        window.app.mm = ModalManager; // referens till den statiska klassen, ej instans
+
+        Modal.events.addEventListener('close', e => log("file closed: " + e.detail.window.title));
+        Modal.events.addEventListener('activate', e => log("tm - activated: " + e.detail.window.title));
+        Modal.events.addEventListener('lastclosed', e => log("last closed: " + e.detail.window.title));
+        Modal.events.addEventListener('hardclose', e => {
+            log("deleted: " + e.detail.window.title);
+            e.detail.window.data?.removePermanent?.();
+            delete e.detail.window.data;
+        });
+    }
+
+	getState() {
+		return {x:this.x, y:this.y, state:this.state, zIndex:this.zIndex, tabIndex:this.tabIndex};
+	}
+
+	static saveWindowsState() {
+		let win_export = {};
+		for (let i=0;i<Modal.#windows.length;i++) {
+			win_export.push(Modal.#windows[i].getState());
+		}
+		// serialize to json and save to local storage
+	}
+
+	static loadWindows(windows) {
+
+	}
+
+	static loadWindowsState() {
+		// load from local storage and deserialize 
+		Modal.#windows = loadWindows(windows)
+
+		const zOrder = [...windows].sort((a, b) => a.zIndex - b.zIndex);
+		const tabOrder = [...windows].sort((a, b) => a.tabIndex - b.tabIndex);
+
+		for (let i = 0; i < zOrder.length; i++) {
+			zOrder[i].zIndex = i;
+		}
+
+		for (let i = 0; i < tabOrder.length; i++) {
+			tabOrder[i].tabIndex = i;
+		}
+		Modal.#windowsZOrder = zOrder;
+		Modal.#taskbarOrder = tabOrder;
+	}
+
+    static #emit(type, window) {
+        Modal.events.dispatchEvent(new CustomEvent(type, { detail: { window } }));
+    }
+
+    static getWindowList()  { return Modal.#windows; }
+    static getOpenTabs()    { return Modal.#windows.filter(w => w.state !== Modal.States.Closed); }
+    static getClosedTabs()  { return Modal.#windows.filter(w => w.state === Modal.States.Closed); }
+
+    static getActiveWindow() {
+        for (let i = Modal.#windows.length - 1; i >= 0; i--) {
+            if (Modal.#windows[i].state === Modal.States.Open) return Modal.#windows[i];
+        }
+        return null;
+    }
+
+	static #updateZIndexes() {
+		for (let i=0; i<Modal.#windows.length; i++) {
+			Modal.#windows[i].el.style.zIndex = i + Modal.#ModalZoffset;
+		}
+		return Modal.#windows.length-1 + Modal.#ModalZoffset;
+	}
+	
+	static #remove(window) {
+		const index = Modal.#windows.indexOf(window);
+		if (index === -1) return;
+		Modal.#windows.splice(index, 1);
+		Modal.#updateZIndexes();
+		ModalManager._render();
+	}
+
+	/** this is a two use function, 
+	 * if the window no not exist it's added, 
+	 * otherwise its only bringed to front 
+	 * it returns the index that is given to the window
+	 */
+	/** flytta fram i z-stacken (rör inte .state). Fungerar även för helt nya fönster (indexOf -> -1). */
+    static #bringToFront(window) {
+        const idx = Modal.#windows.indexOf(window);
+        if (idx !== -1) Modal.#windows.splice(idx, 1);
+        Modal.#windows.push(window);
+        Modal.#updateZIndexes();
+    }
+
+    /** Universell "användaren valde denna flik"-ingång: open/minimized/closed -> Open + fram i stacken */
+    static activate(window) {
+        const wasClosed = window.state === Modal.States.Closed;
+        window.state = Modal.States.Open;
+		window._open();
+        //window.mount();
+        Modal.#bringToFront(window);
+        ModalManager._render();
+        Modal.#emit(wasClosed ? 'reopen' : 'activate', window);
+    }
+
 	constructor({
-		id,
 		title = "",
+		type = "unknown",
 		width,
 		height,
 		x,
 		y,
-		z,
 		closable = true,
 		draggable = true,
 		backdrop = false,
@@ -36,21 +149,24 @@ class Modal {
 		automount = true,
 		closeOnBackdropClick = true,
 		closeOnEscape = backdrop,
+		canHardClose = true,
 		onClose,
 		onOpen,
 		onResize,
 		onResized
 	} = {}) {
-		this.id = id || `modal-${Math.random().toString(36).slice(2, 9)}`;
+		this.state = Modal.States.Minimized;
+		this.title = title,
+		this.type = type,
 		this.onClose = onClose;
 		this.onOpen = onOpen;
 		this.hasBackdrop = backdrop;
 		this.onResize = onResize;
 		this.onResized = onResized;
+		this.canHardClose = canHardClose;
 
 		this.el = document.createElement("div");
 		this.el.className = "modal";
-		this.el.id = this.id;
 		if (width) this.el.style.width = `${width}px`;
 		if (height) this.el.style.height = `${height}px`;
 
@@ -59,7 +175,6 @@ class Modal {
 
 		this.titleEl = document.createElement("div");
 		this.titleEl.className = "modal-title";
-		this.titleEl.id = `${this.id}-title`;
 		this.titleEl.textContent = title;
 		this.headerEl.appendChild(this.titleEl);
 
@@ -90,16 +205,20 @@ class Modal {
 		this.el.appendChild(this.bodyEl);
 		this.el.appendChild(this.footerEl);
 
-		if (z != undefined) {
-			this.el.style.zIndex = z;
-		}
+		this.el.addEventListener("pointerdown", (e) => {
+			//e.stopPropagation();
+			Modal.activate(this);
+		});
+
+		//*****************************/
+		// the most important task
+		//*****************************/
+		
 
 		if (backdrop) {
 			this.backdropEl = document.createElement("div");
 			this.backdropEl.className = "modal-backdrop";
-			if (z != undefined) {
-				this.backdropEl.style.zIndex = z-1;
-			}
+			
 			
 			this.backdropEl.appendChild(this.el);
 			if (closeOnBackdropClick) {
@@ -107,7 +226,7 @@ class Modal {
 					if (e.target === this.backdropEl) this.close();
 				});
 			}
-		}
+		} 
 
 		if (closeOnEscape) {
 			this._onEscape = (e) => {
@@ -126,6 +245,8 @@ class Modal {
 		if (automount) {
 			this.mount();
 		}
+
+		//Modal.activate(this);
 	}
 
 	_setInitialPosition(x, y) {
@@ -143,6 +264,7 @@ class Modal {
 		const onPointerDown = (e) => {
 			// Ignore drags started on the close button.
 			if (e.target.closest(".modal-close")) return;
+			//Modal.#activate(this);
 			dragging = true;
 			const rect = this.el.getBoundingClientRect();
 			startX = e.clientX;
@@ -190,6 +312,7 @@ class Modal {
 
 		const onPointerDown = (e) => {
 			resizing = true;
+			Modal.activate(this);
 
 			const rect = this.el.getBoundingClientRect();
 
@@ -337,11 +460,15 @@ class Modal {
 		return this.el.classList.contains("modal--open");
 	}
 
-	open() {
+	_open() {
 		this.el.classList.add("modal--open");
 		if (this.hasBackdrop) this.backdropEl.classList.add("modal-backdrop--open");
 		if (this._onEscape) document.addEventListener("keydown", this._onEscape);
 		this.onOpen?.(this);
+	}
+
+	open() {
+		Modal.activate(this);
 		return this;
 	}
 
@@ -361,11 +488,12 @@ class Modal {
 	destroy() {
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		(this.hasBackdrop ? this.backdropEl : this.el).remove();
+		Modal.#remove(this);
 	}
 }
 
-function AceEditorModal({ title = "Ace Editor", height=600, width=500, aceTheme="textmate", aceMode="text"}) {
-	let modal_el = new Modal({title, height, width, resizable: true});
+function AceEditorModal({ title = "Ace Editor", type="GeneralAceEditor", height=600, width=500, aceTheme="textmate", aceMode="text"}) {
+	let modal_el = new Modal({title, type, height, width, resizable: true});
 	modal_el.bodyEl.innerHTML = "";
 	setStyles(modal_el.bodyEl, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
 	let header_el = appendNewElement(modal_el.bodyEl, 'div', { styles: { width: '100%', /*height: '32px',*/ display: 'flex', flexDirection: 'column', boxSizing: 'border-box', padding:'4px' }})
@@ -379,7 +507,7 @@ function AceEditorModal({ title = "Ace Editor", height=600, width=500, aceTheme=
 	ace_editor.setTheme("ace/theme/" + aceTheme);
 	ace_editor.session.setMode("ace/mode/" + aceMode);
 	
-	return {modal_el, header_el, ace_editor_el, ace_editor, open() {this.modal_el.open()}};
+	return {modal_el, header_el, ace_editor_el, ace_editor, open() {this.modal_el._open()}};
 }
 
 function inputModal({ title = "Input", message = "Enter Value: ", confirmText = "OK", value = "", enterConfirm=true, confirmClass = "", onValidate = (value) => { return true; }, onConfirm = (value) => {} } = {})
