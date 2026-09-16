@@ -59,10 +59,8 @@
      width   CSS width for the editor's own root element. Default '100%'.
    ========================================================================== */
 
-(function (global) {
-  'use strict';
 
-  class ModalHexEditor {
+  class HexEditorComponent {
     static Modes = {
         Normal:'NORMAL',
         Visual:'VISUAL',
@@ -93,7 +91,7 @@
       if (opts.mode != undefined) {
         this.mode = opts.mode;
       } else {
-        this.mode = ModalHexEditor.Modes.Normal;
+        this.mode = HexEditorComponent.Modes.Normal;
       }
       this.pane = 'hex';           // 'hex' | 'ascii'
       this.cursor = 0;
@@ -363,7 +361,7 @@
       if (Number.isNaN(addr)) return;
       this.pane = cell.classList.contains('mhe-asciicell') ? 'ascii' : 'hex';
       this.cursor = addr;
-      if (this.mode === ModalHexEditor.Modes.Visual && this.selAnchor === null) this.selAnchor = addr;
+      if (this.mode === HexEditorComponent.Modes.Visual && this.selAnchor === null) this.selAnchor = addr;
       this.viewport.focus();
       this._render();
     }
@@ -374,14 +372,14 @@
       if (ctrl && (k === 'y' || k === 'Y')) { e.preventDefault(); this._redo(); return; }
       if (ctrl && (k === 'z' || k === 'Z')) { e.preventDefault(); this._undo(); return; }
 
-      if (e.key === '?' && this.mode === ModalHexEditor.Modes.Normal) { e.preventDefault(); this._toggleHelp(); return; }
+      if (e.key === '?' && this.mode === HexEditorComponent.Modes.Normal) { e.preventDefault(); this._toggleHelp(); return; }
       if (this.helpEl.classList.contains('mhe-show')) {
         if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); this._toggleHelp(false); }
         return;
       }
 
-      if (this.mode === ModalHexEditor.Modes.Command) return this._onCommandKey(e);
-      if (this.mode === ModalHexEditor.Modes.Insert) return this._onInsertKey(e);
+      if (this.mode === HexEditorComponent.Modes.Command) return this._onCommandKey(e);
+      if (this.mode === HexEditorComponent.Modes.Insert) return this._onInsertKey(e);
       return this._onNormalKey(e, ctrl);
     }
 
@@ -414,33 +412,33 @@
           return;
         case 'Escape':
           e.preventDefault();
-          if (this.mode === ModalHexEditor.Modes.Visual) { this.lastSelection = this._selRange(); this.selAnchor = null; this.mode = ModalHexEditor.Modes.Normal; }
+          if (this.mode === HexEditorComponent.Modes.Visual) { this.lastSelection = this._selRange(); this.selAnchor = null; this.mode = HexEditorComponent.Modes.Normal; }
           this.msg = '';
           this._render();
           return;
         case 'i':
           e.preventDefault();
-          this.mode = ModalHexEditor.Modes.Insert; this.pendingNibble = null; this._render();
+          this.mode = HexEditorComponent.Modes.Insert; this.pendingNibble = null; this._render();
           return;
         case 'v':
           e.preventDefault();
-          if (this.mode === ModalHexEditor.Modes.Visual) { this.lastSelection = this._selRange(); this.selAnchor = null; this.mode = 'NORMAL'; }
-          else { this.mode = ModalHexEditor.Modes.Visual; this.selAnchor = this.cursor; }
+          if (this.mode === HexEditorComponent.Modes.Visual) { this.lastSelection = this._selRange(); this.selAnchor = null; this.mode = 'NORMAL'; }
+          else { this.mode = HexEditorComponent.Modes.Visual; this.selAnchor = this.cursor; }
           this._render();
           return;
         case 'x':
           e.preventDefault();
-          if (this.mode === ModalHexEditor.Modes.Visual) this._fillSelection(0x00);
+          if (this.mode === HexEditorComponent.Modes.Visual) this._fillSelection(0x00);
           else this._applyEdits([{ addr: this.cursor, next: 0x00 }]);
           this._render();
           return;
         case 'd':
           e.preventDefault();
-          if (this.mode === ModalHexEditor.Modes.Visual) this._fillSelection(0x00);
+          if (this.mode === HexEditorComponent.Modes.Visual) this._fillSelection(0x00);
           return;
         case 'y':
           e.preventDefault();
-          if (this.mode === ModalHexEditor.Modes.Visual) {
+          if (this.mode === HexEditorComponent.Modes.Visual) {
             const [s, en] = this._selRange();
             this.yankBuffer = this.data.slice(s, en + 1);
             this.lastSelection = [s, en];
@@ -463,19 +461,19 @@
           return;
         case 'm':
           e.preventDefault();
-          this.mode = ModalHexEditor.Modes.Command; this.cmdPrefix = ':'; this.cmdBuffer = 'mark ';
+          this.mode = HexEditorComponent.Modes.Command; this.cmdPrefix = ':'; this.cmdBuffer = 'mark ';
           this._render();
           return;
         case 'u':
           e.preventDefault(); this._undo(); return;
         case '/':
           e.preventDefault();
-          this.mode = ModalHexEditor.Modes.Command; this.cmdPrefix = '/'; this.cmdBuffer = '';
+          this.mode = HexEditorComponent.Modes.Command; this.cmdPrefix = '/'; this.cmdBuffer = '';
           this._render();
           return;
         case ':':
           e.preventDefault();
-          this.mode = ModalHexEditor.Modes.Command; this.cmdPrefix = ':'; this.cmdBuffer = '';
+          this.mode = HexEditorComponent.Modes.Command; this.cmdPrefix = ':'; this.cmdBuffer = '';
           this._render();
           return;
         case 'n':
@@ -768,7 +766,7 @@
       const b = this.data[this.cursor];
       const ch = (b >= 32 && b < 127) ? String.fromCharCode(b) : '.';
       this.stByte.textContent = `byte ${b.toString(16).padStart(2, '0').toUpperCase()}  dec ${b}  bin ${b.toString(2).padStart(8, '0')}  '${ch}'`;
-      if (this.mode === ModalHexEditor.Modes.Visual) {
+      if (this.mode === HexEditorComponent.Modes.Visual) {
         const [s, en] = this._selRange();
         this.stSel.textContent = `sel 0x${s.toString(16)}-0x${en.toString(16)} (${en - s + 1}B)`;
       } else {
@@ -777,11 +775,11 @@
       const region = this._regionFor(this.cursor);
       this.stMsg.textContent = this.msg || (region ? `region: ${region.label}` : '');
 
-      if (this.mode === ModalHexEditor.Modes.Command) {
+      if (this.mode === HexEditorComponent.Modes.Command) {
         this.cmdline.innerHTML = '';
         const prefix = this._el('span', 'mhe-prefix', this.cmdPrefix);
         this.cmdline.append(prefix, this.cmdBuffer, this._el('span', '', '\u258C'));
-      } else if (this.mode === ModalHexEditor.Modes.Insert && this.pendingNibble !== null) {
+      } else if (this.mode === HexEditorComponent.Modes.Insert && this.pendingNibble !== null) {
         this.cmdline.textContent = `nibble: ${this.pendingNibble}_`;
       } else {
         this.cmdline.textContent = '';
@@ -796,7 +794,7 @@
 
       this.rowsEl.style.transform = `translateY(${first * this.rowHeight}px)`;
       const frag = document.createDocumentFragment();
-      const [selS, selE] = this.mode === ModalHexEditor.Modes.Visual ? this._selRange() : [-1, -1];
+      const [selS, selE] = this.mode === HexEditorComponent.Modes.Visual ? this._selRange() : [-1, -1];
       const matchSet = this.searchMatches.length ? new Set() : null;
       if (matchSet && this.searchNeedleLen) {
         const winStart = first * this.bytesPerRow, winEnd = (last + 1) * this.bytesPerRow;
@@ -830,7 +828,7 @@
 
           const hc = this._el('div', 'mhe-hexcell' + (c % 8 === 7 ? ' mhe-grp' : ''));
           hc.dataset.addr = addr;
-          hc.textContent = (addr === this.cursor && this.mode === ModalHexEditor.Modes.Insert && this.pendingNibble !== null)
+          hc.textContent = (addr === this.cursor && this.mode === HexEditorComponent.Modes.Insert && this.pendingNibble !== null)
             ? this.pendingNibble.toUpperCase() + '_'
             : val.toString(16).padStart(2, '0').toUpperCase();
           if (val !== this.original[addr]) hc.classList.add('mhe-modified');
@@ -861,55 +859,51 @@
     }
   }
 
-  global.ModalHexEditor = ModalHexEditor;
-})(window);
+class HexEditor extends AppWindow {
+    constructor() {
+        super({title:"CODE-mem Hex Editor", type:"HexEditor", singletonID:"hexEditor", height:768, width:695, resizable: true});
+        this.hex_editor_el = createNewElement("div", {styles:{width:'100%', height:'100%'}});
+        this.setBody(this.hex_editor_el);
+        this.editor = new HexEditorComponent(this.hex_editor_el, {
+            size: 0x10000,
+            height: '100%',
+            width: '100%',
+            bytesPerRow: 16,
+            mode:HexEditorComponent.Modes.Insert,
+            onChange: (addr, value) => { 
+                console.log(`@ ${hex(addr,4)} changed to ${hex(value,2)}`); 
+                cpu.CODE[addr] = value;
 
+                for (let i = 0; i < cpu.CODE.length; i++) {
+                    if (cpu.CODE[i] != cpu.CODE_ORIGINAL[i]) {
+                        console.log(
+                            `0x${i.toString(16).padStart(4, "0").toUpperCase()}: ` +
+                            `${cpu.CODE_ORIGINAL[i].toString(16).padStart(2, "0").toUpperCase()} -> ` +
+                            `${cpu.CODE[i].toString(16).padStart(2, "0").toUpperCase()}`
+                        );
+                    }
+                }
+            },
+            onSave: (bytes) => { 
+                console.log('onSave fired,', bytes.length, 'bytes');
+                printHashAsync(bytes);
+            },
+            onLoad: (bytes, info) => { 
+                setCODE_LoadProfile_ResetCpu(Array.from(bytes))
+                let logText = `hex editor loaded binary - fileName: ${info.fileName}, size: ${bytes.length} bytes`;
+                console.log(logText);
+                log(logText);
+            }
+        });
+        this.editor.addBookmark(0x1EFC, 'standby / root menu record');
+        this.editor.highlightRange(0x1EFC, 0x1EFC + 31, 'menu record (32B struct)');
+    }
 
-function initHexEditorForm() {
-    window.hex_edit_modal = new Modal({title:"CODE-mem Hex Editor", height:768, width:695, resizable: true});
-    
-    const hex_editor_root_el = createNewElement("div", {id:"hex-editor", styles:{width:'100%', height:'100%'}});
-
-    window.hex_edit_modal.setBody(hex_editor_root_el);
-
-    const editor = new ModalHexEditor(hex_editor_root_el, {
-      size: 0x10000,
-      height: '100%',
-      width: '100%',
-      bytesPerRow: 16,
-      mode:ModalHexEditor.Modes.Insert,
-      onChange: (addr, value) => { 
-        console.log(`@ ${hex(addr,4)} changed to ${hex(value,2)}`); 
-        cpu.CODE[addr] = value;
-
-        for (let i = 0; i < cpu.CODE.length; i++) {
-          if (cpu.CODE[i] != cpu.CODE_ORIGINAL[i]) {
-              console.log(
-                  `0x${i.toString(16).padStart(4, "0").toUpperCase()}: ` +
-                  `${cpu.CODE_ORIGINAL[i].toString(16).padStart(2, "0").toUpperCase()} -> ` +
-                  `${cpu.CODE[i].toString(16).padStart(2, "0").toUpperCase()}`
-              );
-
-          }
+    open(bytes = null) {
+        super.open();
+        if (bytes != null) {
+            this.editor.loadBytes(bytes);
         }
-      },
-      onSave: (bytes) => { 
-        console.log('onSave fired,', bytes.length, 'bytes');
-        printHashAsync(bytes);
-      },
-      onLoad: (bytes, info) => { 
-        setCODE_LoadProfile_ResetCpu(Array.from(bytes))
-        let logText = `hex editor loaded binary - fileName: ${info.fileName}, size: ${bytes.length} bytes`;
-        console.log(logText);
-        log(logText);
-      }
-    });
-
-    // Example annotations from the REGO600 reverse-engineering notes —
-    // remove or replace these once wired to real analysis data.
-    editor.addBookmark(0x1EFC, 'standby / root menu record');
-    editor.highlightRange(0x1EFC, 0x1EFC + 31, 'menu record (32B struct)');
-
-    window.hexEditor = editor;
-    editor.viewport.focus();
+        this.editor.viewport.focus();
+    }
 }

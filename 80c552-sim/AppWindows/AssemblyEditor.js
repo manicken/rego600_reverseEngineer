@@ -1,4 +1,6 @@
-class AssemblyEditor {
+class AssemblyEditor extends AceEditor {
+
+    static #ModalTitle = "Assembly Editor";
 
     #editor_menu = [
         {
@@ -21,7 +23,7 @@ class AssemblyEditor {
                 {
                     label: "Open",
                     comment: "not implemented yet",
-                    action: () => { notImplementedMessageDialog(); } 
+                    action: () => { NotImplementedMessageDialog.Show(); } 
 
                 },
             ]
@@ -48,27 +50,25 @@ class AssemblyEditor {
     ];
 
     constructor({onBuild = (asmList) => {}}={}) {
-        this.modal = new AceEditorModal({title:"Assembly Editor", type:"assemblyEditor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
-        // extract commonly used objects
-        this.ace_editor = this.modal.ace_editor;
-        this.ace_editor_el = this.modal.ace_editor_el;
+        super({title:AssemblyEditor.#ModalTitle, type:"assemblyEditor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+        
         this.onBuild = onBuild;
 
-        this.ace_editor.commands.addCommand({
+        this.aceEditor.commands.addCommand({
             name: "save",
             bindKey: { win: "Ctrl-S", mac: "Command-S" },
             exec: () => this.saveCurrent()
         });
 
-        this.ace_editor.commands.addCommand({
+        this.aceEditor.commands.addCommand({
             name: "build",
             bindKey: { win: "Ctrl-Shift-C", mac: "Command-Shift-C" },
             exec: () => this.buildCurrent()
         });
 
-        this.modal.header_el.style.paddingBottom = '0px';
+        this.header_el.style.paddingBottom = '0px';
 
-        let toolbar_el = appendNewElement(this.modal.header_el, 'div', {styles:{width: '100%', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'0px'}});
+        let toolbar_el = appendNewElement(this.header_el, 'div', {styles:{width: '100%', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', padding:'0px'}});
         
         let menu_el = appendNewElement(toolbar_el, 'div');
         createMenu(menu_el, this.#editor_menu);
@@ -77,14 +77,14 @@ class AssemblyEditor {
         buttons_el.style.marginLeft = 'auto';
         toolbar_el.appendChild(buttons_el);
 
-        let tab_msgr_el = appendNewElement(this.modal.header_el, 'div', {styles:{marginTop:'8px'}});
+        let tab_msgr_el = appendNewElement(this.header_el, 'div', {styles:{marginTop:'8px'}});
         this.#initTabManager(tab_msgr_el);
 
         this.#loadFiles();
 
         // used to show assemble result
         this.hexNumberRenderer = new HexNumberRenderer();
-        this.hexNumberRenderer.attach(this.modal.ace_editor);
+        this.hexNumberRenderer.attach(this.aceEditor);
     }
 
     #loadFiles() {
@@ -110,9 +110,9 @@ class AssemblyEditor {
             this.getOrCreateSession(e.detail.tab)
         });
         this.tm.addEventListener('activate', e => {
-            this.ace_editor_el.style.display = '';
+            this.aceEditor_el.style.display = '';
             log("tm - activated: " + e.detail.tab.title);
-            let editor = this.ace_editor;
+            let editor = this.aceEditor;
             if (editor == undefined) { 
                 log("WARNING - ACE editor was not init");
                 return;
@@ -120,10 +120,12 @@ class AssemblyEditor {
             let session = this.getOrCreateSession(e.detail.tab);
             editor.setSession(session);
             editor.focus();
+
+            this.setTitle(AssemblyEditor.#ModalTitle + " - " + e.detail.tab.title);
         });
         this.tm.addEventListener('lastclosed', e => {
             log("last closed: " + e.detail.tab.title);
-            this.ace_editor_el.style.display = 'none';
+            this.aceEditor_el.style.display = 'none';
         });
         this.tm.addEventListener('renamed', e => {
             log("renamed: " + e.detail.tab.title);
@@ -140,10 +142,6 @@ class AssemblyEditor {
             e.detail.tab.data.removePermanent();
             delete e.detail.tab.data;
         });
-    }
-
-    openModal() {
-        this.modal.open();
     }
 
     addFileToTabs(edit) {
@@ -293,7 +291,7 @@ class AssemblyEditor {
         let tab = this.tm.currentTab();
         let session = this.getOrCreateSession(tab);
         this.buildFromSession(session);
-        this.hexNumberRenderer.update(null, this.ace_editor);
+        this.hexNumberRenderer.update(null, this.aceEditor);
     }
 
     buildAll() {
@@ -302,7 +300,7 @@ class AssemblyEditor {
         for (let session of this.sessions.values()) {
             this.buildFromSession(session);
         }
-        this.hexNumberRenderer.update(null, this.ace_editor);
+        this.hexNumberRenderer.update(null, this.aceEditor);
     }
 
 }

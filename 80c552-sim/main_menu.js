@@ -23,22 +23,26 @@ window.app.main_menu = [
             {
                 label: "Save Project [not implemented yet]",
                 action: () => { console.log("save project stub");}
-            }
+            },
+            {
+                label: "Settings",
+                action: () => { AppWindow.Singletons.settings.open(); }
+            },
+            
         ]
     }, 
     {
-        label: "Window",
+        label: "Tools",
         items: [
             {
                 label: "Assembly Editor",
                 action: () => { 
-                    window.app.asmEdit.openModal();
-                    
-                 }
+                    new AssemblyEditor({ onBuild: asmEditOnBuild }).open();
+                }
             },
             {
                 label: "Profiler",
-                action: () => { window.app.profiler.openModal(); }
+                action: () => {  AppWindow.Singletons.profiler.open(); }
             },
             {
                 label: "Code HexEditor",
@@ -48,10 +52,7 @@ window.app.main_menu = [
                 label: "Goto Label",
                 action: () => { gotoLabel(); }
             },
-            {
-                label: "Settings",
-                action: () => { openSettings(); }
-            },
+            
             
         ]
     }

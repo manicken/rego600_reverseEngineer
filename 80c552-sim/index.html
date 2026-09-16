@@ -2,36 +2,39 @@
 <html lang="en">
 <head>
   <link rel="stylesheet" href="main.css">
-  <link rel="stylesheet" href="led-panel.css">
-  <link rel="stylesheet" href="modal.css">
-  <link rel="stylesheet" href="hex-editor.css">
-  <link rel="stylesheet" href="panel_disassembly.css">
-  <link rel="stylesheet" href="panel_disassembly_goto_label_form.css">
-  <link rel="stylesheet" href="panel_disassembly_list_label_references_form.css">
-  <link rel="stylesheet" href="settings_form.css">
-  <link rel="stylesheet" href="menu.css">
-  <link rel="stylesheet" href="profiling.css">
-  <link rel="stylesheet" href="button-bar.css">
-  <link rel="stylesheet" href="assembler/tabmanager.css">
-  <link rel="stylesheet" href="assembler/tabmanager-menu.css">
-  <link rel="stylesheet" href="modal-manager.css">
+  <link rel="stylesheet" href="panels/led-panel.css">
+
+  <link rel="stylesheet" href="panels/panel_disassembly.css">
+
+  <link rel="stylesheet" href="components/menu/menu.css">
+  <link rel="stylesheet" href="AppWindows/Profiler.css">
+  <link rel="stylesheet" href="components/button-bar/button-bar.css">
+  <link rel="stylesheet" href="components/tabmanager/tabmanager.css">
+  <link rel="stylesheet" href="components/tabmanager/tabmanager-menu.css">
+
+  <link rel="stylesheet" href="AppWindows/AppWindow.css">
+  <link rel="stylesheet" href="AppWindows/HexEditor.css">
+  <link rel="stylesheet" href="AppWindows/GotoLabelForm.css">
+  <link rel="stylesheet" href="AppWindows/LabelReferencesForm.css">
+  <link rel="stylesheet" href="AppWindows/SettingsEditor.css">
+  <link rel="stylesheet" href="AppWindows/AppWindowManager.css">
   <meta charset="UTF-8">
   <title>80C552 Simulator (js51-based)</title>
 </head>
 <body>
 
   <script src="main.js"></script>
-  <script src="project_and_file_manager.js"></script>
+  <script src="utils/project_and_file_manager.js"></script>
   <script src="main_menu.js"></script>
-  <script src="AppStorage.js"></script>
+  <script src="utils/AppStorage.js"></script>
+
   
-  <script src="modal-manager.js"></script>
 
   <!-- hex function -->
-  <script src="helpers.js"></script>
-  <script src="dom_helpers.js"></script>
-  <script src="modal.js"></script>
-  <script src="hex-editor.js"></script>
+  <script src="utils/helpers.js"></script>
+  <script src="utils/dom_helpers.js"></script>
+
+  
 
   <!-- aimini_js51vm js51 core (modified) -->
   <script src="aimini_js51vm/51vm_core.js"></script>
@@ -68,40 +71,34 @@
   <script src="ext_devices/device_CD4051.js"></script>
   <script src="ext_devices/device_Inverter.js"></script>
 
-  <script src="lcd_sim_chargen.js"></script>
-  <script src="panel_front_panel_cgram_bars.js"></script>
-  <script src="panel_front_panel_cgram_normal.js"></script>
-  <script src="lcd_sim.js"></script> 
+  <script src="components/lcd_sim/lcd_sim_chargen.js"></script>
+  <script src="panels/panel_front_panel_cgram_bars.js"></script>
+  <script src="panels/panel_front_panel_cgram_normal.js"></script>
+  <script src="components/lcd_sim/lcd_sim.js"></script> 
 
   
-  <script src="panel_front_panel.js"></script> 
+  <script src="panels/panel_front_panel.js"></script> 
 
-  <script src="panel_registers.js"></script> 
-  <script src="panel_sensor_inputs.js"></script> 
-  <script src="panel_service_interface.js"></script> 
-  <script src="panels_memory.js"></script> 
-  <script src="panel_disassembly.js"></script>
-  <script src="panel_disassembly_goto_label_form.js"></script>
-  <script src="panel_disassembly_list_label_references_form.js"></script>
-  <script src="panel_disassembly_contextmenu.js"></script>
-  <script src="settings_form.js"></script>
-  <script src="profiling.js"></script>
-  <script src="menu.js"></script>
+  <script src="panels/panel_registers.js"></script> 
+  <script src="panels/panel_sensor_inputs.js"></script> 
+  <script src="panels/panel_service_interface.js"></script> 
+  <script src="panels/panels_memory.js"></script> 
+  <script src="panels/panel_disassembly.js"></script>
+  
+  <script src="panels/panel_disassembly_contextmenu.js"></script>
+  
+  <script src="components/menu/menu.js"></script>
   
   <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.5.0/ace.js" type="text/javascript" charset="utf-8"></script>   -->
-  <script src="ace/ace.js"></script>
-  <script src="ace/folding-assembly_8051.js"></script>
-  <script src="ace/highlight-rules-assembly_8051.js"></script>
-  <script src="ace/mode-assembly_8051.js"></script>
-
-
-  <script src="assembler/asm51-browser.js"></script>
-  <script src="assembler/tabmanager.js"></script>
   
-   <script src="AssemblyEditor.js"></script>
-  <script src="AssemblyViewer.js"></script>
+  
 
-  <script src="button-bar.js"></script>
+
+  <script src="components/assembler/asm51-browser.js"></script>
+  <script src="components/tabmanager/tabmanager.js"></script>
+  
+
+  <script src="components/button-bar/button-bar.js"></script>
 
   <script src="firmware_profiles.js"></script>
 
@@ -109,7 +106,28 @@
 
   <script src="simulator.js"></script>
   
+  <script src="libs/ace.js"></script>
+  <script src="ace/folding-assembly_8051.js"></script>
+  <script src="ace/highlight-rules-assembly_8051.js"></script>
+  <script src="ace/mode-assembly_8051.js"></script>
+
+  <script src="AppWindows/AppWindow.js"></script>
+  <script src="AppWindows/InfoDialog.js"></script>
+  <script src="AppWindows/InputDialog.js"></script>
+  <script src="AppWindows/ConfirmDialog.js"></script>
   
+  <script src="AppWindows/AppWindowManager.js"></script>
+
+  <script src="AppWindows/HexEditor.js"></script>
+  <script src="AppWindows/SettingsEditor.js"></script>
+  <script src="AppWindows/Profiler.js"></script>
+  <script src="AppWindows/AceEditor.js"></script>
+  <script src="AppWindows/AssemblyEditor.js"></script>
+  <script src="AppWindows/AssemblyViewer.js"></script>
+  <script src="AppWindows/GotoLabelForm.js"></script>
+  <script src="AppWindows/LabelReferencesForm.js"></script>
+  <script src="AppWindows/HelpForm8051InstructionsList.js"></script>
+  <script src="AppWindows/HelpForm8051Instructions.js"></script>
 
   <!-- BODY CONTENTS -->
 <div class="col" style="height: 100%; width: 100%;">

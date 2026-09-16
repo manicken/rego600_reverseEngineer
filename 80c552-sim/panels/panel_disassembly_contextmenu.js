@@ -56,7 +56,7 @@ function initDisasmContextMenu() {
         };
         disasmContextMenu_el.appendChild( new_el );
     }
-    console.log(disasmContextMenu_items);
+    //console.log(disasmContextMenu_items);
 
     document.body.appendChild(disasmContextMenu_el);
 
@@ -92,7 +92,7 @@ function showDisasmContextMenu(event, disasmLine) {
     disasmContextMenu_items.editCode.setDisabled(isLabel || !oneItemSelected);
     disasmContextMenu_items.editLabel.setDisabled(isLabel || !oneItemSelected);
     disasmContextMenu_items.toggleBreakpoint.setDisabled(isLabel || !oneItemSelected);
-    disasmContextMenu_items.viewAsmCode.setDisabled(isLabel || !oneItemSelected);
+    disasmContextMenu_items.viewAsmCode.setDisabled(isLabel);
     disasmContextMenu_items.showAddressReferences.setDisabled(isLabel || !oneItemSelected);
 
     const menu = disasmContextMenu_el;

@@ -72,7 +72,7 @@ class TabManager extends EventTarget {
     Object.defineProperty(tab, "title",
         Object.getOwnPropertyDescriptor(options, "title")
     );
-    console.log(Object.getOwnPropertyDescriptor(options, "title"));
+    //console.log(Object.getOwnPropertyDescriptor(options, "title"));
 
     this.tabs.set(id, tab);
     this.order.push(id);
@@ -92,7 +92,7 @@ class TabManager extends EventTarget {
     if (!this.tabs.has(id)) return;
     const tab = this.tabs.get(id);
 
-    inputModal({title:"Rename file", message:"Renaming file " + tab.title, value: tab.title,
+    InputDialog.Show({title:"Rename file", message:"Renaming file " + tab.title, value: tab.title,
       onValidate:(value)=>{
         return AppStorageFileSystem.exists(value)?"A File allready exist with that name!":true;
       }, 
@@ -154,7 +154,7 @@ class TabManager extends EventTarget {
     const tab = this.tabs.get(id);
     if (!tab) return;
     
-    confirmModal({
+    ConfirmDialog.Show({
         title: "Confirm delete",
         message: `Are you sure you want to delete: ${tab.title}<br><br>Warning this cannot be undone!`,
         confirmText: "Delete Permanent",

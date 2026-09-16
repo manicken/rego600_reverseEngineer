@@ -1,60 +1,51 @@
 
 window.app = {}; // global object to store all instances
+window.app.windows = {}; // will be removed in future
 
 /*window.addEventListener("beforeunload", (e) => {
   e.preventDefault();
   e.returnValue = true;
     
 });*/
+//console.log(new AppWindow() != undefined); // Skriver ut: function Window() { [native code] }
 
 document.addEventListener("DOMContentLoaded", async () => {
     AppStorage.setPrefix('js51.80c552.');
-
     window.app.log = document.getElementById('log');
-    Modal.initModalManager(document.getElementById("modal-manager"));
-
-    /*for (let i=0; i< 20; i++) {
-      log(i);
-    }*/
-
+    AppWindowManager.init(document.getElementById("modal-manager"));
     init_main_menu();
     await simulator_init();
-    
-    window.app.goto_label_modal = new Modal({title:"Goto Label", type:"gotoLabel", height:768, width:420, resizable: true});
-    window.app.list_label_references_modal = new Modal({title:"Address References", type:"addressReferences", height:768, width:420, resizable: true});
-    window.app.settings_modal = new Modal({title:"Settings", type:"globalSettings", height:768, width:420, resizable: true});
-    
-    window.app.asmView = new AssemblyViewer();
-    window.app.asmEdit = new AssemblyEditor({onBuild:(asmList) => {
-      
-        //printAsmList(asmList);
-
-        for (let [addr, byte] of asmList.bytes) {
-          //console.log(`${hex(addr,4)} [ ${hex(byte,2)} ]`);
-          window.app.cpu.CODE[addr] = byte;
-        }
-        let code_map = replaceRemoveLabels(curr_firmware.code_map, asmList.listing)
-        //console.log(code_map);
-        completeRebuildDisassembly(code_map);
-        rebuildDisasmDisplayList();
-        renderVisibleDisasmRows();
-      
-    }});
-
-    
-
-    window.app.profiler = new Profiler({cpu:window.app.cpu, onGotoAddress: (addr) => {
-        gotoDisasmAddress(addr);
-    }});
-
-    initHexEditorForm();
+    initSingletonAppWindows();
     init_project_and_file_manager();
-
-    console.log(AppStorageFileSystem.list(/*'', name => name.endsWith('.asm')*/));
-
+    console.log(AppStorageFileSystem.list());
 });
 
+function initSingletonAppWindows() {
+    new GotoLabelForm({ onGotoAddress: gotoDisasmAddress, filters: [
+        [js51_disasm.LabelType.User, "User"],
+        [js51_disasm.LabelType.Func, "Functions"],
+        [js51_disasm.LabelType.Jump,  "Jumps"]
+    ]});
+    new LabelReferencesForm({ onGotoAddress: gotoDisasmAddress });
+    new SettingsEditor();
+    new AssemblyViewer();
+    new Profiler({ cpu:window.app.cpu, onGotoAddress: gotoDisasmAddress });
+    new HexEditor();
+}
 
+function asmEditOnBuild(asmList) {
+    //printAsmList(asmList);
+
+    for (let [addr, byte] of asmList.bytes) {
+      //console.log(`${hex(addr,4)} [ ${hex(byte,2)} ]`);
+      window.app.cpu.CODE[addr] = byte;
+    }
+    let code_map = replaceRemoveLabels(curr_firmware.code_map, asmList.listing)
+    //console.log(code_map);
+    completeRebuildDisassembly(code_map);
+    rebuildDisasmDisplayList();
+    renderVisibleDisasmRows();
+}
 
 function replaceRemoveLabels(code_map, asmList) {
     // First remove entries in code_map that

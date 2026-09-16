@@ -48,16 +48,17 @@ function gotoDisasmAddress(addr) {
 }
 
 function editCode() {
-    window.hex_edit_modal.open();
-    window.hexEditor.loadBytes(cpu.CODE);
+
+    AppWindow.Singletons.hexEditor.open(cpu.CODE);
+
     if (disasmLineContext && disasmLineContext.data) {
-        window.hexEditor.jumpTo(disasmLineContext.data.addr);
+        AppWindow.Singletons.hexEditor.editor.jumpTo(disasmLineContext.data.addr);
     }
 }
 
 function viewAsmCode() {
     let asmCode = getAssemblyInstructions({insn_incr:4});
-    window.app.asmView.open(asmCode);
+    AppWindow.Singletons.asmView.open(asmCode);
 }
 
 function gotoAddress() {
@@ -70,11 +71,11 @@ function gotoAddress() {
 }
 
 function gotoLabel() {
-    showGotoLabelModal();
+    AppWindow.Singletons.gotoLabel.open(insn_map);
 }
 
 function showAddressReferences() {
-    showReferencesToLabelModal(disasmLineContext.data.addr);
+    AppWindow.Singletons.labelReferences.open(insn_map, disasmLineContext.data.addr);
 }
 
 function gotoTarget() {
@@ -417,7 +418,7 @@ function disassembly_init() {
     //loading_el.remove();
     setCurrentExecLine(cpu, true);
 
-    console.log("disassembly: " + disasmEntries.length + " rows, rowHeight=" + rowHeight + ", pool=" + disasmPool.length + ", viewport clientHeight=" + viewport_el.clientHeight);
+    //console.log("disassembly: " + disasmEntries.length + " rows, rowHeight=" + rowHeight + ", pool=" + disasmPool.length + ", viewport clientHeight=" + viewport_el.clientHeight);
 
     initSelectFunctionality(disassemblyView_el);
 }
@@ -528,13 +529,13 @@ function buildPoolRow() {
 }
 
 function initDisasmPool() {
-    console.log({
+    /*console.log({
         clientHeight: disasmViewport_el.clientHeight,
         scrollHeight: disasmViewport_el.scrollHeight,
         offsetHeight: disasmViewport_el.offsetHeight,
         entries: disasmDisplayList.length,
         rowHeight
-    });
+    });*/
     
     const visibleRows = Math.ceil(disasmViewport_el.clientHeight / rowHeight);
     const poolSize = Math.min(disasmDisplayList.length, visibleRows + DISASM_BUFFER_ROWS * 2);

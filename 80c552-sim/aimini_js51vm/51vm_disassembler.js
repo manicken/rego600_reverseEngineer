@@ -661,7 +661,7 @@
             for (let item of data_entries) {
                 if (addr < item.start) continue;
                 if (addr > item.end) continue;
-                console.log("found data @ address:" + hex(addr,4));
+                //console.log("found data @ address:" + hex(addr,4));
                 return true;
             }
             return false;
@@ -673,8 +673,8 @@
 
         while (queue.length) {
 
-            //if (visited.size >= 200) // development limit
-            //    break;
+           // if (visited.size >= 200) // development limit
+           //     break;
 
             let addr = queue.pop()
             if (visited.has(addr)) continue

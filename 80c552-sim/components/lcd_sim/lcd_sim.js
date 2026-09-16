@@ -64,7 +64,7 @@ class CharLCDSim {
 
     setPixelOffAlpha(alpha) {
         this.pixelOffAlpha = "#ffffff" + alpha.toString(16).padStart(2,'0');
-        console.log(this.pixelOffAlpha);
+        //console.log(this.pixelOffAlpha);
     }
 
     setBacklight(on) {
@@ -88,7 +88,9 @@ class CharLCDSim {
 
         let glyph = this.cgram[char] || this.cgrom[char];
         if (glyph == undefined) {
-            console.log("glyph == undefined @ " + hex(char));
+            if (char != 0x00) {
+                console.log("glyph == undefined @ " + hex(char));
+            }
             glyph = [];
         }
         const x = col * this.char_Xdistance;

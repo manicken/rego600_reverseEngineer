@@ -336,5 +336,3 @@ let help_8051_instructions = [
     {inst:"MOV", params:"R6,A", opcode:0xFE, bytes: 1, cycles: 1, flags: "none", encoding:"11111110", descr:"Store the accumulator into register R6"},
     {inst:"MOV", params:"R7,A", opcode:0xFF, bytes: 1, cycles: 1, flags: "none", encoding:"11111111", descr:"Store the accumulator into register R7"}
 ];
-
-export default help_8051_instructions;

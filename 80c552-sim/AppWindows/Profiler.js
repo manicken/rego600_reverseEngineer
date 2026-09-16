@@ -31,7 +31,7 @@ class ProfilerItem {
     }
 }
 
-class Profiler {
+class Profiler extends AppWindow {
 
     #buttonBar = [
         {
@@ -70,20 +70,21 @@ class Profiler {
     }
 
     constructor({cpu = undefined, onGotoAddress = (addr) => {console.log("onGotoAddress: " + addr);}}) {
-        this.#onGotoAddress = onGotoAddress;
+        
         if (cpu == undefined || cpu.instruction_ticks == undefined) {
             throw Error("Profiler cannot run without a js51 CPU instance");
         }
         cpu.instruction_ticks.push((cycles, opcode_start_PC) => {this.#profilerTask(cycles, opcode_start_PC)});
+        super({title:"Profiler", type:"Profiler", singletonID:"profiler", height:700, width:800, resizable: true});
+        this.#onGotoAddress = onGotoAddress;
 
-        this.modal = new Modal({title:"Profiler", height:700, width:800, resizable: true});
-        this.modal.bodyEl.innerHTML = "";
+        this.body_el.innerHTML = "";
         // override modal styles
-        setStyles(this.modal.bodyEl, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
+        setStyles(this.body_el, { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding:'6px', boxSizing: 'border-box' });
         
-        this.header_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-header' });
-        this.toolbar_el = appendNewElement(this.header_el, 'div', { className:'profiler-toolbar' });
-        let tableheader_el = appendNewElement(this.header_el, 'div', { className:'profiler-grid-row' });
+        this.subheader_el = appendNewElement(this.body_el, 'div', { className:'profiler-header' });
+        this.toolbar_el = appendNewElement(this.subheader_el, 'div', { className:'profiler-toolbar' });
+        let tableheader_el = appendNewElement(this.subheader_el, 'div', { className:'profiler-grid-row' });
         
         appendNewElement(tableheader_el, 'input', {type:'checkbox', onchange:(e)=>{this.enable_disable_all(e.currentTarget.checked)}});
         
@@ -97,7 +98,7 @@ class Profiler {
 
         appendNewElement(tableheader_el, 'div', {textContent:' label'});
 
-        this.body_el = appendNewElement(this.modal.bodyEl, 'div', { className:'profiler-body' });
+        this.subbody_el = appendNewElement(this.body_el, 'div', { className:'profiler-body' });
         let buttons_el = createButtonBar(this.#buttonBar);
         this.toolbar_el.appendChild(buttons_el);
 
@@ -121,11 +122,6 @@ class Profiler {
         }));
 
         this.#profilingData.save();
-    }
-
-    openModal()
-    {
-        this.modal.open();
     }
 
     #getCyclesTime(cycles) {
@@ -172,7 +168,7 @@ class Profiler {
         };
 
         this.#profilingItems.push(item);
-        this.body_el.appendChild(this.#getProfilerRow(item));
+        this.subbody_el.appendChild(this.#getProfilerRow(item));
     }
 
     /** @param {ProfilerItem} item */
