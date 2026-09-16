@@ -8,6 +8,7 @@ class GotoLabelForm extends AppWindow {
         this.onGotoAddress = onGotoAddress;
         this._initialized = false;
         this.filters = [[GotoLabelForm.#FilterTypeAll, "All"], ...filters];
+        this._initContent();
     }
 
     _initContent() {
@@ -70,10 +71,7 @@ class GotoLabelForm extends AppWindow {
         }
     }
 
-    open(insn_map) {
-        if (!this._initialized) {
-            this._initContent();
-        }
+    generateList(insn_map) {
         this.labels = [];
         for (const [address, insn] of insn_map) {
             if (insn.labelType == undefined) continue;
@@ -81,6 +79,5 @@ class GotoLabelForm extends AppWindow {
         }
         this.labels.sort((a, b) => a.address - b.address);
         this.renderLabels();
-        super.open();
     }
 }

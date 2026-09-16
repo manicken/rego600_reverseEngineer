@@ -1,56 +1,56 @@
 
 :root{
-    --modalmgr-bg:            #1b1e24;
-    --modalmgr-strip-bg:      #14161b;
-    --modalmgr-tab-bg:        #1f232b;
-    --modalmgr-tab-bg-hover:  #262b34;
-    --modalmgr-tab-bg-active: #2b4888;
-    --modalmgr-border:        #2c313b;
-    --modalmgr-accent:        #5fb0ff;
-    --modalmgr-text:          #c7cdd6;
-    --modalmgr-text-dim:      #767e8c;
-    --modalmgr-text-active:   #ffffff;
-    --modalmgr-danger:        #e5636b;
-    --modalmgr-radius:        6px;
-    --modalmgr-tab-h:         34px;
-    --modalmgr-font:          ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
-    --modalmgr-font-ui:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --app-window-manager-bg:            #1b1e24;
+    --app-window-manager-strip-bg:      #14161b;
+    --app-window-manager-tab-bg:        #1f232b;
+    --app-window-manager-tab-bg-hover:  #262b34;
+    --app-window-manager-tab-bg-active: #2b4888;
+    --app-window-manager-border:        #2c313b;
+    --app-window-manager-accent:        #5fb0ff;
+    --app-window-manager-text:          #c7cdd6;
+    --app-window-manager-text-dim:      #767e8c;
+    --app-window-manager-text-active:   #ffffff;
+    --app-window-manager-danger:        #e5636b;
+    --app-window-manager-radius:        6px;
+    --app-window-manager-tab-h:         34px;
+    --app-window-manager-font:          ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    --app-window-manager-font-ui:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* ---------- TabManager core ---------- */
 
-.modalmgr{
+.app-window-manager{
     display:flex;
     align-items:stretch;
-    background:var(--modalmgr-strip-bg);
-    border-bottom:1px solid var(--modalmgr-border);
-    height:var(--modalmgr-tab-h);
+    background:var(--app-window-manager-strip-bg);
+    border-bottom:1px solid var(--app-window-manager-border);
+    height:var(--app-window-manager-tab-h);
     position:relative;
     user-select:none;
 }
 
-.modalmgr-scrollbtn{
+.app-window-manager-scrollbtn{
     flex:0 0 auto;
     width:22px;
     display:flex;
     align-items:center;
     justify-content:center;
-    background:var(--modalmgr-strip-bg);
-    color:var(--modalmgr-text-dim);
+    background:var(--app-window-manager-strip-bg);
+    color:var(--app-window-manager-text-dim);
     border:none;
     cursor:pointer;
     font-size:13px;
 }
 
-.modalmgr-scrollbtn:hover{
-    color:var(--modalmgr-text-active);
+.app-window-manager-scrollbtn:hover{
+    color:var(--app-window-manager-text-active);
 }
 
-.modalmgr-scrollbtn[hidden]{
+.app-window-manager-scrollbtn[hidden]{
     display:none;
 }
 
-.modalmgr-strip{
+.app-window-manager-strip{
     flex:1 1 auto;
     display:flex;
     overflow-x:auto;
@@ -58,11 +58,11 @@
     scroll-behavior:smooth;
 }
 
-.modalmgr-strip::-webkit-scrollbar{
+.app-window-manager-strip::-webkit-scrollbar{
     display:none;
 }
 
-.modalmgr-tab{
+.app-window-manager-tab{
     flex:0 0 auto;
     display:flex;
     align-items:center;
@@ -70,36 +70,36 @@
     max-width:200px;
     min-width:110px;
     padding:0 6px 0 10px;
-    background:var(--modalmgr-tab-bg);
-    border-right:1px solid var(--modalmgr-border);
-    color:var(--modalmgr-text);
+    background:var(--app-window-manager-tab-bg);
+    border-right:1px solid var(--app-window-manager-border);
+    color:var(--app-window-manager-text);
     cursor:pointer;
     position:relative;
-    font:12.5px var(--modalmgr-font);
+    font:12.5px var(--app-window-manager-font);
 }
 
-.modalmgr-tab:hover{
-    background:var(--modalmgr-tab-bg-hover);
+.app-window-manager-tab:hover{
+    background:var(--app-window-manager-tab-bg-hover);
 }
 
-.modalmgr-tab.active{
-    background:var(--modalmgr-tab-bg-active);
-    color:var(--modalmgr-text-active);
+.app-window-manager-tab.active{
+    background:var(--app-window-manager-tab-bg-active);
+    color:var(--app-window-manager-text-active);
 }
 
-.modalmgr-tab.active::after{
+.app-window-manager-tab.active::after{
     content:"";
     position:absolute;
     left:0;
     right:0;
     top:0;
     height:2px;
-    background:var(--modalmgr-accent);
+    background:var(--app-window-manager-accent);
 }
 
 /* ---------- Tab title ---------- */
 
-.modalmgr-tab-title{
+.app-window-manager-tab-title{
     flex:1 1 auto;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -109,7 +109,7 @@
 
 /* ---------- Tab actions ---------- */
 
-.modalmgr-tab-actions{
+.app-window-manager-tab-actions{
     position:relative;
     flex:0 0 auto;
     width:18px;
@@ -117,8 +117,8 @@
 }
 
 /* Dot and close occupy exactly the same position */
-.modalmgr-tab-dot,
-.modalmgr-tab-close{
+.app-window-manager-tab-dot,
+.app-window-manager-tab-close{
     position:absolute;
     left:0;
     top:0;
@@ -126,7 +126,7 @@
 
 /* ---------- Changed indicator ---------- */
 
-.modalmgr-tab-dot{
+.app-window-manager-tab-dot{
     width:7px;
     height:7px;
     margin:5.5px;
@@ -139,20 +139,20 @@
 /*
  * Changed file -> show dot
  */
-.modalmgr-tab.file_changed .modalmgr-tab-dot{
+.app-window-manager-tab.file_changed .app-window-manager-tab-dot{
     display:block;
 }
 
 /*
  * Never show close when file is changed.
  */
-.modalmgr-tab.file_changed .modalmgr-tab-close{
+.app-window-manager-tab.file_changed .app-window-manager-tab-close{
     display:none;
 }
 
 /* ---------- Close button ---------- */
 
-.modalmgr-tab-close{
+.app-window-manager-tab-close{
     width:19px;
     height:19px;
 
@@ -173,33 +173,33 @@
  * Active tab -> show close,
  * unless the file is changed.
  */
-.modalmgr-tab.active:not(.file_changed) .modalmgr-tab-close{
+.app-window-manager-tab.active:not(.file_changed) .app-window-manager-tab-close{
     display:flex;
 }
 
 /*
  * Hover -> close replaces dot.
  */
-.modalmgr-tab:hover .modalmgr-tab-dot{
+.app-window-manager-tab:hover .app-window-manager-tab-dot{
     display:none;
 }
 
-.modalmgr-tab:hover .modalmgr-tab-close{
+.app-window-manager-tab:hover .app-window-manager-tab-close{
     display:flex;
 }
 
 /*
  * Hovering a changed modal also shows close.
  */
-.modalmgr-tab.file_changed:hover .modalmgr-tab-dot{
+.app-window-manager-tab.file_changed:hover .app-window-manager-tab-dot{
     display:none;
 }
 
-.modalmgr-tab.file_changed:hover .modalmgr-tab-close{
+.app-window-manager-tab.file_changed:hover .app-window-manager-tab-close{
     display:flex;
 }
 
-.modalmgr-tab-close:hover{
+.app-window-manager-tab-close:hover{
     background:#834013;
     color:#ffffff;
 }

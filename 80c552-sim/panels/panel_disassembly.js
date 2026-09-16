@@ -71,7 +71,7 @@ function gotoAddress() {
 }
 
 function gotoLabel() {
-    AppWindow.Singletons.gotoLabel.open(insn_map);
+    AppWindow.Singletons.gotoLabel.open();
 }
 
 function showAddressReferences() {

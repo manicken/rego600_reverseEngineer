@@ -21,7 +21,7 @@
  *   AppWindow.open();
  */
 
-class AppWindow {
+class AppWindow extends EventTarget{
 
 	static Singletons = {};
 
@@ -88,9 +88,9 @@ class AppWindow {
         AppWindow.events.dispatchEvent(new CustomEvent(type, { detail: { window } }));
     }
 
-    static getAppWindowList()  { return AppWindow.#windows; }
-    static getOpenTabs()    { return AppWindow.#windows.filter(w => w.state !== AppWindow.States.Closed); }
-    static getClosedTabs()  { return AppWindow.#windows.filter(w => w.state === AppWindow.States.Closed); }
+    //static getAppWindowList()  { return AppWindow.#windows; }
+    static getOpenTabs()    { return AppWindow.#taskbarOrder.filter(w => w.state !== AppWindow.States.Closed); }
+    static getClosedTabs()  { return AppWindow.#taskbarOrder.filter(w => w.state === AppWindow.States.Closed); }
 
     static getActiveWindow() {
         for (let i = AppWindow.#windows.length - 1; i >= 0; i--) {
@@ -110,14 +110,6 @@ class AppWindow {
 			}
 		}
 	}
-	
-	static #remove(window) {
-		const index = AppWindow.#windows.indexOf(window);
-		if (index === -1) return;
-		AppWindow.#windows.splice(index, 1);
-		AppWindow.#updateZIndexes();
-		AppWindowManager._render();
-	}
 
 	/** this is a two use function, 
 	 * if the window no not exist it's added, 
@@ -136,11 +128,12 @@ class AppWindow {
     static activate(window) {
         const wasClosed = window.state === AppWindow.States.Closed;
         window.state = AppWindow.States.Open;
-		window._open();
+		window.show();
         //window.mount();
         AppWindow.#bringToFront(window);
         AppWindowManager._render();
         AppWindow.#emit(wasClosed ? 'reopen' : 'activate', window);
+		window.onOpen?.(window);
     }
 
 	constructor({
@@ -153,6 +146,7 @@ class AppWindow {
 		x,
 		y,
 		closable = true,
+		minimizable = true,
 		draggable = true,
 		backdrop = false,
 		resizable = false,
@@ -165,7 +159,8 @@ class AppWindow {
 		onResize,
 		onResized
 	} = {}) {
-		this.state = AppWindow.States.Minimized;
+		super();
+		this.state = AppWindow.States.Closed;
 		this.title = title,
 		this.type = type,
 		this.onClose = onClose;
@@ -193,16 +188,32 @@ class AppWindow {
 			this.el.setAttribute("aria-modal", "true");
 			this.el.setAttribute("aria-labelledby", this.title_el.id);
 		}
+		let windowControls_el = document.createElement("div");
+		windowControls_el.className = "AppWindow-controls";
+		this.header_el.appendChild(windowControls_el);
+		if (minimizable) {
+			this.minimizeBtn_el = document.createElement("button");
+			this.minimizeBtn_el.className = "AppWindow-control AppWindow-minimize";
+			this.minimizeBtn_el.type = "button";
+			this.minimizeBtn_el.setAttribute("aria-label", "Minimize");
+			this.minimizeBtn_el.textContent = "_";
+			this.minimizeBtn_el.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
+			this.minimizeBtn_el.addEventListener("click", () => this.minimize());
+			windowControls_el.appendChild(this.minimizeBtn_el);
+		}
 
 		if (closable) {
 			this.closeBtn_el = document.createElement("button");
-			this.closeBtn_el.className = "AppWindow-close";
+			this.closeBtn_el.className = "AppWindow-control AppWindow-close";
 			this.closeBtn_el.type = "button";
 			this.closeBtn_el.setAttribute("aria-label", "Close");
 			this.closeBtn_el.textContent = "\u00d7";
+			this.closeBtn_el.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 			this.closeBtn_el.addEventListener("click", () => this.close());
-			this.header_el.appendChild(this.closeBtn_el);
+			windowControls_el.appendChild(this.closeBtn_el);
 		}
+
+		
 
 		this.body_el = document.createElement("div");
 		this.body_el.className = "AppWindow-body";
@@ -260,12 +271,13 @@ class AppWindow {
 			if (AppWindow.Singletons[singletonID] !== undefined) {
 				throw new Error(`AppWindow singleton already exists: ${singletonID}`);
 			}
-
+			AppWindow.#windows.push(this);
+			AppWindow.#taskbarOrder.push(this);
+			AppWindowManager._render();
 			this.canHardClose = false;
 			AppWindow.Singletons[singletonID] = this;
 		}
 
-		//AppWindow.activate(this);
 	}
 
 	_setInitialPosition(x, y) {
@@ -483,34 +495,75 @@ class AppWindow {
 		return this.el.classList.contains("AppWindow--open");
 	}
 
-	_open() {
-		this.el.classList.add("AppWindow--open");
-		if (this.hasBackdrop) this.backdrop_el.classList.add("AppWindow-backdrop--open");
-		if (this._onEscape) document.addEventListener("keydown", this._onEscape);
-		this.onOpen?.(this);
-	}
-
 	open() {
-		AppWindow.activate(this);
+		const idx = AppWindow.#taskbarOrder.indexOf(this);
+        if (idx !== -1) AppWindow.#taskbarOrder.splice(idx, 1);
+		AppWindow.#taskbarOrder.push(this);
+		this.state = AppWindow.States.Open;
+		AppWindow.activate(this); // this exec show
+		this.onOpen?.(this);
 		return this;
 	}
 
+	show() {
+		this.el.classList.add("AppWindow--open");
+		if (this.hasBackdrop) this.backdrop_el.classList.add("AppWindow-backdrop--open");
+		if (this._onEscape) document.addEventListener("keydown", this._onEscape);
+		AppWindow.#emit('show', this);
+	}
+
+	hide() {
+        this.el.classList.remove("AppWindow--open");
+		if (this.hasBackdrop) this.backdrop_el.classList.remove("AppWindow-backdrop--open");
+		AppWindow.#emit('hide', this);
+    }
+
+	minimize() {
+        if (this.state === AppWindow.States.Closed) return;
+        this.state = AppWindow.States.Minimized;
+		this.hide();
+        AppWindowManager._render();
+        AppWindow.#emit('minimize', this);
+    }
+
+	/** SOFT close */
 	close() {
+		if (this.state === AppWindow.States.Closed) return;
+       // const wasActive = AppWindow.getActiveWindow() === this;
+        this.state = AppWindow.States.Closed;
+		this.hide();
+		
 		this.el.classList.remove("AppWindow--open");
 		if (this.hasBackdrop) this.backdrop_el.classList.remove("AppWindow-backdrop--open");
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		this.onClose?.(this);
+		AppWindow.#emit('close', this);
+		AppWindowManager._render();
 		return this;
 	}
 
-	toggle() {
+	/** HARD close – permanent, respekterar canHardClose */
+    hardClose() {
+        if (!this.canHardClose) return false;
+		this.hide();
+        this.destroy();
+        AppWindow.#emit('hardclose', this);
+        return true;
+    }
+
+	/*toggle() {
 		this.isOpen() ? this.close() : this.open();
 		return this;
-	}
+	}*/
 
 	destroy() {
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		(this.hasBackdrop ? this.backdrop_el : this.el).remove();
-		AppWindow.#remove(this);
+		let index = AppWindow.#windows.indexOf(this);
+		if (index !== -1) { AppWindow.#windows.splice(index, 1); }
+		index = AppWindow.#taskbarOrder.indexOf(this);
+		if (index !== -1) { AppWindow.#taskbarOrder.splice(index, 1); }
+		AppWindow.#updateZIndexes();
+		AppWindowManager._render();
 	}
 }

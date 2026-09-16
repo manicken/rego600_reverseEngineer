@@ -1,0 +1,70 @@
+/* closed-tabs dropdown */
+  .app-window-manager-closed{
+    flex:0 0 auto;
+    position:relative;
+    border-left:1px solid var(--app-window-manager-border);
+  }
+  .app-window-manager-closed-btn{
+    height:100%;
+    padding:0 10px;
+    background:transparent;
+    border:none;
+    color: var(--app-window-manager-text-dim);
+    cursor:pointer;
+    font: 12px var(--app-window-manager-font-ui);
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .app-window-manager-closed-btn:hover{ color: var(--app-window-manager-text-active); background: var(--app-window-manager-tab-bg-hover); }
+  .app-window-manager-closed-badge{
+    background: var(--app-window-manager-border);
+    color: var(--app-window-manager-text-active);
+    border-radius:8px;
+    padding:0 5px;
+    font-size:10.5px;
+  }
+
+  .app-window-manager-closed-menu{
+    position:absolute;
+    bottom:100%;
+    left:0;
+    min-width:190px;
+    background: var(--app-window-manager-tab-bg);
+    border:1px solid var(--app-window-manager-border);
+    border-radius: var(--app-window-manager-radius);
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    padding:4px;
+    z-index:5000;
+    display:none;
+  }
+  .app-window-manager-tab-ctxmenu {
+    position: absolute;
+    min-width: 190px;
+    background: var(--app-window-manager-tab-bg);
+    border: 1px solid var(--app-window-manager-border);
+    border-radius: var(--app-window-manager-radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    padding: 4px;
+    z-index: 5000;
+    display: none;
+}
+  .app-window-manager-closed-menu.open, .app-window-manager-tab-ctxmenu.open{ display:block; }
+  .app-window-manager-menu-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:6px 8px;
+    border-radius:4px;
+    font: 12px var(--app-window-manager-font-ui);
+    color: var(--app-window-manager-text);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .app-window-manager-menu-item:hover{ background: var(--app-window-manager-tab-bg-hover); }
+  .app-window-manager-menu-item.danger{ color: var(--app-window-manager-danger); }
+  .app-window-manager-menu-item .menu-title{ overflow:hidden; text-overflow:ellipsis; font-family:var(--app-window-manager-font); }
+  .app-window-manager-menu-item .menu-action{ color: var(--app-window-manager-text-dim); font-size:11px; }
+  .app-window-manager-menu-sep{ height:1px; background:var(--app-window-manager-border); margin:4px 2px; }
+  .app-window-manager-menu-empty{ padding:10px 8px; color: var(--app-window-manager-text-dim); font-size:12px; }

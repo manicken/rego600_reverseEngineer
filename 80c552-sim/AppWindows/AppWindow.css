@@ -54,19 +54,34 @@
   white-space: nowrap;
 }
 
-.AppWindow-close {
-  background: transparent;
-  border: none;
-  color: var(--AppWindow-header-fg);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 4px;
+.AppWindow-controls {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.AppWindow-control {
+    background: transparent;
+    border: none;
+    color: var(--AppWindow-header-fg);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+
+.AppWindow-minimize:hover {
+    color: #6b81ff;
 }
 
 .AppWindow-close:hover {
-  color: #ff6b6b;
+    color: #ff6b6b;
 }
+
+
+
+
 
 .AppWindow-body {
   flex: 1 1 auto;

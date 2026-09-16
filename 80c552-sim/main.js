@@ -12,7 +12,7 @@ window.app.windows = {}; // will be removed in future
 document.addEventListener("DOMContentLoaded", async () => {
     AppStorage.setPrefix('js51.80c552.');
     window.app.log = document.getElementById('log');
-    AppWindowManager.init(document.getElementById("modal-manager"));
+    AppWindowManager.init(document.getElementById("app-window-manager"));
     init_main_menu();
     await simulator_init();
     initSingletonAppWindows();
@@ -21,11 +21,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initSingletonAppWindows() {
-    new GotoLabelForm({ onGotoAddress: gotoDisasmAddress, filters: [
+    new GotoLabelForm({onGotoAddress: gotoDisasmAddress, filters: [
         [js51_disasm.LabelType.User, "User"],
         [js51_disasm.LabelType.Func, "Functions"],
         [js51_disasm.LabelType.Jump,  "Jumps"]
-    ]});
+    ]}).onOpen = (win) => {
+      win.generateList(insn_map);
+    };
     new LabelReferencesForm({ onGotoAddress: gotoDisasmAddress });
     new SettingsEditor();
     new AssemblyViewer();
