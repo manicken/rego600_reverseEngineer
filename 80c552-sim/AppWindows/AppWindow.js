@@ -24,8 +24,21 @@
 class AppWindow extends EventTarget{
 
 	static Singletons = {};
+	static States = Object.freeze({
+		Open: 0,
+		Minimized: 1,
+		Closed: 3
+	});
 
-	static States = Object.freeze({ Open: 0, Minimized: 1, Closed: 3 });
+	static StateToString = Object.fromEntries(
+		Object.keys(AppWindow.States)
+			.map(key => [AppWindow.States[key], key])
+	);
+
+	static StringToState = Object.fromEntries(
+		Object.entries(AppWindow.States)
+			.map(([key, value]) => [key, value])
+	);
 	static events = new EventTarget(); // central lifecycle-bus, ersätter mm:s EventTarget
 
 	static #AppWindowZoffset = 2000;
@@ -50,15 +63,19 @@ class AppWindow extends EventTarget{
     }
 
 	getState() {
-		return {x:this.x, y:this.y, state:this.state, zIndex:this.zIndex, tabIndex:this.tabIndex};
+		return {x:this.el.offsetLeft, y:this.el.offsetTop, state:AppWindow.StateToString[this.state], zIndex:this.el.style.zIndex, tabIndex:this.tabIndex??0};
 	}
 
 	static saveAppWindowsState() {
-		let win_export = {};
+		let win_export = [];
+		for (let i=0;i<AppWindow.#taskbarOrder.length;i++) {
+			AppWindow.#taskbarOrder[i].tabIndex = i;
+		}
 		for (let i=0;i<AppWindow.#windows.length;i++) {
 			win_export.push(AppWindow.#windows[i].getState());
 		}
-		// serialize to json and save to local storage
+		let json = JSON.stringify(win_export);
+		console.log(json);
 	}
 
 	static loadAppWindows(windows) {
@@ -104,7 +121,7 @@ class AppWindow extends EventTarget{
 			const zIndex = i*2 + AppWindow.#AppWindowZoffset;
 			const win = AppWindow.#windows[i];
 			win.el.style.zIndex = zIndex;
-			
+			win.zIndex = zIndex; // used when saving state
 			if (win.hasBackdrop) {
 				win.backdrop_el.style.zIndex = zIndex-1;
 			}

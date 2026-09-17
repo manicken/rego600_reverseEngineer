@@ -144,7 +144,7 @@ class AppWindowManager {
         if (win.canHardClose) {
             const sep = document.createElement('div'); sep.className = 'app-window-manager-menu-sep';
             menu.appendChild(sep);
-            item('Remove permanently', () => {
+            item('Close Permanent', () => {
                 ConfirmDialog.Show({
                     title: "Confirm close",
                     message: `Are you sure you want to permanently close this window: ${win.title}<br><br>Warning this cannot be undone!`,
@@ -166,13 +166,13 @@ class AppWindowManager {
 
     static _renderClosedMenu() {
         const closed = AppWindow.getClosedTabs();
-        AppWindowManager.elClosedBtn.innerHTML = `Stängda <span class="app-window-manager-closed-badge">${closed.length}</span>`;
+        AppWindowManager.elClosedBtn.innerHTML = `Closed <span class="app-window-manager-closed-badge">${closed.length}</span>`;
         AppWindowManager.elClosedMenu.innerHTML = '';
 
         if (closed.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'app-window-manager-menu-empty';
-            empty.textContent = 'Inga stängda flikar';
+            empty.textContent = 'No closed windows';
             AppWindowManager.elClosedMenu.appendChild(empty);
             return;
         }
@@ -190,7 +190,7 @@ class AppWindowManager {
             if (win.canHardClose) {
                 const actions = document.createElement('span');
                 actions.className = 'app-window-manager-menu-action';
-                actions.textContent = 'Ta bort';
+                actions.textContent = 'Remove';
                 actions.style.cursor = 'pointer';
                 actions.addEventListener('click', e => { e.stopPropagation(); win.hardClose(); });
                 row.appendChild(actions);

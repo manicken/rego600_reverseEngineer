@@ -28,7 +28,10 @@ window.app.main_menu = [
                 label: "Settings",
                 action: () => { AppWindow.Singletons.settings.open(); }
             },
-            
+            {
+                label: "Save Windows state test",
+                action: () => { AppWindow.saveAppWindowsState(); }
+            }
         ]
     }, 
     {
