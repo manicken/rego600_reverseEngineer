@@ -62,8 +62,23 @@ class AppWindow extends EventTarget{
         });
     }
 
-	getState() {
-		return {x:this.el.offsetLeft, y:this.el.offsetTop, state:AppWindow.StateToString[this.state], zIndex:this.el.style.zIndex, tabIndex:this.tabIndex??0};
+	getStates() {
+		return {
+			type:this.type,
+			x:this.el.style.left, y:this.el.style.top, 
+			width:this.el.style.width, height:this.el.style.height,
+			state:AppWindow.StateToString[this.state],zIndex:this.el.style.zIndex, tabIndex:this.tabIndex??0};
+	}
+
+	setStates(states) {
+		this.type = states.type;
+		this.el.style.left = states.x;
+		this.el.style.top = states.y;
+		this.el.style.width = states.width;
+		this.el.style.height = states.height;
+		this.state = states.state;
+		this.zIndex = states.zIndex;
+		this.tabIndex = states.tabIndex;
 	}
 
 	static saveAppWindowsState() {
@@ -72,14 +87,10 @@ class AppWindow extends EventTarget{
 			AppWindow.#taskbarOrder[i].tabIndex = i;
 		}
 		for (let i=0;i<AppWindow.#windows.length;i++) {
-			win_export.push(AppWindow.#windows[i].getState());
+			win_export.push(AppWindow.#windows[i].getStates());
 		}
-		let json = JSON.stringify(win_export);
+		let json = JSON.stringify(win_export,null,4);
 		console.log(json);
-	}
-
-	static loadAppWindows(windows) {
-
 	}
 
 	static loadAppWindowsState() {
