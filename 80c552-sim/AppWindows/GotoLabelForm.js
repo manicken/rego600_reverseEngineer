@@ -1,10 +1,14 @@
 
 class GotoLabelForm extends AppWindow {
 
+    /*static get TYPE() {
+        return this.name;
+    }*/
+
     static #FilterTypeAll = -1;
     
     constructor({filters, onGotoAddress = (addr) => { CallBackNotSetDialog("onGotoAddress @ GotoLabelForm"); } }) {
-        super({ title: "Goto Label", type: "GotoLabelForm", singletonID:"gotoLabel", height: 768, width: 420, resizable: true });
+        super({ title: "Goto Label", type: GotoLabelForm.TYPE, singletonID:"gotoLabel", height: 768, width: 420, resizable: true });
         this.onGotoAddress = onGotoAddress;
         this._initialized = false;
         this.filters = [[GotoLabelForm.#FilterTypeAll, "All"], ...filters];
@@ -66,7 +70,10 @@ class GotoLabelForm extends AppWindow {
             const address = createNewElement("span", { className: "goto-label-address" });
             address.textContent = item.address.toString(16).padStart(4, "0").toUpperCase();
             row.append(label, address);
-            row.onclick = () => { this.onGotoAddress(item.address); };
+
+            row.addEventListener("click", () => {
+                this.onGotoAddress(item.address);
+            });
             this.list.appendChild(row);
         }
     }

@@ -23,6 +23,9 @@
 
 class AppWindow extends EventTarget{
 
+	static get TYPE() {
+        return this.name;
+    }
 	static Singletons = {};
 	static States = Object.freeze({
 		Open: 0,
@@ -39,7 +42,7 @@ class AppWindow extends EventTarget{
 		Object.entries(AppWindow.States)
 			.map(([key, value]) => [key, value])
 	);
-	static events = new EventTarget(); // central lifecycle-bus, ersätter mm:s EventTarget
+	static events = new EventTarget();
 
 	static #AppWindowZoffset = 2000;
 	static #windows = [];
@@ -144,7 +147,7 @@ class AppWindow extends EventTarget{
 	 * otherwise its only bringed to front 
 	 * it returns the index that is given to the window
 	 */
-	/** flytta fram i z-stacken (rör inte .state). Fungerar även för helt nya fönster (indexOf -> -1). */
+	/** Bring to front in the z-stack (does not modify .state). Also works for completely new windows (indexOf -> -1). */
     static #bringToFront(window) {
         const idx = AppWindow.#windows.indexOf(window);
         if (idx !== -1) AppWindow.#windows.splice(idx, 1);
@@ -152,7 +155,6 @@ class AppWindow extends EventTarget{
         AppWindow.#updateZIndexes();
     }
 
-    /** Universell "användaren valde denna flik"-ingång: open/minimized/closed -> Open + fram i stacken */
     static activate(window) {
         const wasClosed = window.state === AppWindow.States.Closed;
         window.state = AppWindow.States.Open;
@@ -161,7 +163,9 @@ class AppWindow extends EventTarget{
         AppWindow.#bringToFront(window);
         AppWindowManager._render();
         AppWindow.#emit(wasClosed ? 'reopen' : 'activate', window);
-		window.onOpen?.(window);
+		if (wasClosed) {
+			window.onOpen?.(window);
+		}	
     }
 
 	constructor({
@@ -240,8 +244,6 @@ class AppWindow extends EventTarget{
 			this.closeBtn_el.addEventListener("click", () => this.close());
 			windowControls_el.appendChild(this.closeBtn_el);
 		}
-
-		
 
 		this.body_el = document.createElement("div");
 		this.body_el.className = "AppWindow-body";

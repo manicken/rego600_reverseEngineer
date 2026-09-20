@@ -50,7 +50,7 @@ class AssemblyEditor extends AceEditor {
     ];
 
     constructor({onBuild = (asmList) => {}}={}) {
-        super({title:AssemblyEditor.#ModalTitle, type:"assemblyEditor", height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+        super({title:AssemblyEditor.#ModalTitle, type:AssemblyEditor.TYPE, height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
         
         this.onBuild = onBuild;
 

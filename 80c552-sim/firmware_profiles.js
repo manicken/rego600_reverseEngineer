@@ -53,6 +53,18 @@ let code_map_3060 = [
     {start:0x2D37, end:0x2E37, type:MAP_TYPE.DATA, label:"other_strings"},
     {start:0x2E38, type:MAP_TYPE.FUNC, label:"APPLY_DEFAULT_SETTINGS"},
     
+    {start:0x390B, type:MAP_TYPE.FUNC, label:"called_from_main_unknown_C", comment:"takes 77 cycles aprox"},
+    {start:0x3DE4, type:MAP_TYPE.FUNC, label:"decide_electrical_heat_helper"},
+    {start:0x411D, type:MAP_TYPE.FUNC, label:"decide_electrical_heat_from_main", comment:"takes 2308-2371 cycles aprox"},
+    {start:0x47BB, type:MAP_TYPE.FUNC, label:"decide_P1_P2_P3_states", comment:"takes 168 cycles aprox"},
+    {start:0x4A3D, type:MAP_TYPE.FUNC, label:"decide_COMPRESSOR_state", comment:"takes 397-442 cycles aprox"},
+    {start:0x4EBF, type:MAP_TYPE.FUNC, label:"decide_VXV_state", comment:"takes 266-332 cycles aprox"},
+    {start:0x50B1, type:MAP_TYPE.FUNC, label:"called_from_main_unknown_A", comment:"takes 71000 cycles aprox"},
+    {start:0x56B3, type:MAP_TYPE.FUNC, label:"called_from_main_unknown_B", comment:"takes 870-931 cycles aprox"},
+    {start:0x6096, type:MAP_TYPE.FUNC, label:"handle_mode_maybe", comment:"takes 243-288 cycles aprox"},
+    {start:0x63E0, type:MAP_TYPE.FUNC, label:"decide_front_panel_led_states", comment:"takes 101-146 cycles aprox"},
+    
+
     {start:0x665F, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_TASK", comment:"this continuously run the main program"},
     {start:0x6799, type:MAP_TYPE.FUNC, label:"MAIN_LOOP_ENTRY", comment:"this need a better name"},
     {start:0x67A2, type:MAP_TYPE.FUNC, label:"BEFORE_MAIN_ENTRY_INIT", comment:"this need a better name"},
@@ -301,9 +313,9 @@ let profiling_306 = [
     {enabled:false, startAddr:0x677A, endAddr:0x677D, label:'FUN_CODE_50b1_called_from_main_loop callsite'}, // 68000 cycles, 
     {enabled:false, startAddr:0x677D, endAddr:0x6780, label:'FUN_CODE_56b3_called_from_main_loop callsite'}, // 870 cycles, 
     {enabled:false, startAddr:0x6780, endAddr:0x6783, label:'FUN_CODE_390b_called_from_main_loop callsite'}, // 77 cycles, 
-    {enabled:false, startAddr:0x6783, endAddr:0x6786, label:'FUN_CODE_4a3d_called_from_main_loop callsite'}, // 397 cycles, 
-    {enabled:false, startAddr:0x6786, endAddr:0x6789, label:'FUN_CODE_411d_called_from_main_loop callsite'}, // 2326 cycles, 
-    {enabled:false, startAddr:0x6789, endAddr:0x678C, label:'FUN_CODE_47bb_called_from_main_loop callsite'}, // 168 cycles, 
+    {enabled:false, startAddr:0x6783, endAddr:0x6786, label:'decide_COMPRESSOR_state callsite'}, // 397 cycles, 
+    {enabled:false, startAddr:0x6786, endAddr:0x6789, label:'decide_electrical_heat_from_main callsite'}, // 2326 cycles, 
+    {enabled:false, startAddr:0x6789, endAddr:0x678C, label:'decide_P1_P2_P3_states callsite'}, // 168 cycles, 
     {enabled:false, startAddr:0x678C, endAddr:0x678F, label:'heat_regulation_gt3_gt4_hysteresis callsite'}, // 65 cycles, 
     {enabled:false, startAddr:0x678F, endAddr:0x6792, label:'FUN_CODE_4ebf_called_from_main_loop callsite'}, // 332 cycles, 
     {enabled:false, startAddr:0x6792, endAddr:0x6795, label:'FUN_CODE_6096_handle_mode_maybe callsite'}, // 243 cycles, 
@@ -316,7 +328,9 @@ let profiling_306 = [
     {enabled:false, startAddr:0x665F, endAddr:0x6774}, // 237800/159000 cycles aprox 
     {enabled:false, startAddr:0x671d, endAddr:0x6774},
     {enabled:false, startAddr:0x671d, endAddr:0x6720, label:'MainLoop_UART_TASK'}, //  179063 cycles
+    {enabled:false, startAddr:0x66D0, endAddr:0x66D3, label:'MainLoop_UART_TASK when VP is off'}, //   cycles
     {enabled:false, startAddr:0x8b9b, endAddr:0x8b9e, label:'MainLoop_UART_TASK - refresh_front_panel'}, //  165000/82800 cycles
+    {enabled:false, startAddr:0x8c5b, endAddr:0x8c5e, label:'phase detection task'}, //   cycles
     {enabled:false, startAddr:0x7de4, endAddr:0x7f2a},
     {enabled:false, startAddr:0x7f50, endAddr:0x7f68, label:'actual i2c transfer'}, // a 
     {enabled:false, startAddr:0x7f5b, endAddr:0x7f68},

@@ -2,7 +2,7 @@ class LabelReferencesForm extends AppWindow {
 
     #initialized = false;
     constructor({onGotoAddress = (addr) => { CallBackNotSetDialog("onGotoAddress @ LabelReferencesForm"); } }) {
-        super({title:"Address References", type:"LabelReferencesForm", singletonID:"labelReferences", height:768, width:420, resizable: true})
+        super({title:"Address References", type:LabelReferencesForm.TYPE, singletonID:"labelReferences", height:768, width:420, resizable: true})
         this.onGotoAddress = onGotoAddress;
     }
     #initialize() {

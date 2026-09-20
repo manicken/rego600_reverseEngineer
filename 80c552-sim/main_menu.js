@@ -39,9 +39,7 @@ window.app.main_menu = [
         items: [
             {
                 label: "Assembly Editor",
-                action: () => { 
-                    new AssemblyEditor({ onBuild: asmEditOnBuild }).open();
-                }
+                action: () => { openNewAssemblyEditor(); }
             },
             {
                 label: "Profiler",
