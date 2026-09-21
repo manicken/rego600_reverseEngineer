@@ -1,6 +1,6 @@
 class AceEditor extends AppWindow {
-    constructor({ title = "Ace Editor", type = "GeneralAceEditor", height = 600, width = 500, aceTheme = "textmate", aceMode = "text" } = {}) {
-        super({ title, type, height, width, resizable: true });
+    constructor({ title = "Ace Editor", singleton = false, height = 600, width = 500, aceTheme = "textmate", aceMode = "text" } = {}) {
+        super({ title, singleton, height, width, resizable: true });
 
         this.body_el.innerHTML = "";
         

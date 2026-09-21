@@ -12,15 +12,13 @@ window.app.windows = {}; // will be removed in future
 document.addEventListener("DOMContentLoaded", async () => {
     AppStorage.setPrefix('js51.80c552.');
     window.app.log = document.getElementById('log');
-    AppWindowManager.init(document.getElementById("app-window-manager"));
+    AppWindows.initAppWindowManager(document.getElementById("app-window-manager"));
     init_main_menu();
     await simulator_init();
-    initSingletonAppWindows();
+    AppWindows.initSingletonAppWindows();
     init_project_and_file_manager();
     console.log(AppStorageFileSystem.list());
 });
-
-
 
 function log(msg) {
   const el = window.app.log;

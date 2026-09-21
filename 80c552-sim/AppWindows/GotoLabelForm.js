@@ -8,7 +8,7 @@ class GotoLabelForm extends AppWindow {
     static #FilterTypeAll = -1;
     
     constructor({filters, onGotoAddress = (addr) => { CallBackNotSetDialog("onGotoAddress @ GotoLabelForm"); } }) {
-        super({ title: "Goto Label", type: GotoLabelForm.TYPE, singletonID:"gotoLabel", height: 768, width: 420, resizable: true });
+        super({ title: "Goto Label", singleton: true, height: 768, width: 420, resizable: true });
         this.onGotoAddress = onGotoAddress;
         this._initialized = false;
         this.filters = [[GotoLabelForm.#FilterTypeAll, "All"], ...filters];

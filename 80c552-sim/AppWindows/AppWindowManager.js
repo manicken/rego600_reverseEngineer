@@ -1,16 +1,78 @@
 class AppWindowManager {
-    static root = null;
-    static opts = {};
-
-    static init(root, opts = {}) {
-        AppWindowManager.root = root;
-        AppWindowManager.opts = opts;
-        AppWindowManager._buildDom();
-        AppWindowManager._bindGlobal();
+    static #onGetActiveWindow = null;
+    static #onOpenWindow = null;
+    static #taskbarOrder = [];
+    static #taskbarOrderRemove(win) {
+        const idx = AppWindowManager.#taskbarOrder.indexOf(win);
+        if (idx !== -1) AppWindowManager.#taskbarOrder.splice(idx, 1);
+    }
+    static #taskbarOrderMoveLast(win) {
+        AppWindowManager.#taskbarOrderRemove(win);
+        AppWindowManager.#taskbarOrder.push(win);
     }
 
-    static _buildDom() {
-        const root = AppWindowManager.root;
+    static #getOpenTabs()    { return AppWindowManager.#taskbarOrder.filter(w => w.isClosed() == false); }
+    static #getClosedTabs()  { return AppWindowManager.#taskbarOrder.filter(w => w.isClosed()); }
+
+    static init({root_el=null, events=null, onGetActiveWindow=null, onOpenWindow=null}={}) {
+        if (root_el == null) throw new Error("root_el is required");
+        if (events == null) throw new Error("events is required");
+        if (onGetActiveWindow == null) throw new Error("onGetActiveWindow is required");
+        if (onOpenWindow == null) throw new Error("onOpenWindow is required");
+
+        
+        AppWindowManager.#onGetActiveWindow = onGetActiveWindow;
+        AppWindowManager.#onOpenWindow = onOpenWindow;
+
+        AppWindowManager.#buildDom(root_el);
+        AppWindowManager.#bindGlobal();
+        events.addEventListener('added', (e) => {
+            const win = e.detail.window;
+            AppWindowManager.#taskbarOrderMoveLast(win);
+            AppWindowManager.#requestRender();
+        });
+        events.addEventListener('close', () => { AppWindowManager.#requestRender(); });
+        events.addEventListener('open', (e) => {
+            AppWindowManager.#taskbarOrderMoveLast(e.detail.window);
+            AppWindowManager.#requestRender();
+        });
+        events.addEventListener('reopen', (e) => {
+            AppWindowManager.#requestRender();
+        });
+        events.addEventListener('minimize', () => { AppWindowManager.#requestRender(); });
+        events.addEventListener('destroy', (e) => {
+            AppWindowManager.#taskbarOrderRemove(e.detail.window);
+            AppWindowManager.#requestRender();
+        });
+    }
+    /** used only when saving state */
+    setTaskBarOrderIndexes() {
+        for (let i=0;i<AppWindowManager.#taskbarOrder.length;i++) {
+			AppWindowManager.#taskbarOrder[i].tabIndex = i;
+		}
+    }
+    setTaskBarItems(items) {
+        AppWindowManager.#taskbarOrder = items;
+        AppWindowManager.#requestRender();
+    }
+
+    static #renderPending = false;
+
+    static #requestRender() {
+        if (AppWindowManager.#renderPending) {
+            return;
+        }
+
+        AppWindowManager.#renderPending = true;
+
+        requestAnimationFrame(() => {
+            AppWindowManager.#renderPending = false;
+            AppWindowManager.#render();
+        });
+    }
+
+    static #buildDom(root_el) {
+        const root = root_el;
         root.innerHTML = '';
         root.className = 'app-window-manager';
 
@@ -48,52 +110,51 @@ class AppWindowManager {
             AppWindowManager.elStrip.scrollLeft += e.deltaY;
             e.preventDefault();
         }, { passive: false });
-        AppWindowManager.elStrip.addEventListener('scroll', () => AppWindowManager._updateScrollButtons());
-        new ResizeObserver(() => AppWindowManager._updateScrollButtons()).observe(AppWindowManager.elStrip);
+        AppWindowManager.elStrip.addEventListener('scroll', () => AppWindowManager.#updateScrollButtons());
+        new ResizeObserver(() => AppWindowManager.#updateScrollButtons()).observe(AppWindowManager.elStrip);
 
         AppWindowManager.elClosedBtn.addEventListener('click', e => {
             e.stopPropagation();
-            AppWindowManager._toggleMenu(AppWindowManager.elClosedMenu);
+            AppWindowManager.#toggleMenu(AppWindowManager.elClosedMenu);
         });
     }
 
-    static _bindGlobal() {
-        document.addEventListener('click', () => AppWindowManager._closeAllMenus());
-        document.addEventListener('scroll', () => AppWindowManager._closeAllMenus(), true);
+    static #bindGlobal() {
+        document.addEventListener('click', () => AppWindowManager.#closeAllMenus());
+        document.addEventListener('scroll', () => AppWindowManager.#closeAllMenus(), true);
     }
 
-    static _toggleMenu(menu) {
+    static #toggleMenu(menu) {
         const willOpen = !menu.classList.contains('open');
-        AppWindowManager._closeAllMenus();
+        AppWindowManager.#closeAllMenus();
         if (willOpen) menu.classList.add('open');
     }
-    static _closeAllMenus() {
+    static #closeAllMenus() {
         AppWindowManager.elClosedMenu.classList.remove('open');
         AppWindowManager.elCtxMenu.classList.remove('open');
     }
 
-    static _updateScrollButtons() {
+    static #updateScrollButtons() {
         const s = AppWindowManager.elStrip;
         const overflow = s.scrollWidth > s.clientWidth + 1;
         AppWindowManager.elLeftBtn.hidden = !overflow || s.scrollLeft <= 0;
         AppWindowManager.elRightBtn.hidden = !overflow || s.scrollLeft + s.clientWidth >= s.scrollWidth - 1;
     }
 
-    static _render() {
+    static #render() {
         if (!AppWindowManager.elStrip) return; // taskbar inte initierad än
         AppWindowManager.elStrip.innerHTML = '';
-        for (const win of AppWindow.getOpenTabs()) {
-            AppWindowManager.elStrip.appendChild(AppWindowManager._renderWindow(win));
+        for (const win of AppWindowManager.#getOpenTabs()) {
+            AppWindowManager.elStrip.appendChild(AppWindowManager.#renderWindow(win));
         }
-        AppWindowManager._renderClosedMenu();
-        requestAnimationFrame(() => AppWindowManager._updateScrollButtons());
+        AppWindowManager.#renderClosedMenu();
+        requestAnimationFrame(() => AppWindowManager.#updateScrollButtons());
     }
 
-    static _renderWindow(win) {
+    static #renderWindow(win) {
         const el = document.createElement('div');
         el.className = 'app-window-manager-tab'
-            + (win === AppWindow.getActiveWindow() ? ' active' : '')
-            + (win.state === AppWindow.States.Minimized ? ' minimized' : '');
+            + (win === AppWindowManager.#onGetActiveWindow() ? ' active' : '')
 
         let title = win.getTitle();
         el.title = title; // this is actually the tooltip
@@ -119,29 +180,29 @@ class AppWindowManager {
         actions.append(dot, closeBtn);
 
         el.append(title_el, actions);
-        el.addEventListener('click', () => AppWindow.activate(win));
+        el.addEventListener('click', () => AppWindowManager.#onOpenWindow(win));
         el.addEventListener('contextmenu', e => {
             e.preventDefault();
-            AppWindowManager._openTabContextMenu(win, e.clientX, e.clientY);
+            AppWindowManager.#openTabContextMenu(win, e.clientX, e.clientY);
         });
         return el;
     }
 
-    static _openTabContextMenu(win, x, y) {
+    static #openTabContextMenu(win, x, y) {
         const menu = AppWindowManager.elCtxMenu;
         menu.innerHTML = '';
         const item = (label, fn, danger = false) => {
             const it = document.createElement('div');
             it.className = 'app-window-manager-menu-item' + (danger ? ' danger' : '');
             it.textContent = label;
-            it.addEventListener('click', ev => { ev.stopPropagation(); fn(); AppWindowManager._closeAllMenus(); });
+            it.addEventListener('click', ev => { ev.stopPropagation(); fn(); AppWindowManager.#closeAllMenus(); });
             menu.appendChild(it);
         };
         item('Close', () => win.close());
-        item('Close others', () => AppWindow.getOpenTabs().filter(w => w !== win).forEach(w => w.close()));
-        item('Close all', () => AppWindow.getOpenTabs().forEach(w => w.close()));
+        item('Close others', () => AppWindowManager.#getOpenTabs().filter(w => w !== win).forEach(w => w.close()));
+        item('Close all', () => AppWindowManager.#getOpenTabs().forEach(w => w.close()));
 
-        if (win.canHardClose) {
+        if (win.canBeDestroyed) {
             const sep = document.createElement('div'); sep.className = 'app-window-manager-menu-sep';
             menu.appendChild(sep);
             item('Close Permanent', () => {
@@ -150,22 +211,21 @@ class AppWindowManager {
                     message: `Are you sure you want to permanently close this window: ${win.title}<br><br>Warning this cannot be undone!`,
                     confirmText: "Close Permanent",
                     confirmClass: "button-danger",
-                    onConfirm: () => {console.log(win.hardClose());}
+                    onConfirm: () => {console.log(win.destroy());}
                 });
             }, true);
         }
         
-        AppWindowManager._toggleMenu(menu);
+        AppWindowManager.#toggleMenu(menu);
         
         if (menu.classList.contains('open')) {
             menu.style.left = `${x}px`;
             menu.style.top = `${y - menu.offsetHeight}px`;
         }
-        
     }
 
-    static _renderClosedMenu() {
-        const closed = AppWindow.getClosedTabs();
+    static #renderClosedMenu() {
+        const closed = AppWindowManager.#getClosedTabs();
         AppWindowManager.elClosedBtn.innerHTML = `Closed <span class="app-window-manager-closed-badge">${closed.length}</span>`;
         AppWindowManager.elClosedMenu.innerHTML = '';
 
@@ -187,16 +247,16 @@ class AppWindowManager {
 
             row.appendChild(title);
 
-            if (win.canHardClose) {
+            if (win.canBeDestroyed) {
                 const actions = document.createElement('span');
                 actions.className = 'app-window-manager-menu-action';
                 actions.textContent = 'Remove';
                 actions.style.cursor = 'pointer';
-                actions.addEventListener('click', e => { e.stopPropagation(); win.hardClose(); });
+                actions.addEventListener('click', e => { e.stopPropagation(); win.destroy(); });
                 row.appendChild(actions);
             }
 
-            row.addEventListener('click', () => AppWindow.activate(win));
+            row.addEventListener('click', () => AppWindowManager.#onOpenWindow(win));
             AppWindowManager.elClosedMenu.appendChild(row);
         }
     }

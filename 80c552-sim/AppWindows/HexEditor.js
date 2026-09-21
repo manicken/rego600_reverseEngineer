@@ -861,7 +861,7 @@
 
 class HexEditor extends AppWindow {
     constructor() {
-        super({title:"CODE-mem Hex Editor", type:HexEditor.TYPE, singletonID:"hexEditor", height:768, width:695, resizable: true});
+        super({title:"CODE-mem Hex Editor", singleton:true, height:768, width:695, resizable: true});
         this.hex_editor_el = createNewElement("div", {styles:{width:'100%', height:'100%'}});
         this.setBody(this.hex_editor_el);
         this.editor = new HexEditorComponent(this.hex_editor_el, {

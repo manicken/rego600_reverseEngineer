@@ -26,153 +26,78 @@ class AppWindow extends EventTarget{
 	static get TYPE() {
         return this.name;
     }
-	static Singletons = {};
-	static States = Object.freeze({
+	
+	static Modes = Object.freeze({
 		Open: 0,
 		Minimized: 1,
 		Closed: 3
 	});
-
-	static StateToString = Object.fromEntries(
-		Object.keys(AppWindow.States)
-			.map(key => [AppWindow.States[key], key])
+	static ModeToString = Object.fromEntries(
+		Object.keys(AppWindow.Modes).map(key => [AppWindow.Modes[key], key])
 	);
-
-	static StringToState = Object.fromEntries(
-		Object.entries(AppWindow.States)
-			.map(([key, value]) => [key, value])
+	static StringToMode = Object.fromEntries(
+		Object.entries(AppWindow.Modes).map(([key, value]) => [key, value])
 	);
-	static events = new EventTarget();
-
-	static #AppWindowZoffset = 2000;
-	static #windows = [];
-	// helper structures to make reorder much easier
-	// actually i have come to the conclusion that zOrder can be directly implemented using only #windows
-	// as there is no point of having it separate
-	//static #windowsZOrder = [];
-	static #taskbarOrder = [];
-
-	static initAppWindowManager(AppWindow_msgr_el) {
-        AppWindowManager.init(AppWindow_msgr_el);
-
-        AppWindow.events.addEventListener('close', e => log("window closed: " + e.detail.window.title));
-        AppWindow.events.addEventListener('activate', e => log("tm - activated: " + e.detail.window.title));
-        AppWindow.events.addEventListener('lastclosed', e => log("last closed: " + e.detail.window.title));
-        AppWindow.events.addEventListener('hardclose', e => {
-            log("deleted: " + e.detail.window.title);
-            e.detail.window.data?.removePermanent?.();
-            delete e.detail.window.data;
-        });
-    }
+	getModeAsString() {
+		return AppWindow.ModeToString[this.mode] ?? AppWindow.Modes.Closed;
+	}
+	setModeFromString(mode) {
+		if (typeof mode == "string") {
+			this.mode = AppWindow.StringToMode[mode];
+		} else {
+			this.mode = mode;
+		}
+		if (this.mode == undefined) {
+			this.setClosed();
+		}
+	}
+	isOpen() {
+		return this.mode == AppWindow.Modes.Open;
+	}
+	isClosed() {
+		return this.mode == AppWindow.Modes.Closed;
+	}
+	isMinimized() {
+		return this.mode == AppWindow.Modes.Minimized;
+	}
+	setOpen() {
+		this.mode = AppWindow.Modes.Open;
+	}
+	setClosed() {
+		this.mode = AppWindow.Modes.Closed;
+	}
+	setMinimized() {
+		this.mode = AppWindow.Modes.Minimized;
+	}
 
 	getStates() {
 		return {
-			type:this.type,
-			x:this.el.style.left, y:this.el.style.top, 
-			width:this.el.style.width, height:this.el.style.height,
-			state:AppWindow.StateToString[this.state],zIndex:this.el.style.zIndex, tabIndex:this.tabIndex??0};
+			x: this.el.style.left, 
+			y: this.el.style.top, 
+			width: this.el.style.width, 
+			height: this.el.style.height,
+			mode: this.getModeAsString(),
+			zIndex: this.el.style.zIndex, 
+			tabIndex: this.tabIndex??0
+		};
 	}
 
 	setStates(states) {
-		this.type = states.type;
-		this.el.style.left = states.x;
-		this.el.style.top = states.y;
-		this.el.style.width = states.width;
-		this.el.style.height = states.height;
-		this.state = states.state;
-		this.zIndex = states.zIndex;
-		this.tabIndex = states.tabIndex;
+		this.el.style.left = states.x ?? this.el.style.left;
+		this.el.style.top = states.y ?? this.el.style.top;
+		this.el.style.width = states.width ?? this.el.style.width;
+		this.el.style.height = states.height ?? this.el.style.height;
+		this.setModeFromString(states.mode);
+		this.zIndex = states.zIndex ?? 2000;
+		this.tabIndex = states.tabIndex ?? 0;
 	}
 
-	static saveAppWindowsState() {
-		let win_export = [];
-		for (let i=0;i<AppWindow.#taskbarOrder.length;i++) {
-			AppWindow.#taskbarOrder[i].tabIndex = i;
-		}
-		for (let i=0;i<AppWindow.#windows.length;i++) {
-			win_export.push(AppWindow.#windows[i].getStates());
-		}
-		let json = JSON.stringify(win_export,null,4);
-		console.log(json);
-	}
-
-	static loadAppWindowsState() {
-		// load from local storage and deserialize
-		let windowsJson = "{}"; 
-		let windows = loadAppWindows(windowsJson)
-
-		const zOrder = [...windows].sort((a, b) => a.zIndex - b.zIndex);
-		const tabOrder = [...windows].sort((a, b) => a.tabIndex - b.tabIndex);
-
-		for (let i = 0; i < zOrder.length; i++) {
-			zOrder[i].zIndex = i;
-		}
-
-		for (let i = 0; i < tabOrder.length; i++) {
-			tabOrder[i].tabIndex = i;
-		}
-		AppWindow.#windows = zOrder;
-		AppWindow.#taskbarOrder = tabOrder;
-	}
-
-    static #emit(type, window) {
-        AppWindow.events.dispatchEvent(new CustomEvent(type, { detail: { window } }));
-    }
-
-    //static getAppWindowList()  { return AppWindow.#windows; }
-    static getOpenTabs()    { return AppWindow.#taskbarOrder.filter(w => w.state !== AppWindow.States.Closed); }
-    static getClosedTabs()  { return AppWindow.#taskbarOrder.filter(w => w.state === AppWindow.States.Closed); }
-
-    static getActiveWindow() {
-        for (let i = AppWindow.#windows.length - 1; i >= 0; i--) {
-            if (AppWindow.#windows[i].state === AppWindow.States.Open) return AppWindow.#windows[i];
-        }
-        return null;
-    }
-
-	static #updateZIndexes() {
-		for (let i=0; i<AppWindow.#windows.length; i++) {
-			const zIndex = i*2 + AppWindow.#AppWindowZoffset;
-			const win = AppWindow.#windows[i];
-			win.el.style.zIndex = zIndex;
-			win.zIndex = zIndex; // used when saving state
-			if (win.hasBackdrop) {
-				win.backdrop_el.style.zIndex = zIndex-1;
-			}
-		}
-	}
-
-	/** this is a two use function, 
-	 * if the window no not exist it's added, 
-	 * otherwise its only bringed to front 
-	 * it returns the index that is given to the window
-	 */
-	/** Bring to front in the z-stack (does not modify .state). Also works for completely new windows (indexOf -> -1). */
-    static #bringToFront(window) {
-        const idx = AppWindow.#windows.indexOf(window);
-        if (idx !== -1) AppWindow.#windows.splice(idx, 1);
-        AppWindow.#windows.push(window);
-        AppWindow.#updateZIndexes();
-    }
-
-    static activate(window) {
-        const wasClosed = window.state === AppWindow.States.Closed;
-        window.state = AppWindow.States.Open;
-		window.show();
-        //window.mount();
-        AppWindow.#bringToFront(window);
-        AppWindowManager._render();
-        AppWindow.#emit(wasClosed ? 'reopen' : 'activate', window);
-		if (wasClosed) {
-			window.onOpen?.(window);
-		}	
-    }
+    
 
 	constructor({
 		title = "",
-		type = "unknown",
-		/** when singletonID is set canHardClose is automatically set to false */
-		singletonID = null,
+		/** when singleton is true canBeDestroyed is automatically set to false */
+		singleton = false,
 		width,
 		height,
 		x,
@@ -185,22 +110,21 @@ class AppWindow extends EventTarget{
 		automount = true,
 		closeOnBackdropClick = true,
 		closeOnEscape = backdrop,
-		canHardClose = true,
+		canBeDestroyed = true,
 		onClose,
 		onOpen,
 		onResize,
 		onResized
 	} = {}) {
 		super();
-		this.state = AppWindow.States.Closed;
+		this.setClosed();
 		this.title = title,
-		this.type = type,
 		this.onClose = onClose;
 		this.onOpen = onOpen;
 		this.hasBackdrop = backdrop;
 		this.onResize = onResize;
 		this.onResized = onResized;
-		this.canHardClose = canHardClose;
+		this.canBeDestroyed = canBeDestroyed;
 
 		this.el = document.createElement("div");
 		this.el.className = "AppWindow";
@@ -296,16 +220,9 @@ class AppWindow extends EventTarget{
 		if (automount) {
 			this.mount();
 		}
-
-		if (singletonID !== null) {
-			if (AppWindow.Singletons[singletonID] !== undefined) {
-				throw new Error(`AppWindow singleton already exists: ${singletonID}`);
-			}
-			AppWindow.#windows.push(this);
-			AppWindow.#taskbarOrder.push(this);
-			AppWindowManager._render();
-			this.canHardClose = false;
-			AppWindow.Singletons[singletonID] = this;
+		AppWindows.add(this);
+		if (singleton === true) {
+			AppWindows.SetAsSingleton(this);
 		}
 
 	}
@@ -521,16 +438,12 @@ class AppWindow extends EventTarget{
 		return this;
 	}
 
-	isOpen() {
-		return this.el.classList.contains("AppWindow--open");
-	}
+	
 
 	open() {
-		const idx = AppWindow.#taskbarOrder.indexOf(this);
-        if (idx !== -1) AppWindow.#taskbarOrder.splice(idx, 1);
-		AppWindow.#taskbarOrder.push(this);
-		this.state = AppWindow.States.Open;
-		AppWindow.activate(this); // this exec show
+		AppWindows.open(this);
+		this.setOpen();
+		AppWindows.activate(this); // this exec show
 		this.onOpen?.(this);
 		return this;
 	}
@@ -539,61 +452,52 @@ class AppWindow extends EventTarget{
 		this.el.classList.add("AppWindow--open");
 		if (this.hasBackdrop) this.backdrop_el.classList.add("AppWindow-backdrop--open");
 		if (this._onEscape) document.addEventListener("keydown", this._onEscape);
-		AppWindow.#emit('show', this);
+		AppWindows.emit('show', this);
 	}
 
 	hide() {
         this.el.classList.remove("AppWindow--open");
 		if (this.hasBackdrop) this.backdrop_el.classList.remove("AppWindow-backdrop--open");
-		AppWindow.#emit('hide', this);
+		AppWindows.emit('hide', this);
     }
 
 	minimize() {
-        if (this.state === AppWindow.States.Closed) return;
-        this.state = AppWindow.States.Minimized;
+        if (this.isMinimized()) {
+			console.warn("window was allready Minimized:" + this.constructor.TYPE);
+			//return;
+		}
+		this.setMinimized();
 		this.hide();
-        AppWindowManager._render();
-        AppWindow.#emit('minimize', this);
+        //AppWindowManager.render();
+        AppWindows.emit('minimize', this);
     }
 
-	/** SOFT close */
+	/** close */
 	close() {
-		if (this.state === AppWindow.States.Closed) return;
-       // const wasActive = AppWindow.getActiveWindow() === this;
-        this.state = AppWindow.States.Closed;
+		if (this.isClosed()) {
+			console.warn("window was allready closed:" + this.constructor.TYPE);
+			//return;
+		}
+		this.setClosed();
 		this.hide();
 		
 		this.el.classList.remove("AppWindow--open");
 		if (this.hasBackdrop) this.backdrop_el.classList.remove("AppWindow-backdrop--open");
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		this.onClose?.(this);
-		AppWindow.#emit('close', this);
-		AppWindowManager._render();
+		AppWindows.emit('close', this);
+		//AppWindowManager.render();
 		return this;
 	}
 
-	/** HARD close – permanent, respekterar canHardClose */
-    hardClose() {
-        if (!this.canHardClose) return false;
-		this.hide();
-        this.destroy();
-        AppWindow.#emit('hardclose', this);
-        return true;
-    }
-
-	/*toggle() {
-		this.isOpen() ? this.close() : this.open();
-		return this;
-	}*/
-
 	destroy() {
+		if (!this.canBeDestroyed) return false;
+		this.hide();
 		if (this._onEscape) document.removeEventListener("keydown", this._onEscape);
 		(this.hasBackdrop ? this.backdrop_el : this.el).remove();
-		let index = AppWindow.#windows.indexOf(this);
-		if (index !== -1) { AppWindow.#windows.splice(index, 1); }
-		index = AppWindow.#taskbarOrder.indexOf(this);
-		if (index !== -1) { AppWindow.#taskbarOrder.splice(index, 1); }
-		AppWindow.#updateZIndexes();
-		AppWindowManager._render();
+        AppWindows.remove(this);
+        AppWindows.emit('destroy', this);
+        return true;
+		
 	}
 }

@@ -75,7 +75,7 @@ class Profiler extends AppWindow {
             throw Error("Profiler cannot run without a js51 CPU instance");
         }
         cpu.instruction_ticks.push((cycles, opcode_start_PC) => {this.#profilerTask(cycles, opcode_start_PC)});
-        super({title:"Profiler", type:Profiler.TYPE, singletonID:"profiler", height:700, width:800, resizable: true});
+        super({title:"Profiler", singleton:true, height:700, width:800, resizable: true});
         this.#onGotoAddress = onGotoAddress;
 
         this.body_el.innerHTML = "";
