@@ -127,9 +127,19 @@ class Setting {
     save() {
         AppStorage.set(this._key(this.name), this.value);
     }
-    /*load() {
-        this.value = AppStorage.get(this.name, this.value);
-    }*/
+};
+
+class MergedSetting extends Setting {
+
+    constructor(name, defaultValue) {
+        super(name, undefined);
+
+        if (this.value == undefined) {
+            this.value = defaultValue;
+        } else {
+            this.value = {...defaultValue, ...this.value};
+        }
+    }
 };
 
 class AppStorageFileSystem {

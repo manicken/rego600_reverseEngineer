@@ -1,6 +1,6 @@
 class AceEditor extends AppWindow {
-    constructor({ title = "Ace Editor", singleton = false, height = 600, width = 500, aceTheme = "textmate", aceMode = "text" } = {}) {
-        super({ title, singleton, height, width, resizable: true });
+    constructor({ title = "Ace Editor", singleton = false, aceTheme = "textmate", aceMode = "text" } = {}) {
+        super({ title, singleton, resizable: true });
 
         this.body_el.innerHTML = "";
         
@@ -13,5 +13,6 @@ class AceEditor extends AppWindow {
         this.aceEditor.setOptions({ /*navigateWithinSoftTabs: true,*/ scrollPastEnd: 1 });
         this.aceEditor.setTheme("ace/theme/" + aceTheme);
         this.aceEditor.session.setMode("ace/mode/" + aceMode);
+        this.setStates({height: 600, width: 500});
     }
 }

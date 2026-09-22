@@ -7,15 +7,33 @@ class GotoLabelForm extends AppWindow {
 
     static #FilterTypeAll = -1;
     
-    constructor({filters, onGotoAddress = (addr) => { CallBackNotSetDialog("onGotoAddress @ GotoLabelForm"); } }) {
-        super({ title: "Goto Label", singleton: true, height: 768, width: 420, resizable: true });
+    constructor({onOpen, filters, onGotoAddress = (addr) => { CallBackNotSetDialog("onGotoAddress @ GotoLabelForm"); } }) {
+        super({ title: "Goto Label", singleton: true, onOpen, onShow:onOpen, resizable: true });
         this.onGotoAddress = onGotoAddress;
-        this._initialized = false;
         this.filters = [[GotoLabelForm.#FilterTypeAll, "All"], ...filters];
-        this._initContent();
+        this.filteredLabels = [];
+        this.#initContent();
     }
 
-    _initContent() {
+    #buildPoolRow() {
+        const row_el = createNewElement("div", { className: "goto-label-row", styles: {  } });
+        const label_el = createNewElement("span", { className: "goto-label-name" });
+        const address_el = createNewElement("span", { className: "goto-label-address" });
+        row_el.append(label_el, address_el);
+        return {el:row_el, data:{row_el, label_el, address_el}};
+    }
+    #bindPoolRowData(line, index) {
+        const label = this.filteredLabels[index];
+
+        line.label_el.textContent = label.label;
+        line.address_el.textContent = hex(label.address,4,false);
+
+        line.row_el.onclick = () => {
+            this.onGotoAddress(label.address);
+        };
+    }
+    
+    #initContent() {
         const content = createNewElement("div", { className: "goto-label-content" });
         this.search = createNewElement("input", { className: "goto-label-search", type: "text", placeholder: "Search label..." });
         this.filter = createNewElement("div", { className: "goto-label-filter" });
@@ -38,20 +56,27 @@ class GotoLabelForm extends AppWindow {
         }
 
         this.filterButtons[GotoLabelForm.#FilterTypeAll].classList.add("active");
-        this.list = createNewElement("div", { className: "goto-label-list" });
+        this.list_el = createNewElement("div", { className: "goto-label-list" });
         const header = createNewElement("div", { className: "goto-label-header" });
         header.appendChild(this.search);
         header.appendChild(this.filter);
         content.appendChild(header);
-        content.appendChild(this.list);
+        content.appendChild(this.list_el);
         this.search.oninput = () => this.renderLabels();
         this.setBody(content);
-        this._initialized = true;
+
+        this.virtScroller = new VirtualScroller({
+            viewportEl: this.list_el,
+            createRow: () => this.#buildPoolRow(),
+            bindRow: (line, index) => this.#bindPoolRowData(line, index),
+            bufferRows: 8,
+            rowHeight: 27,
+        });
     }
 
     renderLabels() {
-        this.list.replaceChildren();
-
+        
+        this.filteredLabels = [];
         const searchText = this.search.value.toLowerCase().trim();
 
         for (const item of this.labels) {
@@ -63,22 +88,16 @@ class GotoLabelForm extends AppWindow {
             if (searchText && !item.label.toLowerCase().includes(searchText)) {
                 continue;
             }
+            this.filteredLabels.push(item);
 
-            const row = createNewElement("div", { className: "goto-label-row", styles: { cursor: "default", paddingTop: "2px" } });
-            const label = createNewElement("span", { className: "goto-label-name" });
-            label.textContent = item.label;
-            const address = createNewElement("span", { className: "goto-label-address" });
-            address.textContent = item.address.toString(16).padStart(4, "0").toUpperCase();
-            row.append(label, address);
-
-            row.addEventListener("click", () => {
-                this.onGotoAddress(item.address);
-            });
-            this.list.appendChild(row);
         }
+        //console.trace("renderLabels:", this.filteredLabels); // här är this.filteredLabels defined
+        this.virtScroller.setCount(this.filteredLabels.length);
+       // this.virtScroller.refresh();
     }
 
     generateList(insn_map) {
+        this.rowHeight = this.virtScroller.measureRowHeight();
         this.labels = [];
         for (const [address, insn] of insn_map) {
             if (insn.labelType == undefined) continue;

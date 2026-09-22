@@ -1,6 +1,5 @@
 class AppWindowManager {
     static #onGetActiveWindow = null;
-    static #onOpenWindow = null;
     static #taskbarOrder = [];
     static #taskbarOrderRemove(win) {
         const idx = AppWindowManager.#taskbarOrder.indexOf(win);
@@ -14,15 +13,12 @@ class AppWindowManager {
     static #getOpenTabs()    { return AppWindowManager.#taskbarOrder.filter(w => w.isClosed() == false); }
     static #getClosedTabs()  { return AppWindowManager.#taskbarOrder.filter(w => w.isClosed()); }
 
-    static init({root_el=null, events=null, onGetActiveWindow=null, onOpenWindow=null}={}) {
+    static init({root_el=null, events=null, onGetActiveWindow=null}={}) {
         if (root_el == null) throw new Error("root_el is required");
         if (events == null) throw new Error("events is required");
         if (onGetActiveWindow == null) throw new Error("onGetActiveWindow is required");
-        if (onOpenWindow == null) throw new Error("onOpenWindow is required");
 
-        
         AppWindowManager.#onGetActiveWindow = onGetActiveWindow;
-        AppWindowManager.#onOpenWindow = onOpenWindow;
 
         AppWindowManager.#buildDom(root_el);
         AppWindowManager.#bindGlobal();
@@ -36,7 +32,7 @@ class AppWindowManager {
             AppWindowManager.#taskbarOrderMoveLast(e.detail.window);
             AppWindowManager.#requestRender();
         });
-        events.addEventListener('reopen', (e) => {
+        events.addEventListener('show', (e) => {
             AppWindowManager.#requestRender();
         });
         events.addEventListener('minimize', () => { AppWindowManager.#requestRender(); });
@@ -46,12 +42,12 @@ class AppWindowManager {
         });
     }
     /** used only when saving state */
-    setTaskBarOrderIndexes() {
+    static setTaskBarOrderIndexes() {
         for (let i=0;i<AppWindowManager.#taskbarOrder.length;i++) {
 			AppWindowManager.#taskbarOrder[i].tabIndex = i;
 		}
     }
-    setTaskBarItems(items) {
+    static setTaskBarItems(items) {
         AppWindowManager.#taskbarOrder = items;
         AppWindowManager.#requestRender();
     }
@@ -180,7 +176,7 @@ class AppWindowManager {
         actions.append(dot, closeBtn);
 
         el.append(title_el, actions);
-        el.addEventListener('click', () => AppWindowManager.#onOpenWindow(win));
+        el.addEventListener('click', () => win.toggle());
         el.addEventListener('contextmenu', e => {
             e.preventDefault();
             AppWindowManager.#openTabContextMenu(win, e.clientX, e.clientY);
@@ -256,7 +252,7 @@ class AppWindowManager {
                 row.appendChild(actions);
             }
 
-            row.addEventListener('click', () => AppWindowManager.#onOpenWindow(win));
+            row.addEventListener('click', () => win.open());
             AppWindowManager.elClosedMenu.appendChild(row);
         }
     }

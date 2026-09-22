@@ -26,11 +26,11 @@ window.app.main_menu = [
             },
             {
                 label: "Settings",
-                action: () => { AppWindow.Singletons.settings.open(); }
+                action: () => { AppWindows.Singletons.SettingsEditor.open(); }
             },
             {
                 label: "Save Windows state test",
-                action: () => { AppWindow.saveAppWindowsState(); }
+                action: () => { AppWindows.saveAppWindowsState(); }
             }
         ]
     }, 
@@ -39,11 +39,11 @@ window.app.main_menu = [
         items: [
             {
                 label: "Assembly Editor",
-                action: () => { openNewAssemblyEditor(); }
+                action: () => { AssemblyEditor.CreateNewWindow(); }
             },
             {
                 label: "Profiler",
-                action: () => {  AppWindow.Singletons.profiler.open(); }
+                action: () => {  AppWindows.Singletons.Profiler.open(); }
             },
             {
                 label: "Code HexEditor",

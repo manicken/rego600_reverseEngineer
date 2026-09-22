@@ -2,7 +2,7 @@
 
 :root {
   --AppWindow-header-bg: #2b2f36;
-  --AppWindow-header-fg: #eaeaea;
+  --AppWindow-header-fg: #c0c0c0;
   --AppWindow-border: #818181;
   --AppWindow-shadow: 6px 6px 12px -3px rgba(141, 141, 141, 0.473);
 }
@@ -33,14 +33,14 @@
 .AppWindow-header {
   background: var(--AppWindow-header-bg);
   color: var(--AppWindow-header-fg);
-  padding: 10px 12px;
+  padding: 2px 2px 4px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: grab;
   touch-action: none;
   font-family: sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -67,9 +67,11 @@
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
-    padding: 4px 8px;
+    width: 24px;
+    height: 24px;
+    padding: 0px;
+    margin: 0px;
 }
-
 
 .AppWindow-minimize:hover {
     color: #6b81ff;
@@ -78,10 +80,6 @@
 .AppWindow-close:hover {
     color: #ff6b6b;
 }
-
-
-
-
 
 .AppWindow-body {
   flex: 1 1 auto;
@@ -129,6 +127,8 @@
 .AppWindow-resize-handle.top-right {
     right: 0;
     top: 0;
+    width: 8px;
+	  height: 8px;
     cursor: nesw-resize;
 }
 

@@ -1,19 +1,12 @@
 
 class AppWindows {
 
+    
+
     static Singletons = {};
-
-    static events = new EventTarget();
-    static emit(type, window) {
-        AppWindows.events.dispatchEvent(new CustomEvent(type, { detail: { window } }));
-    }
-
-	static #AppWindowZoffset = 2000;
-	static #windows = [];
-
     static SetAsSingleton(win) {
         let singletonID = win.constructor.TYPE;
-        console.log(singletonID);
+        //console.log(singletonID);
         if (AppWindows.Singletons[singletonID] !== undefined) {
             throw new Error(`AppWindow singleton already exists: ${singletonID}`);
         }
@@ -21,63 +14,36 @@ class AppWindows {
         AppWindows.Singletons[singletonID] = win;
     }
 
-    static add(win) {
-        AppWindows.#windows.push(win);
-        AppWindows.emit("added", win);
+    static events = new EventTarget();
+    static #AddMultipleEventListeners(callback, names) {
+        for (let name of names) { AppWindows.events.addEventListener(name, callback); }
     }
 
-    static remove(win) {
+    static emit(type, window) {
+       // console.trace(type);
+        AppWindows.events.dispatchEvent(new CustomEvent(type, { detail: { window } }));
+    }
+
+	static #AppWindowZoffset = 2000;
+	static #windows = [];
+    static addToList(win) {
+        AppWindows.#windows.push(win);
+    }
+    static removeFromList(win) {
 		let index = AppWindows.#windows.indexOf(win);
 		if (index !== -1) { AppWindows.#windows.splice(index, 1); }
-		AppWindows.#updateZIndexes();
     }
-
-	static initAppWindowManager(AppWindow_msgr_el) {
-        AppWindowManager.init({
-            root_el:AppWindow_msgr_el,
-            events:AppWindows.events,
-            onGetActiveWindow:AppWindows.getActiveWindow,
-            onOpenWindow:(win) => { AppWindows.activate(win);}
-        });
-
-        // pure debug event loggers
-        AppWindows.events.addEventListener('open', e => { console.trace("AWM - window opened: " + e.detail.window.title, e); });
-        AppWindows.events.addEventListener('close', e => { console.trace("AWM - window closed: " + e.detail.window.title, e); });
-        AppWindows.events.addEventListener('minimize', e => { console.trace("AWM - window minimized: " + e.detail.window.title, e); });
-        AppWindows.events.addEventListener('activate', e => { console.trace("AWM - activated: " + e.detail.window.title, e); });
-        AppWindows.events.addEventListener('destroy', e => { console.trace("AWM - destroyed: " + e.detail.window.title, e); });
+    static #updateZIndexes() {
+		for (let i=0; i<AppWindows.#windows.length; i++) {
+			AppWindows.#windows[i].setZIndex(i*2 + AppWindows.#AppWindowZoffset);
+		}
+	}
+	/** Bring to front in the z-stack (does not modify .state). Also works for completely new windows (indexOf -> -1). */
+    static bringToFront(win) {
+        AppWindows.removeFromList(win);
+        AppWindows.addToList(win);
+        AppWindows.#updateZIndexes();
     }
-
-    static saveAppWindowsState() {
-		let win_export = [];
-		AppWindowManager.setTaskBarOrderIndexes();
-		for (let i=0;i<AppWindows.#windows.length;i++) {
-			win_export.push(AppWindows.#windows[i].getStates());
-		}
-		let json = JSON.stringify(win_export,null,4);
-		console.log(json);
-	}
-
-	static loadAppWindowsState() {
-		// load from local storage and deserialize
-		let windowsJson = "{}"; 
-		let windows = loadAppWindows(windowsJson)
-
-		const zOrder = [...windows].sort((a, b) => a.zIndex - b.zIndex);
-		const tabOrder = [...windows].sort((a, b) => a.tabIndex - b.tabIndex);
-
-		for (let i = 0; i < zOrder.length; i++) {
-			zOrder[i].zIndex = i;
-		}
-
-		for (let i = 0; i < tabOrder.length; i++) {
-			tabOrder[i].tabIndex = i;
-		}
-		AppWindows.#windows = zOrder;
-        AppWindowManager.setTaskBarItems(tabOrder);
-	}
-
-
     static getActiveWindow() {
         // it's the last z-order window that is open that represent the current active window
         for (let i = AppWindows.#windows.length - 1; i >= 0; i--) {
@@ -86,117 +52,126 @@ class AppWindows {
         return null;
     }
 
-	static #updateZIndexes() {
-		for (let i=0; i<AppWindows.#windows.length; i++) {
-			const zIndex = i*2 + AppWindows.#AppWindowZoffset;
-			const win = AppWindows.#windows[i];
-			win.el.style.zIndex = zIndex;
-			win.zIndex = zIndex; // used when saving state
-			if (win.hasBackdrop) {
-				win.backdrop_el.style.zIndex = zIndex-1;
-			}
-		}
-	}
+	static initAppWindowManager(AppWindow_msgr_el) {
+        AppWindowManager.init({
+            root_el:AppWindow_msgr_el,
+            events:AppWindows.events,
+            onGetActiveWindow:AppWindows.getActiveWindow,
+        });
 
-	/** this is a two use function, 
-	 * if the window no not exist it's added, 
-	 * otherwise its only bringed to front 
-	 * it returns the index that is given to the window
-	 */
-	/** Bring to front in the z-stack (does not modify .state). Also works for completely new windows (indexOf -> -1). */
-    static #bringToFront(window) {
-        const idx = AppWindows.#windows.indexOf(window);
-        if (idx !== -1) AppWindows.#windows.splice(idx, 1);
-        AppWindows.#windows.push(window);
-        AppWindows.#updateZIndexes();
+        //AppWindows.#initDebugEventLoggers();
+        AppWindows.#initSaveStateOnEvents();
+    }
+    
+    static #eventNames = ['open','close','minimize','show','destroy','resized','moved'];
+
+    static #initSaveStateOnEvents() {
+        AppWindows.#AddMultipleEventListeners(() => AppWindows.saveAppWindowsState(), AppWindows.#eventNames);
     }
 
-    static activate(window) {
-        const wasClosed = window.isClosed();
-        const wasMinimized = window.isMinimized();
-        window.setOpen();
-		window.show();
-        AppWindows.#bringToFront(window);
-        //AppWindowManager.render();
- 
-        AppWindows.emit((wasClosed || wasMinimized) ? 'reopen' : 'open', window);
-		if (wasClosed) {
-			window.onOpen?.(window);
-		}	
+    static #initDebugEventLoggers() {
+        AppWindows.#AddMultipleEventListeners((e) => console.trace(`AWM - window ${e.type}: ${e.detail.window.title}`), AppWindows.#eventNames)
     }
 
+    static #Create_GotoLabelForm(states) {
+        return new GotoLabelForm({
+            onGotoAddress: gotoDisasmAddress,
+            filters: [
+                [js51_disasm.LabelType.User, "User"],
+                [js51_disasm.LabelType.Func, "Functions"],
+                [js51_disasm.LabelType.Jump, "Jumps"]
+            ],
+            onOpen:(win) => {
+                win.generateList(insn_map);
+            }
+        }).setStates(states);
+    }
+    static #Create_LabelReferencesForm(states) {
+        return new LabelReferencesForm({ 
+            onGotoAddress: gotoDisasmAddress 
+        }).setStates(states);
+    }
+    static #Create_SettingsEditor(states) {
+        return new SettingsEditor().setStates(states);
+    }
+    static #Create_AssemblyViewer(states) {
+        return new AssemblyViewer().setStates(states); 
+    }
+    static #Create_AssemblyEditor(states) {
+        return new AssemblyEditor({
+            onBuild: asmEditOnBuild 
+        }).setStates(states); 
+    }
+    static #Create_Profiler(states) {
+        return new Profiler({
+            cpu: window.app.cpu, 
+            onGotoAddress: gotoDisasmAddress
+        }).setStates(states);
+    }
+    static #Create_HexEditor(states) {
+        return new HexEditor().setStates(states);
+    }
+
+    static #WindowTypes = {
+        [GotoLabelForm.TYPE]: AppWindows.#Create_GotoLabelForm,
+        [LabelReferencesForm.TYPE]: AppWindows.#Create_LabelReferencesForm,
+        [SettingsEditor.TYPE]: AppWindows.#Create_SettingsEditor,
+        [AssemblyViewer.TYPE]: AppWindows.#Create_AssemblyViewer,
+        [AssemblyEditor.TYPE]: AppWindows.#Create_AssemblyEditor,
+        [Profiler.TYPE]: AppWindows.#Create_Profiler,
+        [HexEditor.TYPE]: AppWindows.#Create_HexEditor
+    };
+    static #decodeAndInitWindow(winState) {
+        const factory = AppWindows.#WindowTypes[winState.type];
+
+        if (!factory) {
+            console.warn(`Unknown window type: ${winState.type}`);
+            return;
+        }
+
+        let defaultValue = AppWindows.#GetSingletonsDefault(winState.type);
+        let win = factory({...defaultValue, ...winState});
+    }
     static #initWindows(items) {
         for (let i=0;i<items.length;i++) {
             AppWindows.#decodeAndInitWindow(items[i]);
         }
+        const tabOrder = [...AppWindows.#windows].sort((a, b) => a.tabIndex - b.tabIndex);
+        AppWindowManager.setTaskBarItems(tabOrder);
     }
 
-    static #WindowTypes = {
-        [GotoLabelForm.TYPE]: () =>  {
-            new GotoLabelForm({
-                onGotoAddress: gotoDisasmAddress,
-                filters: [
-                    [js51_disasm.LabelType.User, "User"],
-                    [js51_disasm.LabelType.Func, "Functions"],
-                    [js51_disasm.LabelType.Jump, "Jumps"]
-                ]
-            }).onOpen = (win) => {
-                win.generateList(insn_map);
-            };
-        },
+    static saveAppWindowsState() {
+		AppWindowManager.setTaskBarOrderIndexes();
+        const winExport = AppWindows.#windows.map(win => win.getStates());
+        AppWindows.PersistentStorage.set(winExport);
+		//console.log(JSON.stringify(winExport, null, 4));
+	}
 
-        [LabelReferencesForm.TYPE]: () => {
-            new LabelReferencesForm({
-                onGotoAddress: gotoDisasmAddress
-            })
-        },
-
-        [SettingsEditor.TYPE]: () => {
-            new SettingsEditor()
-        },
-
-        [AssemblyViewer.TYPE]: () => {
-            new AssemblyViewer()
-        },
-
-        [AssemblyEditor.TYPE]: () => {
-            new AssemblyEditor({ onBuild: asmEditOnBuild });
-        },
-
-        [Profiler.TYPE]: () => {
-            new Profiler({
-                cpu: window.app.cpu,
-                onGotoAddress: gotoDisasmAddress
-            })
-        },
-
-        [HexEditor.TYPE]: () => {
-            new HexEditor()
+    static #GetSingletonsDefault(type) {
+        for (let item of AppWindows.#SingletonsDefaults) {
+            if (item.type == type) {
+                return item;
+            }
         }
-    };
+        return {};
+    }
     
-    static #decodeAndInitWindow(win) {
-        const factory = AppWindows.#WindowTypes[win.type];
-
-        if (!factory) {
-            console.warn(`Unknown window type: ${win.type}`);
-            return;
-        }
-
-        factory(win);
-    }
+    static #SingletonsDefaults = [
+        {type:GotoLabelForm.TYPE,       width:420, height:768, mode:AppWindow.Modes.Open},
+        {type:LabelReferencesForm.TYPE, width:420, height:768},
+        {type:SettingsEditor.TYPE,      width:420, height:768},
+        {type:AssemblyViewer.TYPE,      width:420, height:768},
+        {type:Profiler.TYPE,            width:800, height:768},
+        {type:HexEditor.TYPE,           width:700, height:768},
+    ];
+    static PersistentStorage = undefined;
 
     static initSingletonAppWindows() {
-        let singletonsDefaults = [
-            {type:GotoLabelForm.TYPE},
-            {type:LabelReferencesForm.TYPE},
-            {type:SettingsEditor.TYPE},
-            {type:AssemblyViewer.TYPE},
-            {type:Profiler.TYPE},
-            {type:HexEditor.TYPE},
-        ];
-        console.log(singletonsDefaults);
-        AppWindows.#initWindows(singletonsDefaults);
+        
+        AppWindows.PersistentStorage = new Setting('AppWindows', AppWindows.#SingletonsDefaults)
+
+        console.log(AppWindows.PersistentStorage.value);
+        AppWindows.#initWindows(AppWindows.PersistentStorage.value);
     }
 
 }

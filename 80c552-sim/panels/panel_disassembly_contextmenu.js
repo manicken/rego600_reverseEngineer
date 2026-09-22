@@ -22,7 +22,7 @@ let disasmContextMenu_items = {
     copyRawData:{ className:"disasm-context-item", label:"Copy raw data", handler:copyRawData, comment:"Copy the selected raw instruction bytes as hexadecimal." },
     copyAddress:{ className:"disasm-context-item", label:"Copy address", handler:copyAddress, comment:"Copy the selected instruction address(es) to the clipboard." },
     toggleBreakpointSeparator: { className:"disasm-context-separator" },
-    toggleBreakpoint: { className:"disasm-context-item", label: "Toggle Breakpoint", handler:toggleDisasmBreakpoint, comment:"Toggle the breakpoint, can also be set/unset using the leftmost column."}
+    toggleBreakpoint: { className:"disasm-context-item", label: "Toggle Breakpoint", handler:()=>toggleDisasmBreakpoint(disasmLineContext), comment:"Toggle the breakpoint, can also be set/unset using the leftmost column."}
 };
 
 function initDisasmContextMenu() {

@@ -1,7 +1,7 @@
 
 class SettingsEditor extends AppWindow {
     constructor() {
-        super({ title:"Settings", singleton:true, height:768, width:420, resizable: true });
+        super({ title:"Settings", singleton:true, resizable: true });
         let content = createNewElement("div", {
             className:"settings-form-content"
         });

@@ -2,7 +2,7 @@
 class ConfirmDialog extends AppWindow {
 
     constructor({ title = "Confirm", message = "", confirmText = "OK", confirmClass = "", onConfirm = () => {} } = {}) {
-        super({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false });
+        super({ title, backdrop: true, closeOnBackdropClick: false });
         this.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
         this.setFooter(createButtonBar([
             {
@@ -20,10 +20,9 @@ class ConfirmDialog extends AppWindow {
                 }
             }
         ]));
-        this.open();
     }
 
     static Show(p={}) {
-        new ConfirmDialog(p);
+        new ConfirmDialog(p).setStates({height: 200, width: 350}).open();
     }
 }

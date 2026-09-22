@@ -55,32 +55,26 @@
     background: #1d2f3b;
     font-weight: bold;
 }
-
-
 .goto-label-list {
-    display: flex;
-    flex-direction: column;
-
-    flex: 1;
     min-height: 0;
-
+    flex: 1;
     overflow-y: auto;
-    margin: 6px;
+    background-color: rgb(27, 27, 27);
     border: 1px solid #888;
+    margin: 6px;
 }
 
-
 .goto-label-row {
+    padding-top: 2px;
+    height: 35px;
     display: flex;
     align-items: center;
-
     padding: 5px 8px;
-
     cursor: pointer;
-
     border-bottom: 1px solid #ddd;
-
+    border-right: 2px solid #ddd;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 

@@ -1,7 +1,7 @@
 class InfoDialog extends AppWindow {
     constructor({ title = "Info", message = "", buttonText = "OK", z=3000, onConfirm = () => {} } = {})
     {
-        super({ title, height: 200, width: 350, backdrop: true, closeOnBackdropClick: false, z });
+        super({ title, backdrop: true, closeOnBackdropClick: false, z });
         this.setBody(createNewElement("div", { innerHTML: message, styles: { padding: "8px" } }));
         this.setFooter(createButtonBar([
             {
@@ -12,10 +12,9 @@ class InfoDialog extends AppWindow {
                 }
             }
         ]));
-        this.open();
     }
     static Show(p={}) {
-        new InfoDialog(p);
+        new InfoDialog(p).setStates({height: 200, width: 350}).open();
     }
 }
 

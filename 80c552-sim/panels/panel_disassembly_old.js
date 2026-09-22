@@ -1,4 +1,4 @@
-// Beror på virtual-scroller.js (VirtualScroller) - ladda den innan denna fil.
+
 
 class DisasmLine {
     constructor() {
@@ -43,11 +43,12 @@ function gotoDisasmAddress(addr) {
         return false;
     }
     //console.log("scrolling to index: " + index);
-    disasmScroller.scrollToIndex(index);
+    scrollToIndex(index);
     return true;
 }
 
 function editCode() {
+
     AppWindows.Singletons.HexEditor.open(cpu.CODE);
 
     if (disasmLineContext && disasmLineContext.data) {
@@ -59,18 +60,14 @@ function viewAsmCode() {
     let asmCode = getAssemblyInstructions({insn_incr:4});
     AppWindows.Singletons.AssemblyViewer.open(asmCode);
 }
-let prevGotoAddress = "";
-function gotoAddress() {
 
-    InputDialog.Show({title:"Goto address (hex):", message:`Enter value in hex:`, value: prevGotoAddress,
-        onConfirm:(addr) => {
-            prevGotoAddress = addr;
-            if (addr.trim() === "")
-                return;
-            else
-                gotoDisasmAddress(parseInt(addr, 16));
-        }
-    });
+function gotoAddress() {
+    const text = window.prompt("Goto address (hex): ", "");
+
+    if ((text === null) || (text.trim() === ""))
+        return; // cancel
+
+    gotoDisasmAddress(parseInt(text, 16));
 }
 
 function gotoLabel() {
@@ -180,35 +177,29 @@ function editDisasmLabel() {
 
     const addr = line.data.addr;
     const current = line.data.label || "";
+    const text = window.prompt("Label @ " + hex(addr, 4) + ":", current);
 
-    InputDialog.Show({title:"Edit Label", message:`Label @ ${hex(addr,4)}:`, value: current,
-        onValidate:(label) => {
-            for (let [addr, item] of insn_map) {
-                if (label === item.label) {
-                    return "There is allready a label with that name";
-                }
-            }
-            return true;
-        },
-        onConfirm:(label) => {
-            if (label.trim() === "")
-                line.data.label = undefined;
-            else
-                line.data.label = label.trim();
+    if (text === null)
+        return; // cancel
 
-            line.data.labelType = js51_disasm.LabelType.User;
+    if (text.trim() === "")
+        line.data.label = undefined;
+    else
+        line.data.label = text.trim();
 
-            for (const [addr, insn] of insn_map) {
-                if (insn.target == addr) {
-                    insn.operands[insn.operands.length-1] = line.data.label?line.data.label:hex(addr,4);
-                }
-            }
-            // Etiketter lägger till/tar bort en rad i display-listan, så hela listan
-            // (och sizer-höjden) måste byggas om. rebuildDisasmDisplayList() lämnar nu
-            // om-renderingen till VirtualScroller (setCount), så inget extra render-anrop behövs.
-            rebuildDisasmDisplayList();
+    line.data.labelType = js51_disasm.LabelType.User;
+
+    for (const insn of disasmEntries) {
+        if (insn.target == addr) {
+            
+            insn.operands[insn.operands.length-1] = line.data.label?line.data.label:hex(addr,4);
         }
-    })
+    }
+
+    // Etiketter lägger till/tar bort en rad i display-listan, så hela listan
+    // (och sizer-höjden) måste byggas om.
+    rebuildDisasmDisplayList();
+    renderVisibleDisasmRows();
 }
 
 function editDisasmComment() {
@@ -218,22 +209,22 @@ function editDisasmComment() {
 
     const addr = line.data.addr;
     const current = disasmComments.get(addr) || "";
+    const text = window.prompt("Kommentar vid " + hex(addr, 4) + " (visas som tooltip):", current);
 
-    InputDialog.Show({title:"Edit Label", message:`Comment @ ${hex(addr,4)} (is shown as a tooltip):`, value: current,
-        onConfirm:(text) => {
-            if (text.trim() === "")
-                disasmComments.delete(addr);
-            else
-                disasmComments.set(addr, text.trim());
+    if (text === null)
+        return;
 
-            // Kommentarer tar ingen egen rad - bara title-attributet på berörd rad behöver uppdateras.
-            disasmScroller.refresh();
-        }
-    });
+    if (text.trim() === "")
+        disasmComments.delete(addr);
+    else
+        disasmComments.set(addr, text.trim());
+
+    // Kommentarer tar ingen egen rad - bara title-attributet på berörd rad behöver uppdateras.
+    renderVisibleDisasmRows();
 }
 
-function toggleDisasmBreakpoint(disasmLine) {
-    let line = disasmLine;
+function toggleDisasmBreakpoint() {
+    let line = disasmLineContext;
     if (!line.data)
         return;
 
@@ -260,42 +251,42 @@ let disasmNeedsRebuild = false;
 /** Extra rader ovanför/under synligt område, buffert mot vitt hack vid snabb scroll */
 const DISASM_BUFFER_ROWS = 8;
 
+/** @type {Array<{addr:number, bytes:number[], mnemonic:string, operands:string, text:string}>} */
+let disasmEntries = [];            // sorterad, ren datalista över instruktioner - ingen DOM per rad
+
 /** @type {Map<number,string>} */
 //let disasmLabels = new Map();      // addr -> etikett-text, visas som egen rad ovanför instruktionen
 /** @type {Map<number,string>} */
 let disasmComments = new Map();    // addr -> kommentar-text, visas som tooltip (title) vid hover
 
 /** @type {Array<{type:'insn', insn:Object}|{type:'label', addr:number, text:string}>} */
-let disasmDisplayList = [];        
+let disasmDisplayList = [];        // disasmEntries + insprängda label-rader, det virtualiseringen itererar över
 /** @type {Map<number, number>} */
 let disasmAddrToIndex = new Map(); // addr -> index i disasmDisplayList (för instruktionsraden, inte ev. label-rad)
 
 /** @type {Set<number>} */
 let disasmBreakpoints = new Set(); // adresser med breakpoint satt (state hör till adressen, inte till en DOM-nod)
 
-let disasmSizer_el = null;         // ger scrollbaren rätt totalhöjd, rader positioneras absolut i denna
-let disasmViewport_el = null;      // det scrollande elementet
+/** @type {DisasmLine[]} */
+let disasmPool = [];               // återanvända DOM-rader, storlek << disasmEntries.length
 
-/** @type {VirtualScroller} */
-let disasmScroller = null;         // sköter radpoolning/scroll-rendering, se virtual-scroller.js
+let disasmSizer_el = null;         // ger scrollbaren rätt totalhöjd, rader positioneras absolut i denna
+let disasmViewport_el = null;      // det scrollande elementet (motsvarar gamla disasmScroll_el)
+let disasmScroll_el;               // alias, ifall något annat i koden refererar till detta namn
 
 let currentExecAddr = null;        // adress PC pekar på just nu
 let rowHeight = 20;
 
+let disasmRenderScheduled = false;
+let disasmResizeTimer = null;
+
 /**
- * Bygger om disasmDisplayList från , och disasmAddrToIndex
+ * Bygger om disasmDisplayList från disasmEntries + disasmLabels, och disasmAddrToIndex
  * från resultatet. Anropas vid start och varje gång en etikett läggs till/tas bort
  * (kommentarer påverkar inte listan, bara title-attributet på berörd rad).
- *
- * Sizer-höjd, pool-storlek och om-rendering sköts nu av disasmScroller.setCount()
- * istället för att sättas manuellt här.
  */
 function rebuildDisasmDisplayList() {
     const list = [];
-
-    //const addrs = [...insn_map.keys()].sort((a, b) => a - b);
-    //let disasmEntries = addrs.map(addr => insn_map.get(addr));
-    let disasmEntries = [...insn_map.entries()].sort((a, b) => a[0] - b[0]).map(([, insn]) => insn);
 
     for (const insn of disasmEntries) {
         const label = insn.label;
@@ -313,8 +304,8 @@ function rebuildDisasmDisplayList() {
             disasmAddrToIndex.set(item.insn.addr, i);
     });
 
-    if (disasmScroller)
-        disasmScroller.setCount(disasmDisplayList.length);
+    if (disasmSizer_el && rowHeight)
+        disasmSizer_el.style.height = (disasmDisplayList.length * rowHeight) + "px";
 }
 
 let insn_map = null;
@@ -329,7 +320,13 @@ function completeRebuildDisassembly(code_map = curr_firmware.code_map)
         }
     }
     //console.log(insn_map);
-    rebuildDisasmDisplayList();
+    // Bygg en sorterad, ren datalista - inga DOM-noder skapas per instruktion längre
+    const addrs = [...insn_map.keys()].sort((a, b) => a - b);
+    disasmEntries = addrs.map(addr => insn_map.get(addr));
+    //console.log(disasmEntries);
+
+    rebuildDisasmDisplayList(); // bygger disasmDisplayList + disasmAddrToIndex (inga etiketter satta ännu, så = disasmEntries)
+
 }
 
 function disassembly_init() {
@@ -352,7 +349,7 @@ function disassembly_init() {
             disasmNeedsRebuild = true;
         }
     });
-    completeRebuildDisassembly(); // disasmScroller finns inte än här, så setCount körs inte - det är okej, setCount körs explicit nedan när scrollern skapats
+    completeRebuildDisassembly();
     
     initDisasmContextMenu();
     const disassemblyView_el = document.getElementById("disassemblyView");
@@ -361,29 +358,65 @@ function disassembly_init() {
     
 
     // Scrollande viewport (samma roll som gamla container_el)
-    disasmViewport_el = createNewElement("div", { className: "disassembly-container" });
+    let viewport_el = createNewElement("div", { className: "disassembly-container" });
+    disasmScroll_el = viewport_el;
+    disasmViewport_el = viewport_el;
 
-    disassemblyView_el.appendChild(disasmViewport_el);
+    // Sizer: ger scrollbaren rätt totalhöjd (antal rader * rowHeight) utan
+    // att varje rad faktiskt existerar i DOM:en. Raderna positioneras absolut i denna.
+    disasmSizer_el = createNewElement("div", { className: "disassembly-grid" });
+    disasmSizer_el.style.position = "relative"; // sätts direkt, se kommentar i buildPoolRow
+    viewport_el.appendChild(disasmSizer_el);
 
-    // VirtualScroller sköter radpool, sizer-höjd, scroll/resize-lyssnare och
-    // rAF-throttlad rendering. createRow/bindRow är samma DOM-uppbyggnad/bindning
-    // som förut, bara flyttade in i funktionerna buildPoolRow/bindPoolRow nedan.
-    disasmScroller = new VirtualScroller({
-        viewportEl: disasmViewport_el,
-        createRow: buildPoolRow,
-        bindRow: setPoolRowData,
-        bufferRows: DISASM_BUFFER_ROWS,
-        rowHeight: rowHeight,
-    });
+    // Header (statisk, virtualiseras inte)
+    /*let header_el = createNewElement("div", { className: "disassembly-grid-row disassembly-grid-header" });
+    appendNewElement(header_el, "div", { className: "disassembly-breakpoint", textContent: "" });
+    appendNewElement(header_el, "div", { className: "disassembly-curr-exec", textContent: "" });
+    appendNewElement(header_el, "div", { className: "disassembly-address", textContent: "Addr." });
+    appendNewElement(header_el, "div", { className: "disassembly-bytes", textContent: "Bytes" });
+    appendNewElement(header_el, "div", { className: "disassembly-mnemonic", textContent: "OP" });
+    appendNewElement(header_el, "div", { className: "disassembly-operands", textContent: "Operands" });
+    disassemblyView_el.appendChild(header_el);
+    */
+
+    disassemblyView_el.appendChild(viewport_el);
 
     // Mät radhöjd med TVÅ rader och ta avståndet mellan deras topp-kanter,
     // inte en enda rads offsetHeight. Fångar upp ev. row-gap/marginal i CSS:en
     // som annars ger en drift som växer ju längre ner man scrollar.
-    rowHeight = disasmScroller.measureRowHeight();
+    const probeA = buildPoolRow();
+    const probeB = buildPoolRow();
+    probeA.row_el.style.top = "0px";
+    probeB.row_el.style.top = "0px"; // sätts om nedan, bara för att tvinga layout
+    disasmSizer_el.appendChild(probeA.row_el);
+    disasmSizer_el.appendChild(probeB.row_el);
+    probeB.row_el.style.top = probeA.row_el.offsetHeight + "px";
 
-    disasmScroller.setCount(disasmDisplayList.length); // sätter sizer-höjd, bygger initial pool, renderar
+    const rectA = probeA.row_el.getBoundingClientRect();
+    const rectB = probeB.row_el.getBoundingClientRect();
+    const measured = rectB.top - rectA.top;
+    rowHeight = measured > 0 ? measured : (probeA.row_el.offsetHeight || rowHeight);
+
+    probeA.row_el.remove();
+    probeB.row_el.remove();
+
+    rebuildDisasmDisplayList(); // sätter nu sizer-höjden också, med korrekt rowHeight
+
+    initDisasmPool();
+    renderVisibleDisasmRows();
+
+    viewport_el.addEventListener("scroll", onDisasmScroll, { passive: true });
+
+    // ResizeObserver istället för window "resize": fångar även fallet där panelen
+    // inte hade sin slutgiltiga höjd (t.ex. dold flik) när poolen skapades ovan.
+    const disasmResizeObserver = new ResizeObserver(() => onDisasmResize());
+    disasmResizeObserver.observe(viewport_el);
+
+    //loading_el.remove();
     setCurrentExecLine(cpu, true);
-    
+
+    //console.log("disassembly: " + disasmEntries.length + " rows, rowHeight=" + rowHeight + ", pool=" + disasmPool.length + ", viewport clientHeight=" + viewport_el.clientHeight);
+
     initSelectFunctionality(disassemblyView_el);
 }
 
@@ -403,6 +436,8 @@ function initSelectFunctionality(disassemblyView_el) {
     /**
      * drag select functionality
      */
+    
+
     disassemblyView_el.addEventListener('mousedown', (e) => {
         const selCount = getSelectedRange().length;
 
@@ -417,7 +452,7 @@ function initSelectFunctionality(disassemblyView_el) {
         selStartIndex = row.dataSource.index;
         selEndIndex = selStartIndex;
         updateSelectionHighlight();
-        disasmScroller.refresh();
+        renderVisibleDisasmRows();
         e.preventDefault(); // undvik textmarkering i browsern
         //console.log("start drag");
     });
@@ -430,7 +465,7 @@ function initSelectFunctionality(disassemblyView_el) {
         
         selEndIndex = row.dataSource.index;
         updateSelectionHighlight();
-        disasmScroller.refresh();
+        renderVisibleDisasmRows();
         //console.log("dragging");
     });
 
@@ -447,11 +482,19 @@ function initSelectFunctionality(disassemblyView_el) {
     }
 }
 
-/** Skapar en enda pool-rad (DOM), obunden till någon instruktion ännu.
- *  Positionering (absolute/left/right/top/display) sköts av VirtualScroller -
- *  den här funktionen bygger bara upp radens inre struktur. */
+/** Skapar en enda pool-rad (DOM), obunden till någon instruktion ännu. */
 function buildPoolRow() {
     let row_el = createNewElement("div", { className: "disassembly-grid-row" });
+
+    // Sätts direkt på style-objektet (inte via createNewElement:s props) - createNewElement
+    // verkar inte stödja ett nästlat "style"-objekt, vilket gjorde att position:absolute
+    // aldrig applicerades och raderna låg kvar i normalt (statiskt) dokumentflöde.
+    row_el.style.position = "absolute";
+    row_el.style.left = "0";
+    row_el.style.right = "0";
+    row_el.style.top = "0px";
+
+    row_el.onclick
 
     const disasmLine = new DisasmLine();
     disasmLine.row_el = row_el;
@@ -479,23 +522,106 @@ function buildPoolRow() {
         //}
     });
 
-    return {el:row_el, data:disasmLine};
+    return disasmLine;
 }
 
-/** Sätter en pool-rads innehåll till en given display-list-post (instruktion eller etikett).
- *  Anropas av VirtualScroller efter att den redan satt display/top/dataset.index -
- *  den här funktionen bryr sig bara om innehållet, inte om radens position. */
-function setPoolRowData(line, index) {
-    let item = disasmDisplayList[index];
-    //console.log(line, item);
+function initDisasmPool() {
+    /*console.log({
+        clientHeight: disasmViewport_el.clientHeight,
+        scrollHeight: disasmViewport_el.scrollHeight,
+        offsetHeight: disasmViewport_el.offsetHeight,
+        entries: disasmDisplayList.length,
+        rowHeight
+    });*/
+    
+    const visibleRows = Math.ceil(disasmViewport_el.clientHeight / rowHeight);
+    const poolSize = Math.min(disasmDisplayList.length, visibleRows + DISASM_BUFFER_ROWS * 2);
+
+    disasmPool = [];
+    for (let i = 0; i < poolSize; i++) {
+        const line = buildPoolRow();
+        line.row_el.dataset.index = i;
+        line.row_el.style.display = "none";
+        disasmSizer_el.appendChild(line.row_el);
+        disasmPool.push(line);
+    }
+}
+
+/** Växer poolen om fönstret blir större (krymper aldrig - onödigt att churna DOM). */
+function resizeDisasmPool() {
+    const visibleRows = Math.ceil(disasmViewport_el.clientHeight / rowHeight);
+    const needed = Math.min(disasmDisplayList.length, visibleRows + DISASM_BUFFER_ROWS * 2);
+
+    while (disasmPool.length < needed) {
+        const line = buildPoolRow();
+        line.row_el.dataset.index = disasmPool.length-1;
+        line.row_el.style.display = "none";
+        disasmSizer_el.appendChild(line.row_el);
+        disasmPool.push(line);
+    }
+}
+
+function onDisasmResize() {
+    clearTimeout(disasmResizeTimer);
+    disasmResizeTimer = setTimeout(() => {
+        resizeDisasmPool();
+        renderVisibleDisasmRows();
+    }, 100);
+}
+
+function onDisasmScroll() {
+    if (disasmRenderScheduled)
+        return;
+
+    disasmRenderScheduled = true;
+    requestAnimationFrame(() => {
+        disasmRenderScheduled = false;
+        renderVisibleDisasmRows();
+    });
+}
+
+/** Binder om poolens rader till rätt fönster av disasmDisplayList baserat på scrollTop. */
+function renderVisibleDisasmRows() {
+    if (disasmDisplayList.length === 0 || disasmPool.length === 0)
+        return;
+
+    const scrollTop = disasmViewport_el.scrollTop;
+    const firstVisible = Math.floor(scrollTop / rowHeight);
+
+    let startIndex = firstVisible - DISASM_BUFFER_ROWS;
+    if (startIndex < 0) startIndex = 0;
+
+    const maxStart = Math.max(0, disasmDisplayList.length - disasmPool.length);
+    if (startIndex > maxStart) startIndex = maxStart;
+
+    for (let slot = 0; slot < disasmPool.length; slot++) {
+        const index = startIndex + slot;
+        const line = disasmPool[slot];
+
+        if (index >= disasmDisplayList.length) {
+            line.row_el.style.display = "none";
+            line.data = null;
+            line.item = null;
+            line.index = -1;
+            continue;
+        }
+
+        bindPoolRow(line, disasmDisplayList[index], index);
+    }
+}
+
+/** Sätter en pool-rads innehåll/position till en given display-list-post (instruktion eller etikett). */
+function bindPoolRow(line, item, index) {
     line.item = item;
     line.index = index;
-    line.row_el.dataSource = line; // läses av drag-select via e.target.closest(...).dataSource.index
 
+    line.row_el.style.display = "";
     line.row_el.classList.remove('selected');
     if (item.selected) {
         line.row_el.classList.add('selected');
     }
+    line.row_el.style.top = (index * rowHeight) + "px";
+    line.row_el.dataSource = line;
 
     if (item.type === DisAsmLineType.Label) {
         line.data = null;
@@ -552,9 +678,18 @@ function rebuildDisasm_ifNeeded(){
         return false;
     }
     disasmNeedsRebuild = false;
+    const addrs = [...insn_map.keys()].sort((a, b) => a - b);
+    disasmEntries = addrs.map(addr => insn_map.get(addr));
+
     rebuildDisasmDisplayList();
     return true;
 }
+
+function scrollToIndex(index) {
+    const target = index * rowHeight - (disasmViewport_el.clientHeight - rowHeight) / 2;
+    disasmViewport_el.scrollTop = Math.max(0, target);
+}
+
 
 function setCurrentExecLine(cpu, force = false) {
     
@@ -564,13 +699,15 @@ function setCurrentExecLine(cpu, force = false) {
         if (rebuildDisasm_ifNeeded()) {
             let index = disasmAddrToIndex.get(address);
             if (index != undefined) {
-                disasmScroller.refresh();
+                //scrollToIndex(index);
+                renderVisibleDisasmRows();
             }
         }
         return;
     }
     rebuildDisasm_ifNeeded();
 
+    
     currentExecAddr = address;
 
     if (address == 0x8b87) {
@@ -585,15 +722,17 @@ function setCurrentExecLine(cpu, force = false) {
         //console.log("asdress not disasm, executing disasm:" + hex(address,4));
         curr_firmware.code_map.push(address); // push so that we can save it to local storage later to avoid same sitaution again
         insn_map = js51_disasm.disassemble_recursive(cpu.CODE, [address], cpu.SFR, insn_map);
+        const addrs = [...insn_map.keys()].sort((a, b) => a - b);
+        disasmEntries = addrs.map(addr => insn_map.get(addr));
         rebuildDisasmDisplayList();
 
         index = disasmAddrToIndex.get(address);
     }
 
     if ((disasm.auto_scroll.value || force) && disasmViewport_el) {
-        disasmScroller.scrollToIndex(index);
+        scrollToIndex(index);
     }
 
     // Uppdatera markeringen även när vi inte scrollade (Live Scroll avstängd men Live Tracking på).
-    disasmScroller.refresh();
+    renderVisibleDisasmRows();
 }

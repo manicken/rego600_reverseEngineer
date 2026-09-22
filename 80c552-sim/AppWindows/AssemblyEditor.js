@@ -1,4 +1,9 @@
+
 class AssemblyEditor extends AceEditor {
+
+    static CreateNewWindow() {
+        return new AssemblyEditor({ onBuild: asmEditOnBuild }).setStates({height:700, width:500}).open();
+    }
 
     static #ModalTitle = "Assembly Editor";
 
@@ -50,7 +55,7 @@ class AssemblyEditor extends AceEditor {
     ];
 
     constructor({onBuild = (asmList) => {}}={}) {
-        super({title:AssemblyEditor.#ModalTitle, type:AssemblyEditor.TYPE, height:700, width:500, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
+        super({title:AssemblyEditor.#ModalTitle, type:AssemblyEditor.TYPE, resizable: true, aceTheme:"textmate", aceMode:"assembly_8051"});
         
         this.onBuild = onBuild;
 
@@ -350,10 +355,6 @@ class HexNumberRenderer
         this.update(null, editor);
     }
 };
-
-function openNewAssemblyEditor() {
-    new AssemblyEditor({ onBuild: asmEditOnBuild }).open();
-}
 
 function asmEditOnBuild(asmList) {
     //printAsmList(asmList);
