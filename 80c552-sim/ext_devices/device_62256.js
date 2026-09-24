@@ -55,6 +55,29 @@ SRAM62256.prototype.write = function (addr, val) {
             '\n' + cpu.getCallStackString()
         );
     }*/
+   // original firmware
+   /*if (addr == 0xA82 || addr == 0xA97 || addr == 0xAAC || addr == 0xAC1) {
+    console.log(
+            `write : addr=0x${addr.toString(16)}, ` +
+            `value=0x${val.toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+   }*/
+   // patched
+   /*if (addr == 0xB1F || addr == 0xB34 || addr == 0xB49 || addr == 0xB5E) {
+    console.log(
+            `write : addr=0x${addr.toString(16)}, ` +
+            `value=0x${val.toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+   }*/
+  /*if (addr == 0xB73 ) {
+    console.log(
+            `write : addr=0x${addr.toString(16)}, ` +
+            `value=0x${val.toString(16)}` +
+            '\n' + cpu.getCallStackString()
+        );
+   }*/
     this.mem_write_use_map[addr & (this.size - 1)]++;
     this.mem[addr & (this.size - 1)] = val & 0xFF
 }

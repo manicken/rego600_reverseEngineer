@@ -39,7 +39,11 @@ window.app.main_menu = [
         items: [
             {
                 label: "Assembly Editor",
-                action: () => { AssemblyEditor.CreateNewWindow(); }
+                action: () => { AssemblyEditor.CreateNewWindowAndOpen(); }
+            },
+            {
+                label: "XRAM View",
+                action: () => { XRAM_View.CreateNew_AndOpen(); }
             },
             {
                 label: "Profiler",

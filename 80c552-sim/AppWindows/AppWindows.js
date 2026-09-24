@@ -102,6 +102,9 @@ class AppWindows {
             onBuild: asmEditOnBuild 
         }).setStates(states); 
     }
+    static #Create_XRAM_View(states) {
+        return new XRAM_View().setStates(states).open();
+    }
     static #Create_Profiler(states) {
         return new Profiler({
             cpu: window.app.cpu, 
@@ -119,7 +122,8 @@ class AppWindows {
         [AssemblyViewer.TYPE]: AppWindows.#Create_AssemblyViewer,
         [AssemblyEditor.TYPE]: AppWindows.#Create_AssemblyEditor,
         [Profiler.TYPE]: AppWindows.#Create_Profiler,
-        [HexEditor.TYPE]: AppWindows.#Create_HexEditor
+        [HexEditor.TYPE]: AppWindows.#Create_HexEditor,
+        [XRAM_View.TYPE]: AppWindows.#Create_XRAM_View,
     };
     static #decodeAndInitWindow(winState) {
         const factory = AppWindows.#WindowTypes[winState.type];

@@ -229,6 +229,9 @@ function logI2C_write() {
 		}
     if (databytes.length > 0 && window.app.sim.frontPanel.debugPrintI2C_write) {
 		   console.log("i2c stop: " + databytes); 
+           if (current_i2c_write[0] == 0x04 && current_i2c_write[1] == 0x14 && current_i2c_write[2] == 0x20) {
+                console.log(cpu.getCallStackString());
+           }
     }
 }
 

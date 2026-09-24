@@ -1,7 +1,7 @@
 
 class AssemblyEditor extends AceEditor {
 
-    static CreateNewWindow() {
+    static CreateNewWindowAndOpen() {
         return new AssemblyEditor({ onBuild: asmEditOnBuild }).setStates({height:700, width:500}).open();
     }
 
@@ -366,8 +366,8 @@ function asmEditOnBuild(asmList) {
     let code_map = replaceRemoveLabels(curr_firmware.code_map, asmList.listing)
     //console.log(code_map);
     completeRebuildDisassembly(code_map);
-    rebuildDisasmDisplayList();
-    renderVisibleDisasmRows();
+    //rebuildDisasmDisplayList();
+    //renderVisibleDisasmRows();
 }
 
 function replaceRemoveLabels(code_map, asmList) {

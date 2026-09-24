@@ -203,11 +203,11 @@ function getMemoryContentsDump({reader, usemap, readusemap, writeusemap, conside
 
 
             if (readUsed && writeUsed) {
-                line += `<span class="ram_read_write_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
+                line += `<span class="ram_read_write_use_highlight" title="@ ${hex(addr,4)} R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
             } else if (readUsed) {
-                line += `<span class="ram_read_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
+                line += `<span class="ram_read_use_highlight" title="@ ${hex(addr,4)} R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
             } else if (writeUsed) {
-                line += `<span class="ram_write_use_highlight" title="R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
+                line += `<span class="ram_write_use_highlight" title="@ ${hex(addr,4)} R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
             } else {
                 line += `${value.toString(16).padStart(2, '0')} `;
             }

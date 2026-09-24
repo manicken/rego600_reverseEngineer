@@ -15,24 +15,6 @@ class GotoLabelForm extends AppWindow {
         this.#initContent();
     }
 
-    #buildPoolRow() {
-        const row_el = createNewElement("div", { className: "goto-label-row", styles: {  } });
-        const label_el = createNewElement("span", { className: "goto-label-name" });
-        const address_el = createNewElement("span", { className: "goto-label-address" });
-        row_el.append(label_el, address_el);
-        return {el:row_el, data:{row_el, label_el, address_el}};
-    }
-    #bindPoolRowData(line, index) {
-        const label = this.filteredLabels[index];
-
-        line.label_el.textContent = label.label;
-        line.address_el.textContent = hex(label.address,4,false);
-
-        line.row_el.onclick = () => {
-            this.onGotoAddress(label.address);
-        };
-    }
-    
     #initContent() {
         const content = createNewElement("div", { className: "goto-label-content" });
         this.search = createNewElement("input", { className: "goto-label-search", type: "text", placeholder: "Search label..." });
@@ -72,6 +54,24 @@ class GotoLabelForm extends AppWindow {
             bufferRows: 8,
             rowHeight: 27,
         });
+    }
+
+    #buildPoolRow() {
+        const row_el = createNewElement("div", { className: "goto-label-row", styles: {  } });
+        const label_el = createNewElement("span", { className: "goto-label-name" });
+        const address_el = createNewElement("span", { className: "goto-label-address" });
+        row_el.append(label_el, address_el);
+        return {el:row_el, data:{row_el, label_el, address_el}};
+    }
+    #bindPoolRowData(line, index) {
+        const label = this.filteredLabels[index];
+
+        line.label_el.textContent = label.label;
+        line.address_el.textContent = hex(label.address,4,false);
+
+        line.row_el.onclick = () => {
+            this.onGotoAddress(label.address);
+        };
     }
 
     renderLabels() {
