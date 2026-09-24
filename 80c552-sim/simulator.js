@@ -201,16 +201,20 @@ function getPowerOutputSignals() {
 }
 
 function render(stepMode = false) {
-  renderKeyValueTable(coreRegs_el, getCoreRegs());
-  renderKeyValueTable(peripheralRegs_el, getPeripheralRegs());
+    renderKeyValueTable(coreRegs_el, getCoreRegs());
+    renderKeyValueTable(peripheralRegs_el, getPeripheralRegs());
 
-  renderKeyValueTable(pwr_output_signals_el, getPowerOutputSignals());
+    renderKeyValueTable(pwr_output_signals_el, getPowerOutputSignals());
 
-  renderMemDumps();
-  //render_LCD();
-  //renderBus();
+    renderMemDumps();
+    //render_LCD();
+    //renderBus();
 
-  setCurrentExecLine(cpu, stepMode);
+    for (let item of window.app.simulator.guirenderevents) {
+        item();
+    }
+  
+    setCurrentExecLine(cpu, stepMode);
 
 }
 
@@ -219,6 +223,9 @@ let peripheralRegs_el;
 let pwr_output_signals_el;
 
 async function simulator_init() {
+    if (window.app.simulator == undefined) {
+        window.app.simulator = {guirenderevents:[]};
+    }
     coreRegs_el = document.getElementById('coreRegs');
     peripheralRegs_el = document.getElementById('peripheralRegs');
     pwr_output_signals_el = document.getElementById('pwr_output_signals');

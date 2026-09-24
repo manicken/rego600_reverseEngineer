@@ -37,9 +37,17 @@ class MemoryView extends AppWindow {
             createRow: () => this.#buildPoolRow(),
             bindRow: (line, index) => this.#bindPoolRowData(line, index),
             bufferRows: 8,
-            rowHeight: 16,
+            rowHeight: 13,
         });
         this.virtualScroller.setCount(memorysize/this.columns);
+
+        window.app.simulator.guirenderevents.push(
+            () => {
+                if (this.isOpen()) {
+                    this.virtualScroller.refresh();
+                }
+            }
+        );
     }
 
     #buildPoolRow() {
@@ -63,7 +71,7 @@ class MemoryView extends AppWindow {
         
             let value = this.reader(addr);
             
-            if (value === undefined) { break; } // handle out of bounds
+            if (value === undefined) { value = NaN; } // handle out of bounds
             const readCount = this.readusemap[addr];
             const writeCount = this.writeusemap[addr];
 
@@ -90,7 +98,6 @@ class MemoryView extends AppWindow {
     #searchGotoAddress() {
 
     }
-
 }
 
 class XRAM_View extends MemoryView {
