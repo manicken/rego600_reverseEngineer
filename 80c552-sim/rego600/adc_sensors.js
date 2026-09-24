@@ -127,9 +127,9 @@ function updateAdcChannel(ch) {
         : ADC_MAX_VALUE;
 
     if (ch < 8)
-        CD4051_mux_A.X[index] = adcValue;
+        window.app.CD4051_mux_A.X[index] = adcValue;
     else
-        CD4051_mux_B.X[index] = adcValue;
+        window.app.CD4051_mux_B.X[index] = adcValue;
 }
 function setAdcChannel(ch, value) {
     const defs = ch < 8
@@ -154,7 +154,7 @@ function setAdcChannelConnected(ch, connected) {
 }
 
 function adc_sensors_init({MUXSEL_A, MUXSEL_B, MUXSEL_C, MUXSEL_D}) {
-    window.app.CD4051_mux_A = new CD4051({
+     window.app.CD4051_mux_A = new CD4051({
     A: MUXSEL_A,
     B: MUXSEL_B,
     C: MUXSEL_C,
