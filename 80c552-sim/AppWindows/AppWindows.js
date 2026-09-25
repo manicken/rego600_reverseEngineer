@@ -103,13 +103,13 @@ class AppWindows {
         }).setStates(states); 
     }
     static #Create_XRAM_View(states) {
-        return new XRAM_View().setStates(states).open();
+        return new XRAM_View().setStates(states);
     }
     static #Create_IRAM_View(states) {
-        return new IRAM_View().setStates(states).open();
+        return new IRAM_View().setStates(states);
     }
     static #Create_AM29F040_FLASH_View(states) {
-        return new AM29F040_FLASH_View().setStates(states).open();
+        return new AM29F040_FLASH_View().setStates(states);
     }
     static #Create_Profiler(states) {
         return new Profiler({
