@@ -43,12 +43,13 @@ _51cpu.prototype.get_iram_cell = function (addr) {
     return {
         set: function (val) {
             cpu_ref.IRAM[addr] = val;
-            cpu_ref.IRAM_USE_MAP[addr] = true;
+            cpu_ref.IRAM_WRITE_USE_MAP[addr]++;
             //if (addr >= 0x98 && addr < 0xA2) { // 0x98 used by UART
             //    console.log(`iram written @ ${hex(addr,2)} value = ${hex(val,2)}\n${cpu_ref.getCallStackString()}`);
             //}
         },
         get: function () {
+            cpu_ref.IRAM_READ_USE_MAP[addr]++;
             /*if (addr >= 0x98 && addr <= 0xA2) { // 0x98 used by UART
                 console.log(`iram read @ ${hex(addr,2)} value = ${hex(cpu_ref.IRAM[addr],2)}\n${cpu_ref.getCallStackString()}`);
             }*/

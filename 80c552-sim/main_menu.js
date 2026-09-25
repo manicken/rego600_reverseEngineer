@@ -38,12 +38,20 @@ window.app.main_menu = [
         label: "Tools",
         items: [
             {
-                label: "Assembly Editor",
+                label: "New Assembly Editor",
                 action: () => { AssemblyEditor.CreateNewWindowAndOpen(); }
             },
             {
-                label: "XRAM View",
+                label: "New IRAM View",
+                action: () => { IRAM_View.CreateNew_AndOpen(); }
+            },
+            {
+                label: "New XRAM View",
                 action: () => { XRAM_View.CreateNew_AndOpen(); }
+            },
+            {
+                label: "New AM29F040_FLASH View",
+                action: () => { AM29F040_FLASH_View.CreateNew_AndOpen(); }
             },
             {
                 label: "Profiler",
@@ -59,6 +67,15 @@ window.app.main_menu = [
             },
             
             
+        ]
+    },
+    {
+        label: "Dev tests",
+        items: [
+            {
+                label: "Fill almost all of AM29F040 settings sector",
+                action: () => { cpu.bus.flash.mem.fill(0, 0x166C, 0x2FF0); }
+            },
         ]
     }
 ];

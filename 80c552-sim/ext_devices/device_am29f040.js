@@ -33,6 +33,8 @@ function AM29F040(initialImage) {
     this.devId = 0xA4  // AM29F040
 
     this.mem = new Uint8Array(this.size).fill(0xFF)
+    this.mem_write_use_map = new Uint32Array(this.size);
+    this.mem_read_use_map = new Uint32Array(this.size);
     if (initialImage) this.loadImage(initialImage)
 
     this.step = 0
@@ -60,13 +62,14 @@ AM29F040.prototype.read = function (addr, logReads = true) {
         if (off === 0x01) return this.devId
     }
     let val = this.mem[addr];
-    if (addr >= 0x40000 && logReads) {
+    this.mem_read_use_map[addr]++;
+    //if (addr >= 0x40000 && logReads) {
     //console.log(`am29f040 - read text ${hex(val)} @ ${hex(addr)}`);
-    }
+    //}
 
-    if (addr >= 0x30000 && addr < 0x40000 && logReads) {
-    console.log(`am29f040 - read 0x30000 sector ${hex(val)} @ ${hex(addr)}`);
-    }
+    //if (addr >= 0x30000 && addr < 0x40000 && logReads) {
+    //console.log(`am29f040 - read 0x30000 sector ${hex(val)} @ ${hex(addr)}`);
+    //}
      
     return val;
 }
@@ -108,12 +111,13 @@ AM29F040.prototype.write = function (addr, val) {
         case 3:
             if (this.mode === "program") {
                 this.mem[addr] &= val // flash can only clear bits when programming
-                if (addr < 0x10000) { // only log settings
+                this.mem_write_use_map[addr]++;
+                /*if (addr < 0x10000) { // only log settings
                     let callstack = cpu.getCallStackString();
                     //let callstack = "";
                     console.log(`am29f040 - write ${hex(val)} @ ${hex(addr)}\n${callstack}`);
                     //console.log(cpu.getCallStackString());
-                }
+                }*/
                 this.mode = "read"
                 this._resetToStep0()
             } else if (this.mode === "erase-armed") {
@@ -135,12 +139,15 @@ AM29F040.prototype.write = function (addr, val) {
             if (this.mode === "erase-armed") {
                 if (a === 0x555 && val === 0x10) {
                     this.mem.fill(0xFF) // chip erase
+                    this.mem_write_use_map.fill(0);
                     this.mode = "read"; this._resetToStep0()
                 } else if (val === 0x30) {
-                    console.log("29f040 sector erase happend");
+                    
                     const sectorStart = addr - (addr % this.sectorSize)
                     this.mem.fill(0xFF, sectorStart, sectorStart + this.sectorSize)
+                    this.mem_write_use_map.fill(0, sectorStart, sectorStart + this.sectorSize)
                     this.mode = "read"; this._resetToStep0()
+                    console.log(`29f040 sector erase happend - start:${hex(sectorStart,5)}, end:${hex(sectorStart + this.sectorSize - 1,5)}`);
                 } else {
                     this.mode = "read"; this._resetToStep0()
                 }

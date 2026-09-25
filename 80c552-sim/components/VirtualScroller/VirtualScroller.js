@@ -27,10 +27,20 @@
  *                             // (e.g. after a selection change)
  */
 class VirtualScroller {
-    constructor({ viewportEl, sizerEl, createRow, bindRow, unbindRow = null, bufferRows = 8, rowHeight = 20 }) {
+    constructor({ 
+        viewportEl, 
+        sizerEl, 
+        createRow, 
+        bindRow, 
+        unbindRow = null, 
+        bufferRows = 8, 
+        rowHeight = 20,
+        onScrollEnd = null
+    }) {
         this.viewportEl = viewportEl;
         this.sizerEl = sizerEl ?? createNewElement("div");
         this.viewportEl.appendChild(this.sizerEl);
+        this.onScrollEnd = onScrollEnd;
         
         this.createRow = createRow;
         this.bindRow = bindRow;
@@ -42,6 +52,7 @@ class VirtualScroller {
         this.pool = [];
         this._renderScheduled = false;
         this._resizeTimer = null;
+        this._scrollEndTimer = null;
 
         this.sizerEl.style.position = "relative";
 
@@ -50,6 +61,8 @@ class VirtualScroller {
 
         this._resizeObserver = new ResizeObserver(() => this._onResize());
         this._resizeObserver.observe(this.viewportEl);
+
+        
     }
 
     /**
@@ -138,6 +151,14 @@ class VirtualScroller {
             this._renderScheduled = false;
             this.render();
         });
+
+        if (this.onScrollEnd) {
+            clearTimeout(this._scrollSaveTimer);
+
+            this._scrollSaveTimer = setTimeout(() => {
+                this.onScrollEnd();
+            }, 1000);
+        }
     }
 
     _onResize() {
@@ -198,5 +219,29 @@ class VirtualScroller {
         this.viewportEl.removeEventListener("scroll", this._onScrollBound);
         this._resizeObserver.disconnect();
         clearTimeout(this._resizeTimer);
+        clearTimeout(this._scrollEndTimer);
+    }
+
+    getScrollPosition() {
+        const scrollTop = this.viewportEl.scrollTop;
+
+        return {
+            index: Math.floor(scrollTop / this.rowHeight),
+            offset: scrollTop % this.rowHeight
+        };
+    }
+
+    setScrollPosition(position) {
+        if (!position || this.itemCount === 0)
+            return;
+
+        const maxScrollTop =
+            Math.max(0, this.sizerEl.offsetHeight - this.viewportEl.clientHeight);
+
+        const scrollTop =
+            position.index * this.rowHeight + position.offset;
+
+        this.viewportEl.scrollTop = Math.min(scrollTop, maxScrollTop);
+        this.render();
     }
 }

@@ -76,7 +76,8 @@ function _51cpu(IRAMSize = 0x100, XRAMSize = 0x10000) {
     this.R7 = new reg()
     this.XRAM = []
     this.IRAM = []
-    this.IRAM_USE_MAP = []
+    this.IRAM_WRITE_USE_MAP = []
+    this.IRAM_READ_USE_MAP = []
     this.CODE = []
     this.SFR = {
         0x81: "SP",
@@ -285,6 +286,8 @@ _51cpu.prototype.reset = function () {
     this.callStack = [];
     let IRAMSize = this.IRAM.length;
     this.IRAM = [];
+    this.IRAM_WRITE_USE_MAP = new Uint32Array(256);
+    this.IRAM_READ_USE_MAP = new Uint32Array(256);
     for (let i = 0; i < IRAMSize; ++i)
         this.IRAM.push(0);
 }

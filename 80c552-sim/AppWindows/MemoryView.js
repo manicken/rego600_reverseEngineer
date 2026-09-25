@@ -37,7 +37,11 @@ class MemoryView extends AppWindow {
             createRow: () => this.#buildPoolRow(),
             bindRow: (line, index) => this.#bindPoolRowData(line, index),
             bufferRows: 8,
-            rowHeight: 13,
+            rowHeight: 16,
+            onScrollEnd: () => {
+                //console.log("saved scroll state:", new Date());
+                AppWindows.saveAppWindowsState();
+            }
         });
         this.virtualScroller.setCount(memorysize/this.columns);
 
@@ -48,6 +52,15 @@ class MemoryView extends AppWindow {
                 }
             }
         );
+    }
+
+    getStates() {
+        return {...super.getStates(), scrollposition:this.virtualScroller.getScrollPosition()}
+    }
+    setStates(states) {
+        super.setStates(states);
+        this.virtualScroller.setScrollPosition(states.scrollposition);
+        return this;
     }
 
     #buildPoolRow() {
@@ -86,7 +99,8 @@ class MemoryView extends AppWindow {
             } else if (writeUsed) {
                 data_in_hex += `<span class="ram_write_use_highlight" title="@ ${hex(addr,4)} R:${readCount} W:${writeCount}">${value.toString(16).padStart(2, '0')}</span> `;
             } else {
-                data_in_hex += `${value.toString(16).padStart(2, '0')} `;
+                data_in_hex += `<span title="@ ${hex(addr,4)}">${value.toString(16).padStart(2, '0')}</span> `;
+                //data_in_hex += `${value.toString(16).padStart(2, '0')} `;
             }
             
             data_in_ascii += printPrintable(value);
@@ -114,6 +128,46 @@ class XRAM_View extends MemoryView {
             writeusemap: cpu.bus.sram.mem_write_use_map,
             readusemap: cpu.bus.sram.mem_read_use_map,
             consideredwriteCount: 4,
+            consideredreadCount: 1,
+        });
+
+    }
+}
+
+class IRAM_View extends MemoryView {
+
+    static CreateNew_AndOpen() {
+        return new IRAM_View().setStates({height:720, width:720}).open();
+    }
+
+    constructor() {
+        super({ 
+            title:"IRAM", 
+            memorysize:256, 
+            reader:index => cpu.IRAM[index],
+            writeusemap: cpu.IRAM_WRITE_USE_MAP,
+            readusemap: cpu.IRAM_READ_USE_MAP,
+            consideredwriteCount: 1,
+            consideredreadCount: 1,
+        });
+
+    }
+}
+
+class AM29F040_FLASH_View extends MemoryView {
+
+    static CreateNew_AndOpen() {
+        return new AM29F040_FLASH_View().setStates({height:720, width:720}).open();
+    }
+
+    constructor() {
+        super({ 
+            title:"AM29F040 Flash", 
+            memorysize:(1024*512), 
+            reader: index => cpu.bus.flash.mem[index],
+            writeusemap: cpu.bus.flash.mem_write_use_map,
+            readusemap: cpu.bus.flash.mem_read_use_map,
+            consideredwriteCount: 1,
             consideredreadCount: 1,
         });
 

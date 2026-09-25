@@ -105,6 +105,12 @@ class AppWindows {
     static #Create_XRAM_View(states) {
         return new XRAM_View().setStates(states).open();
     }
+    static #Create_IRAM_View(states) {
+        return new IRAM_View().setStates(states).open();
+    }
+    static #Create_AM29F040_FLASH_View(states) {
+        return new AM29F040_FLASH_View().setStates(states).open();
+    }
     static #Create_Profiler(states) {
         return new Profiler({
             cpu: window.app.cpu, 
@@ -124,6 +130,8 @@ class AppWindows {
         [Profiler.TYPE]: AppWindows.#Create_Profiler,
         [HexEditor.TYPE]: AppWindows.#Create_HexEditor,
         [XRAM_View.TYPE]: AppWindows.#Create_XRAM_View,
+        [IRAM_View.TYPE]: AppWindows.#Create_IRAM_View,
+        [AM29F040_FLASH_View.TYPE]: AppWindows.#Create_AM29F040_FLASH_View,
     };
     static #decodeAndInitWindow(winState) {
         const factory = AppWindows.#WindowTypes[winState.type];
